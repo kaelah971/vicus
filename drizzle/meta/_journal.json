@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791109559239,
+      "tag": "0000_crazy_agent_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791111541862,
+      "tag": "0001_white_shocker",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791167436879,
+      "tag": "0002_bizarre_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791170735644,
+      "tag": "0003_confused_orphan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791171385330,
+      "tag": "0004_chilly_ink",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791171694991,
+      "tag": "0005_remove_demo_submission_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791172667297,
+      "tag": "0006_whole_beast",
+      "breakpoints": true
+    }
+  ]
+}

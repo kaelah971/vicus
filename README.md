@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vicus
 
-## Getting Started
+Vicus is a watch-first community layer for tokenized assets. The current app preserves the Slice 1 UI, Slice 2 Neon-backed content, and Slice 3 read-only Stellar role check while adding signed wallet sessions and authenticated offchain mission participation.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `DATABASE_URL` in `.env.local`. It is server-only and must not be exposed to the browser. For Slice 5A wallet sessions, copy `.env.example` and configure the app/domain values before connecting Freighter.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run db:verify
+npm run mission:verify
+npm run auth:verify
+```
 
-## Learn More
+The development seed is deterministic and recreates the Vicus development tables. It contains neutral educational data only—no fake wallets, balances, transactions, issuer approvals, yields, or rewards.
 
-To learn more about Next.js, take a look at the following resources:
+## Stellar verification
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`USDC on Stellar` supports an optional server-side, read-only mainnet check through `POST /api/stellar/verify-role`. The response shows a privacy-safe role such as verified holder or verified trustline, never an exact balance or portfolio. Pasted addresses are not persisted. PYUSD and USDY remain Watch/Learn-only until their Stellar lookup paths are unambiguous.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open a mission from a circle and connect Freighter on Stellar mainnet to complete the seeded proof-of-understanding quiz or submit a source-backed contribution for admin review. Vicus verifies a short-lived SEP-53 wallet message server-side, stores only the linked public key and a hashed session token, and never submits a transaction. No XLM or fee is required. Mission points are derived from approved submissions and are not financial value or blockchain rewards. The old `demo` row remains seed-only; live submissions use the authenticated session user.
 
-## Deploy on Vercel
+See the [Slice 3 verification notes](docs/Vicus_Slice_3_Stellar_Verification.md), [Slice 4 mission notes](docs/Vicus_Slice_4_Missions.md), and [Slice 5A auth notes](docs/Vicus_Slice_5A_Auth.md) for configuration, state behavior, integration evidence, and deferred scope.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Quality checks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run build
+```
