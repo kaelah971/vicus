@@ -1,40 +1,174 @@
 # Vicus
 
-Vicus is a watch-first community layer for tokenized assets. The current app preserves the Slice 1 UI, Slice 2 Neon-backed content, and Slice 3 read-only Stellar role check while adding signed wallet sessions and authenticated offchain mission participation.
+> **Where assets find their people.**
+>
+> **The community layer for tokenized assets.**
+
+Vicus is a Stellar-first community and campaign layer for tokenized assets. It gives people a place to discover assets, understand what they represent, verify meaningful participation, complete proof-based missions, and build reputation around asset communities.
+
+Vicus sits above the wallet. It is not an investment platform, brokerage, custody service, or financial adviser.
+
+## Why Vicus
+
+Tokenized assets can be technically real while remaining socially inert.
+
+Wallets hold and send assets. RWA dashboards display them. Neither naturally creates community, education, contribution, identity, or issuer distribution.
+
+Vicus adds that participation layer: source-backed context, watch-first discovery, privacy-safe role verification, proof-based missions, and an operational surface for reviewing contributions and campaign activity.
+
+## Product loop
+
+```text
+Discover → Understand → Watch → Verify → Participate → Build reputation → Receive proof / eligible rewards
+```
+
+The product is intentionally watch-first: people can learn before connecting a wallet. The final reward step is part of the product direction, but live Stellar reward settlement is not shipped yet.
+
+## What is live today
+
+| Capability | Status | Current truth |
+|---|---|---|
+| Premium web product | ✅ Shipped | Next.js App Router surfaces for Explore, circles, passports, missions, profiles, and admin review. |
+| Content and campaign data | ✅ Shipped | Neon Postgres and Drizzle-backed circles, Asset Passports, missions, profiles, and campaign records. |
+| Stellar role verification | ✅ Shipped | Real Stellar mainnet USDC holder/trustline checks with privacy-safe results. |
+| Proof-of-understanding missions | ✅ Shipped | Server-graded quiz configuration keeps correct answers off the client. |
+| Manual mission review | ✅ Shipped | Text and research submissions support pending, approved, rejected, and needs-revision states. |
+| Vicus reputation | ✅ Shipped | Approved participation points are derived from database state; they are not money or blockchain rewards. |
+| Wallet authentication | ✅ Shipped | Freighter plus SEP-53 signed-message authentication creates secure wallet-backed sessions. |
+| Authenticated participation | ✅ Shipped | Authenticated profiles, mission submissions, and admin review are session-backed. |
+| Stellar reward payout and claimable balances | ○ Roadmap | No payout, claimable balance, transaction receipt, or reward treasury is presented as live. |
+| Soroban, CCTP, full issuer onboarding, and cross-chain identity | ○ Roadmap | These remain future architecture and product work, not shipped functionality. |
+
+## Stellar integration
+
+Stellar is infrastructure in Vicus, not decoration:
+
+- **Mainnet reads:** the server reads Stellar account data through Horizon for the live verification path.
+- **USDC role verification:** a canonical USDC trustline with a positive balance can produce `Verified holder`; a matching trustline without a positive balance can produce `Verified trustline`.
+- **Privacy-safe output:** the API returns a role, reason, asset/network context, and timestamp—not an exact balance, portfolio, or issuer account.
+- **Freighter:** Stellar Wallets Kit discovers the wallet and Freighter signs the authentication message on Stellar mainnet.
+- **SEP-53 authentication:** Vicus verifies a short-lived signed message, not a transaction. Login requires no XLM and creates no Horizon transaction.
+- **Next step:** real Stellar reward settlement is planned, but payout, claimable balances, Soroban vaults, and treasury operations are not shipped.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    User[User / Freighter] --> App[Next.js App Router]
+    App --> API[Server / API layer]
+    API --> DB[Neon Postgres / Drizzle]
+    API --> Missions[Mission + identity services]
+    API --> Stellar[Stellar services]
+    Stellar --> Horizon[Horizon mainnet reads]
+    Stellar --> Role[USDC role verification]
+    Stellar --> SEP53[SEP-53 wallet proof]
+```
+
+The current server boundary keeps database access, role rules, authentication verification, and sensitive configuration on the server. There is no live settlement service in this diagram.
+
+For a compact engineering map, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Core product surfaces
+
+- **Explore** — browse circles without a wallet.
+- **Asset Circles** — an asset-native home for context, watch mode, verification, and missions.
+- **Asset Passport** — source-linked asset identity, intended use, eligibility, and risk/disclosure context.
+- **Missions** — proof-of-understanding quizzes and reviewed text/research contributions.
+- **Profile** — authenticated participation history, derived points, and contribution records.
+- **Issuer/Admin dashboard** — campaign-backed mission data and authenticated submission review. Full issuer onboarding and campaign funding are roadmap items.
+
+## Verification philosophy
+
+Vicus is explicit about what each proof means:
+
+- A **pasted address** is a read-only blockchain lookup. It is not proof that the visitor controls the address.
+- A **signed wallet message** is proof of control of the selected Stellar address. It is not proof of a balance, asset holding, or multisig authority.
+- Exact balances and unrelated portfolio data are never exposed publicly by the role-verification path.
+- Vicus does not invent asset ownership, approvals, rewards, or transaction hashes.
+- Eligibility, approval, claim creation, submission, and confirmation are separate states when reward settlement exists.
+- Roadmap functionality is labelled as roadmap rather than presented as live.
+
+## Tech stack
+
+Only the packages used by the current implementation are listed here:
+
+- Next.js 16.3.8 and React 19.2.8
+- TypeScript 5
+- Tailwind CSS v4
+- Neon Postgres via `@neondatabase/serverless`
+- Drizzle ORM and Drizzle Kit
+- Stellar SDK via `@stellar/stellar-sdk`
+- Stellar Wallets Kit via `@creit.tech/stellar-wallets-kit`
+- Freighter API via `@stellar/freighter-api`
 
 ## Local development
 
 ```bash
 npm install
+cp .env.example .env.local
+```
+
+On PowerShell, the equivalent is `Copy-Item .env.example .env.local`.
+
+Configure these server-side values in `.env.local`:
+
+```text
+DATABASE_URL
+VICUS_APP_URL
+VICUS_HOME_DOMAIN
+VICUS_ADMIN_WALLET_ADDRESSES
+```
+
+The current auth implementation binds SEP-53 messages through `VICUS_HOME_DOMAIN`; it does not require a separate `VICUS_WEB_AUTH_DOMAIN` setting. `DATABASE_URL` and wallet allowlists are server-only. Never commit `.env.local` or real credentials.
+
+Initialize the database with the deterministic development seed:
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:verify
+```
+
+Start the app:
+
+```bash
 npm run dev
 ```
 
-Set `DATABASE_URL` in `.env.local`. It is server-only and must not be exposed to the browser. For Slice 5A wallet sessions, copy `.env.example` and configure the app/domain values before connecting Freighter.
-
-## Database
+## Verification commands
 
 ```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
+npm run lint
+npx tsc --noEmit
+npm run build
 npm run db:verify
 npm run mission:verify
 npm run auth:verify
 ```
 
-The development seed is deterministic and recreates the Vicus development tables. It contains neutral educational data only—no fake wallets, balances, transactions, issuer approvals, yields, or rewards.
+The database, mission, and auth verification scripts exercise the implemented Neon-backed flows. Wallet extension approval still requires a browser with Freighter installed; authentication itself does not submit a Stellar transaction.
 
-## Stellar verification
+## Product documentation
 
-`USDC on Stellar` supports an optional server-side, read-only mainnet check through `POST /api/stellar/verify-role`. The response shows a privacy-safe role such as verified holder or verified trustline, never an exact balance or portfolio. Pasted addresses are not persisted. PYUSD and USDY remain Watch/Learn-only until their Stellar lookup paths are unambiguous.
+- [Product idea](docs/Vicus_Product_Idea.md)
+- [PRD, build plan, and architecture](docs/Vicus_PRD_Build_Plan_Architecture.md)
+- [Brand messaging](docs/Vicus_Brand_Messaging.md)
+- [Design system](docs/DESIGN.md)
+- [Current architecture map](docs/ARCHITECTURE.md)
+- [Slice 3 — Stellar verification](docs/Vicus_Slice_3_Stellar_Verification.md)
+- [Slice 4 — Missions](docs/Vicus_Slice_4_Missions.md)
+- [Slice 5A — Authentication](docs/Vicus_Slice_5A_Auth.md)
 
-Open a mission from a circle and connect Freighter on Stellar mainnet to complete the seeded proof-of-understanding quiz or submit a source-backed contribution for admin review. Vicus verifies a short-lived SEP-53 wallet message server-side, stores only the linked public key and a hashed session token, and never submits a transaction. No XLM or fee is required. Mission points are derived from approved submissions and are not financial value or blockchain rewards. The old `demo` row remains seed-only; live submissions use the authenticated session user.
+## Roadmap
 
-See the [Slice 3 verification notes](docs/Vicus_Slice_3_Stellar_Verification.md), [Slice 4 mission notes](docs/Vicus_Slice_4_Missions.md), and [Slice 5A auth notes](docs/Vicus_Slice_5A_Auth.md) for configuration, state behavior, integration evidence, and deferred scope.
+- Real Stellar reward settlement and transparent receipts
+- Issuer campaign funding and onboarding
+- Richer asset communities and contribution surfaces
+- Cross-chain identity
+- CCTP-funded campaigns
 
-## Quality checks
+These are planned directions, not current product claims.
 
-```bash
-npm run lint
-npm run build
-```
+## Hackathon
+
+Built for **Find Your Way: Hackathon** as a Stellar-first project.
