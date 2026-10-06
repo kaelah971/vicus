@@ -125,9 +125,6 @@ export function AppShell({
             <Link className="nav-issuer" href="/admin">
               Issuer access
             </Link>
-            <Link className="button button-violet button-small" href="/explore">
-              Explore circles
-            </Link>
           </div>
         </div>
       </header>

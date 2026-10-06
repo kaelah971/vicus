@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 function shortenAddress(address: string) {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  return `${address.slice(0, 4)}…${address.slice(-4)}`;
 }
 
 function contributionStatusLabel(status: string) {
@@ -98,6 +98,9 @@ export default async function MyProfilePage() {
     );
   }
 
+  const displayName = profile.user.displayName === "Stellar member" ? "Vicus member" : profile.user.displayName;
+  const primaryWallet = profile.wallets[0]?.publicKey;
+
   return (
     <AppShell>
       <main className="page-main">
@@ -108,8 +111,14 @@ export default async function MyProfilePage() {
               <div className="profile-identity">
                 <div aria-hidden="true" className="avatar-orb">VC</div>
                 <div>
-                  <h1>{profile.user.displayName}</h1>
-                  <p>@{profile.user.handle} · signed in · {profile.wallets.length} verified wallet{profile.wallets.length === 1 ? "" : "s"}</p>
+                  <h1>{displayName}</h1>
+                  <div className="profile-identity-meta">
+                    {primaryWallet ? <span className="profile-wallet-address">{shortenAddress(primaryWallet)}</span> : null}
+                    <span className="profile-verified-status">
+                      <span aria-hidden="true" className="verified-indicator" />
+                      Stellar wallet verified
+                    </span>
+                  </div>
                 </div>
               </div>
               <p className="fixture-note">
