@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ActivityItem,
-  AppShell,
   AssetPassport,
   DataState,
   EmptyState,
@@ -13,6 +12,7 @@ import {
   RewardState,
   StatusPill,
 } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { WatchButton } from "@/components/watch-button";
@@ -50,7 +50,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return (
-        <AppShell active="circles">
+        <AppShell active="discover">
           <main className="page-main">
             <div className="shell data-error-shell">
               <DataState title="Circle data is unavailable">
@@ -68,12 +68,12 @@ export default async function CirclePage({ params }: CirclePageProps) {
   if (!circle) notFound();
 
   return (
-    <AppShell active="circles">
+    <AppShell active="discover">
       <main className="page-main">
         <header className="circle-page-header">
           <div className="shell">
             <div className="breadcrumbs">
-              <Link href="/circles">Circles</Link>
+              <Link href="/discover">Discover</Link>
               <span>/</span>
               <span>{circle.name}</span>
             </div>
@@ -86,9 +86,9 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 <p>{circle.description}</p>
               </div>
               <div className="circle-page-actions">
-                <WatchButton />
+                <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
                 <span className="control-note">
-                  Watch mode does not connect a wallet or create an account in this slice.
+                  Watching is a persisted Vicus relationship, not proof of ownership.
                 </span>
               </div>
             </div>

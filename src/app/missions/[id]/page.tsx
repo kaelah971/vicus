@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  AppShell,
   DataState,
   Eyebrow,
   Icon,
   StatusPill,
 } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { MissionExperience } from "@/components/mission-experience";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";

@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  AppShell,
+  ButtonLink,
   DataState,
   EmptyState,
   Eyebrow,
   MetricCard,
   StatusPill,
 } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
+import { ProfileEditor } from "@/components/profile-editor";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { RewardClaimCard } from "@/components/reward-claim-card";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
+import { listEcosystems } from "@/lib/data/circles";
 import { getUserProfileById } from "@/lib/data/profiles";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +33,22 @@ function contributionStatusLabel(status: string) {
     ? "Needs revision"
     : status.charAt(0).toUpperCase() + status.slice(1);
 }
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "VC";
+}
+
+type ProfileActivity = {
+  kind: "WATCHED" | "MISSION" | "REWARD";
+  title: string;
+  detail: string;
+  date: Date;
+};
 
 export default async function MyProfilePage() {
   let session;
@@ -105,6 +124,37 @@ export default async function MyProfilePage() {
 
   const displayName = profile.user.displayName === "Stellar member" ? "Vicus member" : profile.user.displayName;
   const primaryWallet = profile.wallets[0]?.publicKey;
+  let ecosystems: Array<{ value: string; label: string }> = [];
+  try {
+    ecosystems = await listEcosystems();
+  } catch {
+    ecosystems = [];
+  }
+  const activity: ProfileActivity[] = [
+    ...profile.memberships.map((membership) => ({
+      kind: "WATCHED" as const,
+      title: `Started watching ${membership.circle.name}`,
+      detail: membership.circle.ecosystemLabel,
+      date: membership.joinedAt,
+    })),
+    ...profile.contributions.map((contribution) => ({
+      kind: "MISSION" as const,
+      title: `${contributionStatusLabel(contribution.status)} · ${contribution.missionTitle}`,
+      detail: `${contribution.circleName} · ${contribution.status === "approved" ? `+${contribution.points} Vicus points` : "Review state recorded"}`,
+      date: contribution.reviewedAt ?? contribution.submittedAt,
+    })),
+    ...profile.rewards
+      .filter((reward) => reward.status === "confirmed" && reward.confirmedAt)
+      .map((reward) => ({
+        kind: "REWARD" as const,
+        title: `Claimed ${reward.amount} XLM`,
+        detail: `${reward.missionTitle} · ${reward.network === "testnet" ? "Stellar Testnet" : "Stellar Public Network"}`,
+        date: new Date(reward.confirmedAt as string),
+      })),
+  ].sort((left, right) => right.date.getTime() - left.date.getTime());
+  const attentionRewards = profile.rewards.filter((reward) => ["eligible", "claimable", "submitted", "failed"].includes(reward.status));
+  const confirmedRewards = profile.rewards.filter((reward) => reward.status === "confirmed" && reward.id);
+  const verifiedRoles = profile.memberships.filter((membership) => ["verified-holder", "verified-trustline"].includes(membership.role));
 
   return (
     <AppShell active="profile">
@@ -114,7 +164,7 @@ export default async function MyProfilePage() {
             <Eyebrow>Authenticated profile</Eyebrow>
             <div className="profile-header-grid">
               <div className="profile-identity">
-                <div aria-hidden="true" className="avatar-orb">VC</div>
+                <div aria-hidden="true" className="avatar-orb">{initials(displayName)}</div>
                 <div>
                   <h1>{displayName}</h1>
                   <div className="profile-identity-meta">
@@ -124,55 +174,122 @@ export default async function MyProfilePage() {
                       Stellar wallet verified
                     </span>
                   </div>
+                  {profile.user.bio ? <p className="profile-bio">{profile.user.bio}</p> : null}
+                  <ProfileEditor
+                    initialAssetInterests={profile.user.assetInterests}
+                    initialBio={profile.user.bio ?? ""}
+                    initialDisplayName={displayName}
+                    initialPreferredEcosystems={profile.user.preferredEcosystems}
+                    ecosystems={ecosystems}
+                  />
+                  {[...profile.user.preferredEcosystems.map((value) => ecosystems.find((item) => item.value === value)?.label ?? value), ...profile.user.assetInterests].length > 0 ? (
+                    <div className="profile-preference-chips" aria-label="Profile preferences">
+                      {[...profile.user.preferredEcosystems.map((value) => ecosystems.find((item) => item.value === value)?.label ?? value), ...profile.user.assetInterests].map((preference) => (
+                        <span className="profile-preference-chip" key={preference}>{preference}</span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              <p className="fixture-note">
-                This Stellar wallet was verified with a server-generated, expiring SEP-53 message. Vicus
-                stores the linked public key for this account, never a secret, balance, or transaction.
-              </p>
             </div>
           </div>
         </header>
 
         <div className="shell profile-body">
           <div className="profile-metrics">
-            <MetricCard detail="Active membership records" label="Circles watched" value={String(profile.memberships.length)} />
-            <MetricCard detail="Verified mainnet wallet links" label="Wallets" value={String(profile.wallets.length)} accent />
-            <MetricCard detail="Approved mission points · offchain" label="Vicus points" value={String(profile.approvedPoints)} />
+            <MetricCard detail="Active watched-asset relationships" label="Watched assets" value={String(profile.memberships.length)} />
+            <MetricCard detail="Approved participation · offchain" label="Vicus points" value={String(profile.approvedPoints)} accent />
             <MetricCard detail="Pending, approved, and reviewed records" label="Contributions" value={String(profile.contributions.length)} />
+            <MetricCard detail="Eligible and claimed reward states" label="Rewards" value={String(profile.rewards.length)} />
           </div>
 
-          {profile.rewards.length > 0 ? (
+          <section className="hairline-card profile-watched-panel">
+            <div className="profile-reward-heading">
+              <div>
+                <Eyebrow>Watched assets</Eyebrow>
+                <h2>Keep the Circles that matter close.</h2>
+              </div>
+              <ButtonLink href="/discover" variant="text">Discover assets</ButtonLink>
+            </div>
+            {profile.memberships.length > 0 ? (
+              <div className="fixture-list">
+                {profile.memberships.map((membership) => (
+                  <div className="fixture-row" key={membership.id}>
+                    <span className="fixture-row-main">
+                      <Link href={`/circles/${membership.circle.slug}`}>
+                        <strong>{membership.circle.name}</strong>
+                      </Link>
+                      <span>{membership.circle.ecosystemLabel} · {membership.circle.category} · {membership.circle.stateLabel}</span>
+                    </span>
+                    <StatusPill tone="violet">Watching</StatusPill>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="You are not watching any assets yet">
+                Discover an Asset Circle to start following it in Vicus.
+                <ButtonLink href="/discover" variant="outline">Discover assets</ButtonLink>
+              </EmptyState>
+            )}
+          </section>
+
+          <section className="hairline-card profile-panel profile-activity-panel">
+            <Eyebrow>Your activity</Eyebrow>
+            <h2>Watch, learn, contribute, repeat.</h2>
+            {activity.length > 0 ? (
+              <div className="profile-activity-list">
+                {activity.map((item, index) => (
+                  <div className="profile-activity-row" key={`${item.kind}-${item.title}-${item.date.toISOString()}-${index}`}>
+                    <span className="profile-activity-kind">{item.kind}</span>
+                    <span className="profile-activity-main">
+                      <strong>{item.title}</strong>
+                      <span>{item.detail}</span>
+                    </span>
+                    <time dateTime={item.date.toISOString()}>{item.date.toISOString().slice(0, 10)}</time>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No activity yet">Watch an asset or start a mission to build your Vicus history.</EmptyState>
+            )}
+          </section>
+
+          {attentionRewards.length > 0 ? (
             <section className="hairline-card profile-reward-panel">
               <div className="profile-reward-heading">
                 <div>
-                  <Eyebrow>Stellar rewards</Eyebrow>
-                  <h2>Approved understanding can move onchain.</h2>
+                  <Eyebrow>Reward action</Eyebrow>
+                  <h2>A reward is ready for your next step.</h2>
                 </div>
                 <span className="field-help">Native XLM only · network shown on every reward</span>
               </div>
               <div className="profile-reward-list">
-                {profile.rewards.map((reward) => <RewardClaimCard key={reward.submissionId} reward={reward} />)}
+                {attentionRewards.map((reward) => <RewardClaimCard key={reward.submissionId} reward={reward} />)}
               </div>
             </section>
           ) : null}
 
           <div className="profile-section-grid">
             <section className="hairline-card profile-panel">
-              <Eyebrow>Linked Stellar wallets</Eyebrow>
-              <h2>Wallet verification, not exposure.</h2>
-              <div className="fixture-list">
-                {profile.wallets.map((wallet) => (
-                  <div className="fixture-row" key={wallet.id}>
-                    <span className="fixture-row-main">
-                      <strong>{shortenAddress(wallet.publicKey)}</strong>
-                      <span>{wallet.network} · verified {wallet.verifiedAt.toISOString().slice(0, 10)}</span>
-                    </span>
-                    <StatusPill tone="green">Verified</StatusPill>
-                  </div>
-                ))}
-              </div>
-              <p className="admin-footnote">Read-only role checks can still accept a pasted address without linking it to this account.</p>
+              <Eyebrow>Verified roles</Eyebrow>
+              <h2>Proof when a role is supported.</h2>
+              {verifiedRoles.length > 0 ? (
+                <div className="fixture-list">
+                  {verifiedRoles.map((membership) => (
+                    <div className="fixture-row" key={membership.id}>
+                      <span className="fixture-row-main">
+                        <strong>{membership.role}</strong>
+                        <span>{membership.circle.name} · {membership.circle.ecosystemLabel}</span>
+                      </span>
+                      <StatusPill tone="green">Verified</StatusPill>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No onchain roles verified yet">
+                  Supported Stellar role checks will appear here when they are recorded for this account.
+                </EmptyState>
+              )}
             </section>
 
             <section className="hairline-card profile-panel">
@@ -202,12 +319,44 @@ export default async function MyProfilePage() {
           </div>
 
           <section className="hairline-card profile-panel reward-history-panel">
-            <Eyebrow>Participation boundary</Eyebrow>
-            <h2>Vicus points stay offchain.</h2>
+            <Eyebrow>Reward history</Eyebrow>
+            <h2>Earned participation, clearly.</h2>
+            {confirmedRewards.length > 0 ? (
+              <div className="fixture-list">
+                {confirmedRewards.map((reward) => (
+                  <div className="fixture-row" key={reward.id}>
+                    <span className="fixture-row-main">
+                      <strong>{reward.amount} XLM</strong>
+                      <span>{reward.missionTitle} · {reward.network === "testnet" ? "Stellar Testnet" : "Stellar Public Network"}</span>
+                    </span>
+                    <Link className="mission-action-link" href={`/rewards/${reward.id}`}>View receipt</Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No confirmed rewards yet">
+                Eligible rewards become history after a real settlement is confirmed.
+              </EmptyState>
+            )}
+          </section>
+
+          <section className="hairline-card profile-panel profile-wallet-security">
+            <Eyebrow>Wallet &amp; security</Eyebrow>
+            <h2>Proof without exposure.</h2>
+            <div className="fixture-row">
+              <span className="fixture-row-main">
+                <strong>{primaryWallet ? shortenAddress(primaryWallet) : "No wallet linked"}</strong>
+                <span>{primaryWallet ? "Stellar mainnet · verified wallet control" : "Connect a wallet to link identity"}</span>
+              </span>
+              {primaryWallet ? <StatusPill tone="green">Verified</StatusPill> : null}
+            </div>
             <p className="profile-contribution-copy">
-              Approved points are derived from approved submissions. They are participation state, not
-              money, a claimable balance, an asset, or a blockchain reward.
+              Vicus stores the linked public key, never a secret or balance. Role checks return only the minimum result needed for supported Circles.
             </p>
+          </section>
+
+          <section className="profile-boundary-note">
+            Vicus points stay offchain. They are derived participation state, not money, a claimable balance, or a blockchain reward.
           </section>
         </div>
       </main>

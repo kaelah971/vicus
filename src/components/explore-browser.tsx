@@ -4,11 +4,22 @@ import { useMemo, useState } from "react";
 import { CircleCard, EmptyState, Icon } from "@/components/vicus";
 import type { Circle } from "@/lib/vicus-data";
 
-export function ExploreBrowser({ circles }: { circles: Circle[] }) {
+export function ExploreBrowser({
+  circles,
+  initialEcosystem = null,
+}: {
+  circles: Circle[];
+  initialEcosystem?: string | null;
+}) {
   const [query, setQuery] = useState("");
+  const [ecosystem, setEcosystem] = useState(initialEcosystem ?? "All ecosystems");
   const [category, setCategory] = useState("All categories");
   const [state, setState] = useState("All statuses");
 
+  const ecosystems = useMemo(
+    () => Array.from(new Set(circles.map((circle) => circle.ecosystemLabel ?? circle.ecosystem ?? circle.network))),
+    [circles],
+  );
   const categories = useMemo(
     () => Array.from(new Set(circles.map((circle) => circle.category))),
     [circles],
@@ -27,12 +38,13 @@ export function ExploreBrowser({ circles }: { circles: Circle[] }) {
             .toLowerCase()
             .includes(normalizedQuery)
         : true;
+      const matchesEcosystem = ecosystem === "All ecosystems" || (circle.ecosystemLabel ?? circle.ecosystem ?? circle.network) === ecosystem;
       const matchesCategory = category === "All categories" || circle.category === category;
       const matchesState = state === "All statuses" || circle.stateLabel === state;
 
-      return matchesQuery && matchesCategory && matchesState;
+      return matchesQuery && matchesEcosystem && matchesCategory && matchesState;
     });
-  }, [category, circles, query, state]);
+  }, [category, circles, ecosystem, query, state]);
 
   return (
     <section aria-labelledby="circle-directory-title" className="directory-section" id="circle-directory">
@@ -57,6 +69,16 @@ export function ExploreBrowser({ circles }: { circles: Circle[] }) {
             type="search"
             value={query}
           />
+        </label>
+        <label className="select-field">
+          <span className="sr-only">Filter by ecosystem</span>
+          <select aria-label="Filter by ecosystem" onChange={(event) => setEcosystem(event.target.value)} value={ecosystem}>
+            <option>All ecosystems</option>
+            {ecosystems.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+          <Icon name="chevron-down" size={15} />
         </label>
         <label className="select-field">
           <span className="sr-only">Filter by category</span>

@@ -1,6 +1,6 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { getDatabase, toDatabaseUnavailableError } from "@/db";
-import { activityEvents, assets, circles, missions } from "@/db/schema";
+import { activityEvents, assets, circleMemberships, circles, missions } from "@/db/schema";
 import type { MissionPreview } from "@/lib/vicus-data";
 import { getSubmissionStatesForUser } from "@/lib/data/missions";
 import type { ActivityRecord, CircleDetail, CircleRecord, MissionRecord } from "@/lib/data/types";
@@ -16,6 +16,11 @@ type JoinedCircle = {
   circle: CircleRow;
   asset: AssetRow | null;
 };
+
+export function ecosystemLabel(ecosystem: string): string {
+  if (ecosystem === "stellar") return "Stellar";
+  return ecosystem.charAt(0).toUpperCase() + ecosystem.slice(1);
+}
 
 function stateFor(circle: CircleRow) {
   if (circle.status === "education-only") {
@@ -98,6 +103,9 @@ export function mapCircle({ circle, asset }: JoinedCircle): CircleRecord {
     name: circle.name,
     code: asset?.code ?? "Education",
     network: asset?.chain ?? "Stellar",
+    ecosystem: asset?.ecosystem ?? "stellar",
+    ecosystemLabel: ecosystemLabel(asset?.ecosystem ?? "stellar"),
+    watched: false,
     category: circle.category,
     state: state.state,
     stateLabel: state.stateLabel,
@@ -149,16 +157,39 @@ async function getJoinedCircleBySlug(slug: string): Promise<JoinedCircle | null>
   return row ?? null;
 }
 
-export async function listCircles(): Promise<CircleRecord[]> {
+export async function listEcosystems(): Promise<Array<{ value: string; label: string }>> {
   try {
     const database = getDatabase();
     const rows = await database
-      .select({ circle: circles, asset: assets })
-      .from(circles)
-      .leftJoin(assets, eq(circles.assetId, assets.id))
-      .orderBy(asc(circles.featuredRank), asc(circles.name));
+      .selectDistinct({ ecosystem: assets.ecosystem })
+      .from(assets)
+      .innerJoin(circles, eq(circles.assetId, assets.id))
+      .orderBy(asc(assets.ecosystem));
+    return rows.map(({ ecosystem }) => ({ value: ecosystem, label: ecosystemLabel(ecosystem) }));
+  } catch {
+    throw toDatabaseUnavailableError("list ecosystems");
+  }
+}
 
-    return rows.map(mapCircle);
+export async function listCircles(userId?: string | null): Promise<CircleRecord[]> {
+  try {
+    const database = getDatabase();
+    const [rows, watchedRows] = await Promise.all([
+      database
+        .select({ circle: circles, asset: assets })
+        .from(circles)
+        .leftJoin(assets, eq(circles.assetId, assets.id))
+        .orderBy(asc(circles.featuredRank), asc(circles.name)),
+      userId
+        ? database
+            .select({ circleId: circleMemberships.circleId })
+            .from(circleMemberships)
+            .where(and(eq(circleMemberships.userId, userId), isNull(circleMemberships.leftAt)))
+        : Promise.resolve([]),
+    ]);
+    const watchedCircleIds = new Set(watchedRows.map(({ circleId }) => circleId));
+
+    return rows.map((row) => ({ ...mapCircle(row), watched: watchedCircleIds.has(row.circle.id) }));
   } catch {
     throw toDatabaseUnavailableError("list circles");
   }
@@ -241,7 +272,7 @@ export async function getCircleBySlug(
     }
 
     const database = getDatabase();
-    const [missionRows, activityRows] = await Promise.all([
+    const [missionRows, activityRows, membershipRows] = await Promise.all([
       database
         .select()
         .from(missions)
@@ -255,6 +286,19 @@ export async function getCircleBySlug(
         )
         .orderBy(desc(activityEvents.createdAt))
         .limit(6),
+      userId
+        ? database
+            .select({ id: circleMemberships.id })
+            .from(circleMemberships)
+            .where(
+              and(
+                eq(circleMemberships.circleId, joinedCircle.circle.id),
+                eq(circleMemberships.userId, userId),
+                isNull(circleMemberships.leftAt),
+              ),
+            )
+            .limit(1)
+        : Promise.resolve([]),
     ]);
 
     const mappedCircle = mapCircle(joinedCircle);
@@ -268,6 +312,7 @@ export async function getCircleBySlug(
 
     return {
       ...mappedCircle,
+      watched: membershipRows.length > 0,
       mission: mappedMissions[0] ?? null,
       missions: mappedMissions,
       activity: activityRows.map(mapActivity),

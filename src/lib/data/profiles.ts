@@ -13,6 +13,9 @@ async function buildUserProfile(
     handle: string;
     displayName: string;
     avatarUrl: string | null;
+    bio: string | null;
+    preferredEcosystems: string[];
+    assetInterests: string[];
     role: string;
   },
   includeWallets: boolean,
@@ -92,6 +95,9 @@ export async function getUserProfileByHandle(handle: string): Promise<UserProfil
         handle: users.handle,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        bio: users.bio,
+        preferredEcosystems: users.preferredEcosystems,
+        assetInterests: users.assetInterests,
         role: users.role,
       })
       .from(users)
@@ -117,6 +123,9 @@ export async function getUserProfileById(userId: string): Promise<UserProfile | 
         handle: users.handle,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        bio: users.bio,
+        preferredEcosystems: users.preferredEcosystems,
+        assetInterests: users.assetInterests,
         role: users.role,
       })
       .from(users)

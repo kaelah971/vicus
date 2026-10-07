@@ -1,0 +1,1 @@
+ALTER TABLE "assets" ADD COLUMN "ecosystem" varchar(32) DEFAULT 'stellar' NOT NULL;

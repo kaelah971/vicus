@@ -33,6 +33,9 @@ export type Circle = {
   name: string;
   code: string;
   network: string;
+  ecosystem?: string;
+  ecosystemLabel?: string;
+  watched?: boolean;
   category: string;
   state: CircleState;
   stateLabel: string;

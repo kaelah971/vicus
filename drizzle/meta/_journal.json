@@ -57,6 +57,20 @@
       "when": 1791281844173,
       "tag": "0007_mushy_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791361648875,
+      "tag": "0008_naive_siren",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791364745884,
+      "tag": "0009_stale_shen",
+      "breakpoints": true
     }
   ]
 }

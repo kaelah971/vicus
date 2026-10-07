@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import type { Circle, MissionPreview } from "@/lib/vicus-data";
 import type { CircleVerificationSummary } from "@/lib/data/types";
 import type { SubmissionStatus } from "@/lib/missions/types";
-import { WalletAuthButton } from "@/components/wallet-auth";
 
 export type IconName =
   | "arrow-right"
@@ -77,50 +76,6 @@ export function VicusWordmark({ href = "/" }: { href?: string }) {
     <Link aria-label="Vicus home" className="wordmark" href={href}>
       VICUS
     </Link>
-  );
-}
-
-type ShellSection = "circles" | "missions" | "profile" | "admin";
-
-export function AppShell({
-  active,
-  children,
-}: {
-  active?: ShellSection;
-  children: ReactNode;
-}) {
-  const navLink = (section: ShellSection) =>
-    cx("nav-link", "sidebar-link", active === section && "nav-link-active");
-
-  return (
-    <>
-      <aside aria-label="Primary navigation" className="desktop-sidebar">
-        <VicusWordmark />
-        <nav className="sidebar-links">
-          <Link aria-current={active === "circles" ? "page" : undefined} className={navLink("circles")} href="/circles">
-            Circles
-          </Link>
-          <Link aria-current={active === "missions" ? "page" : undefined} className={navLink("missions")} href="/missions">
-            Missions
-          </Link>
-          <Link aria-current={active === "profile" ? "page" : undefined} className={navLink("profile")} href="/profile/me">
-            Profile
-          </Link>
-        </nav>
-      </aside>
-      <header className="site-nav">
-        <div className="shell nav-inner">
-          <div className="mobile-wordmark"><VicusWordmark /></div>
-          <div className="nav-actions">
-            <WalletAuthButton />
-            <Link className="nav-issuer" href="/admin">
-              Issuer access
-            </Link>
-          </div>
-        </div>
-      </header>
-      <div className="app-content">{children}</div>
-    </>
   );
 }
 
@@ -265,11 +220,11 @@ export function CircleCard({ circle }: { circle: CircleView }) {
       <p>{circle.summary}</p>
       <div className="circle-card-meta">
         <span>{circle.category}</span>
-        <span>{circle.network}</span>
+        <span>{circle.ecosystemLabel ?? circle.ecosystem ?? circle.network}</span>
       </div>
       <div className="availability-list" aria-label="Circle availability">
         <span className="availability-item availability-available">
-          <span className="availability-dot" /> Watch
+          <span className="availability-dot" /> {circle.watched ? "Watching" : "Watch"}
         </span>
         <span className="availability-item availability-available">
           <span className="availability-dot" /> Learn
@@ -308,6 +263,10 @@ export function AssetPassport({
         <div>
           <dt>Asset</dt>
           <dd>{circle.code}</dd>
+        </div>
+        <div>
+          <dt>Ecosystem</dt>
+          <dd>{circle.ecosystemLabel ?? circle.ecosystem ?? circle.network}</dd>
         </div>
         <div>
           <dt>Network</dt>

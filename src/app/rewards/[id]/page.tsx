@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppShell, DataState, Eyebrow, StatusPill } from "@/components/vicus";
+import { DataState, Eyebrow, StatusPill } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";

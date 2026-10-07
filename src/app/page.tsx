@@ -49,7 +49,7 @@ export default async function Home() {
                 useful knowledge, and claim eligible rewards.
               </p>
               <div className="hero-actions">
-                <ButtonLink href="/circles" variant="white">
+                <ButtonLink href="/discover" variant="white">
                   Explore Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
                 <ButtonLink href="#verification" variant="outline">
@@ -76,7 +76,7 @@ export default async function Home() {
                 Browse asset circles, read the Passport, and understand what each community is for
                 before deciding whether to verify a role.
               </p>
-              <Link className="home-section-link" href="/circles">
+              <Link className="home-section-link" href="/discover">
                 Browse all circles <Icon name="arrow-right" size={16} />
               </Link>
             </div>

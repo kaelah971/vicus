@@ -266,8 +266,8 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
   const isSignedIn = session.status === "signed-in";
   const mobileNavigation = (
     <nav aria-label="Mobile navigation" className="wallet-mobile-nav">
-      <Link className="wallet-menu-link" href="/circles" onClick={() => setMobileMenuOpen(false)}>
-        Circles
+      <Link className="wallet-menu-link" href="/discover" onClick={() => setMobileMenuOpen(false)}>
+        Discover
       </Link>
       <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
         Missions

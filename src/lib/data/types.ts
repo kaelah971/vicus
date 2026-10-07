@@ -10,8 +10,11 @@ export type CircleVerificationSummary = {
   sourceUrl: string | null;
 };
 
-export type CircleRecord = Omit<Circle, "mission" | "stellar"> & {
+export type CircleRecord = Omit<Circle, "mission" | "stellar" | "ecosystem"> & {
   id: string;
+  ecosystem: string;
+  ecosystemLabel: string;
+  watched: boolean;
   mission: MissionRecord | null;
   verification: CircleVerificationSummary;
 };
@@ -73,6 +76,9 @@ export type UserProfile = {
     handle: string;
     displayName: string;
     avatarUrl: string | null;
+    bio: string | null;
+    preferredEcosystems: string[];
+    assetInterests: string[];
     role: string;
   };
   wallets: Array<{

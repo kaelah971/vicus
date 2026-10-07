@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  AppShell,
   ButtonLink,
   DataState,
   EmptyState,
@@ -9,6 +8,7 @@ import {
   MetricCard,
   StatusPill,
 } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { WalletConnectPrompt } from "@/components/wallet-auth";

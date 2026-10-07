@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppShell, DataState, EmptyState, Eyebrow, MissionCard } from "@/components/vicus";
+import { DataState, EmptyState, Eyebrow, MissionCard } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { listMissions } from "@/lib/data/missions";

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  AppShell,
   Badge,
   DataState,
   EmptyState,
@@ -11,6 +10,7 @@ import {
   RewardState,
   StatusPill,
 } from "@/components/vicus";
+import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getUserProfileByHandle } from "@/lib/data/profiles";
 
