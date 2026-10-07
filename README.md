@@ -36,8 +36,8 @@ The product is intentionally watch-first: people can learn before connecting a w
 | Vicus reputation | ✅ Shipped | Approved participation points are derived from database state; they are not money or blockchain rewards. |
 | Wallet authentication | ✅ Shipped | Freighter plus SEP-53 signed-message authentication creates secure wallet-backed sessions. |
 | Authenticated participation | ✅ Shipped | Authenticated profiles, mission submissions, and admin review are session-backed. |
-| Stellar reward payout and claimable balances | ○ Roadmap | No payout, claimable balance, transaction receipt, or reward treasury is presented as live. |
-| Soroban, CCTP, full issuer onboarding, and cross-chain identity | ○ Roadmap | These remain future architecture and product work, not shipped functionality. |
+| Testnet native XLM reward settlement | 🟣 In progress | Real direct-payment and durable receipt path is implemented; manual testnet acceptance still needs a funded distributor and recipient account. |
+| Mainnet payout, claimable balances, Soroban, CCTP, and cross-chain identity | ○ Roadmap | These remain safety-gated or future architecture and product work, not shipped functionality. |
 
 ## Stellar integration
 
@@ -48,7 +48,8 @@ Stellar is infrastructure in Vicus, not decoration:
 - **Privacy-safe output:** the API returns a role, reason, asset/network context, and timestamp—not an exact balance, portfolio, or issuer account.
 - **Freighter:** Stellar Wallets Kit discovers the wallet and Freighter signs the authentication message on Stellar mainnet.
 - **SEP-53 authentication:** Vicus verifies a short-lived signed message, not a transaction. Login requires no XLM and creates no Horizon transaction.
-- **Next step:** real Stellar reward settlement is planned, but payout, claimable balances, Soroban vaults, and treasury operations are not shipped.
+- **Testnet settlement:** approved reward-enabled missions can send native XLM from a dedicated server-side distributor and persist the real transaction receipt. The default path is Stellar Testnet; Testnet XLM has no monetary value.
+- **Safety boundary:** public-network rewards require `VICUS_ENABLE_MAINNET_REWARDS=true`; USDC rewards, claimable balances, Soroban vaults, and treasury operations remain roadmap work.
 
 ## Architecture
 
@@ -62,9 +63,10 @@ flowchart TD
     Stellar --> Horizon[Horizon mainnet reads]
     Stellar --> Role[USDC role verification]
     Stellar --> SEP53[SEP-53 wallet proof]
+    Stellar --> Rewards[Testnet XLM settlement + receipt]
 ```
 
-The current server boundary keeps database access, role rules, authentication verification, and sensitive configuration on the server. There is no live settlement service in this diagram.
+The current server boundary keeps database access, role rules, authentication verification, distributor signing, and sensitive configuration on the server. Mainnet settlement is explicitly safety-gated.
 
 For a compact engineering map, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -117,9 +119,13 @@ DATABASE_URL
 VICUS_APP_URL
 VICUS_HOME_DOMAIN
 VICUS_ADMIN_WALLET_ADDRESSES
+VICUS_REWARD_NETWORK
+VICUS_REWARD_DISTRIBUTOR_SECRET
+VICUS_REWARD_MAX_XLM
+VICUS_ENABLE_MAINNET_REWARDS
 ```
 
-The current auth implementation binds SEP-53 messages through `VICUS_HOME_DOMAIN`; it does not require a separate `VICUS_WEB_AUTH_DOMAIN` setting. `DATABASE_URL` and wallet allowlists are server-only. Never commit `.env.local` or real credentials.
+The current auth implementation binds SEP-53 messages through `VICUS_HOME_DOMAIN`; it does not require a separate `VICUS_WEB_AUTH_DOMAIN` setting. Reward distributor secrets are server-only and must never be prefixed with `NEXT_PUBLIC_`. Never commit `.env.local` or real credentials.
 
 Initialize the database with the deterministic development seed:
 
@@ -144,9 +150,10 @@ npm run build
 npm run db:verify
 npm run mission:verify
 npm run auth:verify
+npm run reward:verify
 ```
 
-The database, mission, and auth verification scripts exercise the implemented Neon-backed flows. Wallet extension approval still requires a browser with Freighter installed; authentication itself does not submit a Stellar transaction.
+The database, mission, auth, and reward verification scripts exercise the implemented Neon-backed flows. `reward:verify` uses isolated temporary records and settlement fakes; it does not present mocked activity as blockchain state. Real testnet settlement requires the manual distributor setup documented in Slice 5B.
 
 ## Product documentation
 
@@ -158,10 +165,11 @@ The database, mission, and auth verification scripts exercise the implemented Ne
 - [Slice 3 — Stellar verification](docs/Vicus_Slice_3_Stellar_Verification.md)
 - [Slice 4 — Missions](docs/Vicus_Slice_4_Missions.md)
 - [Slice 5A — Authentication](docs/Vicus_Slice_5A_Auth.md)
+- [Slice 5B — XLM rewards](docs/Vicus_Slice_5B_Rewards.md)
 
 ## Roadmap
 
-- Real Stellar reward settlement and transparent receipts
+- Mainnet Stellar reward settlement and broader receipt operations
 - Issuer campaign funding and onboarding
 - Richer asset communities and contribution surfaces
 - Cross-chain identity

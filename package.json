@@ -12,7 +12,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:verify": "tsx scripts/verify-db.ts",
     "mission:verify": "tsx scripts/verify-missions.ts",
-    "auth:verify": "tsx scripts/verify-auth.ts"
+    "auth:verify": "tsx scripts/verify-auth.ts",
+    "reward:verify": "tsx scripts/verify-rewards.ts"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.7.0",

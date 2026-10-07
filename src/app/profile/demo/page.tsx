@@ -48,7 +48,7 @@ export default async function DemoProfilePage() {
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return (
-        <AppShell>
+        <AppShell active="profile">
           <main className="page-main">
             <div className="shell data-error-shell">
               <DataState title="Profile data is unavailable">
@@ -65,7 +65,7 @@ export default async function DemoProfilePage() {
 
   if (!profile) {
     return (
-      <AppShell>
+      <AppShell active="profile">
         <main className="page-main">
           <div className="shell data-error-shell">
             <DataState title="Demo profile not found">
@@ -78,7 +78,7 @@ export default async function DemoProfilePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell active="profile">
       <main className="page-main">
         <header className="profile-header">
           <div className="shell">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import * as FreighterApi from "@stellar/freighter-api";
 import { Networks as WalletNetworks, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
@@ -28,6 +29,7 @@ type SessionState =
   | { status: "loading" }
   | { status: "signed-out" }
   | { status: "signed-in"; publicKey: string }
+  | { status: "unavailable"; message: string }
   | { status: "error"; message: string };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -70,6 +72,27 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+async function fetchSessionState(): Promise<SessionState> {
+  const response = await fetch("/api/auth/session", { cache: "no-store" });
+  const body = await readJson(response);
+
+  if (response.ok && isObject(body) && body.authenticated === true && isObject(body.wallet)) {
+    return {
+      status: "signed-in",
+      publicKey: typeof body.wallet.publicKey === "string" ? body.wallet.publicKey : "",
+    };
+  }
+
+  if (response.ok && isObject(body) && body.authenticated === false) {
+    return { status: "signed-out" };
+  }
+
+  return {
+    status: "unavailable",
+    message: "Session unavailable. Try again without disconnecting your wallet.",
+  };
+}
+
 export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNavigation?: boolean } = {}) {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
   const [busy, setBusy] = useState(false);
@@ -79,30 +102,53 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
   const controlRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then(async (response) => ({ response, body: await readJson(response) }))
-      .then(({ response, body }) => {
-        if (!active) return;
-        if (response.ok && isObject(body) && body.authenticated === true && isObject(body.user) && isObject(body.wallet)) {
-          setSession({
-            status: "signed-in",
-            publicKey: typeof body.wallet.publicKey === "string" ? body.wallet.publicKey : "",
-          });
-        } else {
-          setSession({ status: "signed-out" });
-        }
+    fetchSessionState()
+      .then((nextSession) => {
+        if (active) setSession(nextSession);
       })
       .catch(() => {
-        if (active) setSession({ status: "signed-out" });
+        if (active) {
+          setSession({
+            status: "unavailable",
+            message: "Session unavailable. Try again without disconnecting your wallet.",
+          });
+        }
       });
 
     return () => {
       active = false;
     };
   }, []);
+
+  async function retrySession() {
+    setBusy(true);
+    setMessage("");
+    try {
+      setSession(await fetchSessionState());
+    } catch {
+      setSession({
+        status: "unavailable",
+        message: "Session unavailable. Try again without disconnecting your wallet.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     if (!accountOpen && !mobileMenuOpen) return;
@@ -220,18 +266,18 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
   const isSignedIn = session.status === "signed-in";
   const mobileNavigation = (
     <nav aria-label="Mobile navigation" className="wallet-mobile-nav">
-      <a className="wallet-menu-link" href="/explore" onClick={() => setMobileMenuOpen(false)}>
-        Explore
-      </a>
-      <a className="wallet-menu-link" href="/explore#circle-directory" onClick={() => setMobileMenuOpen(false)}>
+      <Link className="wallet-menu-link" href="/circles" onClick={() => setMobileMenuOpen(false)}>
         Circles
-      </a>
-      <a className="wallet-menu-link" href="/explore#missions" onClick={() => setMobileMenuOpen(false)}>
+      </Link>
+      <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
         Missions
-      </a>
-      <a className="wallet-menu-link" href="/admin" onClick={() => setMobileMenuOpen(false)}>
+      </Link>
+      <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
+        Profile
+      </Link>
+      <Link className="wallet-menu-link" href="/admin" onClick={() => setMobileMenuOpen(false)}>
         Issuer access
-      </a>
+      </Link>
     </nav>
   );
 
@@ -258,7 +304,7 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
               type="button"
             >
               <span aria-hidden="true" className="verified-indicator" />
-              <span>Profile</span>
+              <span>{shortenAddress(session.publicKey)}</span>
             </button>
             {accountOpen ? (
               <div aria-labelledby="wallet-profile-trigger" className="wallet-account-menu" id="wallet-account-menu">
@@ -271,9 +317,9 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
                   </span>
                 </div>
                 <div className="wallet-menu-actions">
-                  <a className="wallet-menu-link" href="/profile/me" onClick={() => setAccountOpen(false)}>
+                  <Link className="wallet-menu-link" href="/profile/me" onClick={() => setAccountOpen(false)}>
                     View profile
-                  </a>
+                  </Link>
                   <button className="wallet-menu-action" disabled={busy} onClick={disconnect} type="button">
                     {busy ? "Signing out…" : "Sign out"}
                   </button>
@@ -281,6 +327,14 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
               </div>
             ) : null}
           </>
+        ) : session.status === "unavailable" ? (
+          <button aria-busy={busy} className="button button-outline button-small" disabled={busy} onClick={retrySession} type="button">
+            {busy ? "Retrying…" : "Session unavailable"}
+          </button>
+        ) : session.status === "loading" ? (
+          <button className="button button-outline button-small" disabled type="button">
+            Checking session…
+          </button>
         ) : (
           <button className="button button-outline button-small" disabled={busy} onClick={connect} type="button">
             {busy ? "Connecting…" : "Connect Freighter"}
@@ -307,6 +361,18 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
           </button>
           {mobileMenuOpen ? (
             <div aria-labelledby="wallet-mobile-trigger" className="wallet-mobile-menu" id="wallet-mobile-menu">
+              <button
+                aria-label="Close mobile navigation"
+                className="wallet-mobile-close"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  mobileTriggerRef.current?.focus();
+                }}
+                ref={mobileCloseRef}
+                type="button"
+              >
+                Close
+              </button>
               {mobileNavigation}
               {isSignedIn ? (
                 <>
@@ -319,14 +385,15 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
                     </span>
                   </div>
                   <div className="wallet-menu-actions">
-                    <a className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
-                      Profile
-                    </a>
                     <button className="wallet-menu-action" disabled={busy} onClick={disconnect} type="button">
                       {busy ? "Signing out…" : "Sign out"}
                     </button>
                   </div>
                 </>
+              ) : session.status === "unavailable" ? (
+                <button aria-busy={busy} className="wallet-menu-action wallet-menu-connect" disabled={busy} onClick={retrySession} type="button">
+                  {busy ? "Retrying session…" : "Session unavailable · Retry"}
+                </button>
               ) : (
                 <button className="wallet-menu-action wallet-menu-connect" disabled={busy} onClick={connect} type="button">
                   {busy ? "Connecting…" : "Connect Freighter"}

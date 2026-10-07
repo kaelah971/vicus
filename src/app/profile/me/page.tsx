@@ -9,8 +9,9 @@ import {
   StatusPill,
 } from "@/components/vicus";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
+import { RewardClaimCard } from "@/components/reward-claim-card";
 import { isDatabaseUnavailableError } from "@/db";
-import { getCurrentSession } from "@/lib/auth/session";
+import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { getUserProfileById } from "@/lib/data/profiles";
 
 export const dynamic = "force-dynamic";
@@ -35,13 +36,15 @@ export default async function MyProfilePage() {
   try {
     session = await getCurrentSession();
   } catch (error) {
-    if (isDatabaseUnavailableError(error)) {
+    if (isDatabaseUnavailableError(error) || isSessionUnavailableError(error)) {
       return (
-        <AppShell>
+        <AppShell active="profile">
           <main className="page-main">
             <div className="shell data-error-shell">
-              <DataState title="Session data is unavailable">
-                The database could not provide the signed-in profile right now. No fallback profile is shown.
+              <DataState title="Session temporarily unavailable">
+                Vicus could not verify the current session right now. Your wallet has not been disconnected.
+                <br />
+                <Link className="button button-outline button-small" href="/profile/me">Retry session lookup</Link>
               </DataState>
             </div>
           </main>
@@ -53,7 +56,7 @@ export default async function MyProfilePage() {
 
   if (!session) {
     return (
-      <AppShell>
+      <AppShell active="profile">
         <main className="page-main">
           <div className="shell data-error-shell">
             <DataState title="Connect a wallet to view your profile">
@@ -72,11 +75,13 @@ export default async function MyProfilePage() {
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return (
-        <AppShell>
+        <AppShell active="profile">
           <main className="page-main">
             <div className="shell data-error-shell">
-              <DataState title="Profile data is unavailable">
+              <DataState title="Profile data temporarily unavailable">
                 The database could not provide this profile right now. No fallback profile is shown.
+                <br />
+                <Link className="button button-outline button-small" href="/profile/me">Retry profile load</Link>
               </DataState>
             </div>
           </main>
@@ -88,7 +93,7 @@ export default async function MyProfilePage() {
 
   if (!profile) {
     return (
-      <AppShell>
+      <AppShell active="profile">
         <main className="page-main">
           <div className="shell data-error-shell">
             <DataState title="Profile not found">The signed-in Vicus account is no longer available.</DataState>
@@ -102,7 +107,7 @@ export default async function MyProfilePage() {
   const primaryWallet = profile.wallets[0]?.publicKey;
 
   return (
-    <AppShell>
+    <AppShell active="profile">
       <main className="page-main">
         <header className="profile-header">
           <div className="shell">
@@ -136,6 +141,21 @@ export default async function MyProfilePage() {
             <MetricCard detail="Approved mission points · offchain" label="Vicus points" value={String(profile.approvedPoints)} />
             <MetricCard detail="Pending, approved, and reviewed records" label="Contributions" value={String(profile.contributions.length)} />
           </div>
+
+          {profile.rewards.length > 0 ? (
+            <section className="hairline-card profile-reward-panel">
+              <div className="profile-reward-heading">
+                <div>
+                  <Eyebrow>Stellar rewards</Eyebrow>
+                  <h2>Approved understanding can move onchain.</h2>
+                </div>
+                <span className="field-help">Native XLM only · network shown on every reward</span>
+              </div>
+              <div className="profile-reward-list">
+                {profile.rewards.map((reward) => <RewardClaimCard key={reward.submissionId} reward={reward} />)}
+              </div>
+            </section>
+          ) : null}
 
           <div className="profile-section-grid">
             <section className="hairline-card profile-panel">

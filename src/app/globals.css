@@ -14,6 +14,7 @@
   --blue: #4d8dff;
   --cta: #6a2cf5;
   --success: #83d9b2;
+  --sidebar-width: 240px;
   color-scheme: dark;
 }
 
@@ -121,7 +122,7 @@ ul {
   width: min(1240px, calc(100% - 48px));
 }
 
-.site-nav {
+.marketing-nav {
   background: rgba(0, 0, 0, 0.9);
   border-bottom: 1px solid var(--hairline);
   position: sticky;
@@ -129,11 +130,69 @@ ul {
   z-index: 20;
 }
 
+.marketing-nav-inner {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-height: 76px;
+}
+
+.desktop-sidebar {
+  background: #000;
+  border-right: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  inset: 0 auto 0 0;
+  padding: max(32px, env(safe-area-inset-top)) 24px 24px;
+  position: fixed;
+  width: var(--sidebar-width);
+  z-index: 20;
+}
+
+.sidebar-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 52px;
+}
+
+.sidebar-link {
+  align-items: center;
+  border-left: 2px solid transparent;
+  display: flex;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.sidebar-link:hover,
+.sidebar-link.nav-link-active {
+  background: rgba(139, 43, 255, 0.08);
+  border-left-color: var(--portal);
+  color: var(--foreground);
+}
+
+.site-nav {
+  background: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid var(--hairline);
+  margin-left: var(--sidebar-width);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-content {
+  margin-left: var(--sidebar-width);
+  min-height: 100dvh;
+}
+
 .nav-inner {
   align-items: center;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: flex-end;
   min-height: 76px;
+}
+
+.mobile-wordmark {
+  display: none;
 }
 
 .wordmark {
@@ -307,6 +366,20 @@ ul {
 
 .wallet-menu-connect {
   margin-top: 6px;
+}
+
+.wallet-mobile-close {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 8px 0;
+}
+
+.wallet-mobile-close:hover {
+  color: var(--foreground);
 }
 
 .wallet-mobile-trigger,
@@ -1322,6 +1395,123 @@ button:focus-visible {
 }
 
 /* Explore */
+.explore-discovery-section {
+  border-top: 1px solid var(--hairline);
+  padding: 42px 0 56px;
+}
+
+.explore-section-heading {
+  align-items: end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.explore-section-heading h2 {
+  font-size: clamp(1.7rem, 3.5vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  margin-top: 12px;
+}
+
+.explore-section-heading p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-top: 9px;
+}
+
+.explore-featured-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 28px;
+}
+
+.explore-mission-section {
+  border-top: 1px solid var(--hairline);
+  padding: 52px 0;
+}
+
+.explore-mission-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 28px;
+}
+
+.explore-mission-item {
+  display: grid;
+  gap: 8px;
+}
+
+.explore-mission-context {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-inline: 4px;
+}
+
+.explore-mission-context a {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.explore-mission-context a:hover {
+  color: var(--foreground);
+}
+
+.explore-mission-context span {
+  color: var(--subtle);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.explore-continue-section {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
+  padding: 52px 0 124px;
+}
+
+.explore-continue-section h2 {
+  font-size: clamp(1.7rem, 3.5vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  margin-top: 12px;
+}
+
+.explore-continue-section > div:first-child p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  margin-top: 14px;
+  max-width: 360px;
+}
+
+.explore-continue-card {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  display: grid;
+  gap: 8px;
+  padding: 28px;
+}
+
+.explore-continue-card strong {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.explore-continue-card > span:not(.field-label) {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .directory-section {
   padding: 58px 0 124px;
 }
@@ -2069,6 +2259,34 @@ button:focus-visible {
   margin-top: 28px;
 }
 
+.mission-index-card {
+  display: grid;
+  gap: 8px;
+}
+
+.mission-index-context {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-inline: 4px;
+}
+
+.mission-index-context a {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.mission-index-context a:hover {
+  color: var(--foreground);
+}
+
+.mission-index-context span {
+  color: var(--subtle);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
 .mission-card {
   padding: 26px;
 }
@@ -2192,6 +2410,179 @@ button:focus-visible {
 
 .reward-state-compact {
   height: 100%;
+}
+
+.profile-reward-panel {
+  margin-top: 16px;
+  padding: clamp(22px, 3vw, 34px);
+}
+
+.profile-reward-heading,
+.reward-claim-header,
+.reward-receipt-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.profile-reward-heading h2 {
+  font-size: clamp(1.45rem, 3vw, 2.2rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-top: 12px;
+}
+
+.profile-reward-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.reward-claim-card {
+  background: #0a0a0d;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.reward-claim-header {
+  align-items: center;
+}
+
+.reward-claim-header h3 {
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  margin-top: 10px;
+}
+
+.reward-claim-meta,
+.reward-receipt-meta {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+.reward-claim-meta dt,
+.reward-receipt-meta dt,
+.reward-receipt-transaction dt {
+  color: var(--subtle);
+  font-size: 0.67rem;
+}
+
+.reward-claim-meta dd,
+.reward-receipt-meta dd {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  margin-top: 5px;
+}
+
+.reward-claim-copy,
+.reward-receipt-disclaimer,
+.reward-receipt-pending {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  margin-top: 20px;
+  max-width: 620px;
+}
+
+.reward-claim-error,
+.reward-receipt-failure {
+  border-left: 2px solid var(--magenta);
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  margin-top: 18px;
+  padding-left: 12px;
+}
+
+.reward-receipt-failure strong {
+  color: var(--foreground);
+  display: block;
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+.reward-claim-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.reward-receipt-header {
+  border-bottom: 1px solid var(--hairline);
+  padding: 74px 0 56px;
+}
+
+.reward-receipt-heading {
+  align-items: center;
+  margin-top: 36px;
+}
+
+.reward-receipt-heading h1 {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+}
+
+.reward-receipt-heading p {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-top: 15px;
+}
+
+.reward-receipt-body {
+  padding: 42px 0 124px;
+}
+
+.reward-receipt-panel {
+  max-width: 820px;
+  padding: clamp(22px, 4vw, 42px);
+}
+
+.reward-receipt-meta {
+  margin-top: 0;
+}
+
+.reward-receipt-transaction {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 9px;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+
+.reward-receipt-transaction dd {
+  margin: 0;
+}
+
+.reward-receipt-transaction code {
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.73rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.reward-receipt-transaction a {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.reward-receipt-transaction a:hover {
+  color: var(--magenta);
 }
 
 .activity-list {
@@ -2831,6 +3222,54 @@ button:focus-visible {
 }
 
 @media (max-width: 1023px) {
+  .desktop-sidebar {
+    display: none;
+  }
+
+  .site-nav,
+  .app-content {
+    margin-left: 0;
+  }
+
+  .mobile-wordmark {
+    display: block;
+  }
+
+  .nav-inner {
+    justify-content: space-between;
+  }
+
+  .wallet-desktop-control {
+    display: none;
+  }
+
+  .wallet-auth-control[data-mobile-navigation="false"] .wallet-desktop-control {
+    display: flex;
+  }
+
+  .wallet-mobile-trigger {
+    display: inline-flex;
+  }
+
+  .nav-issuer {
+    display: none;
+  }
+
+  .wallet-mobile-menu {
+    border-left: 1px solid var(--hairline-strong);
+    border-radius: 0;
+    bottom: 0;
+    display: grid;
+    min-height: 100dvh;
+    overflow-y: auto;
+    padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: min(340px, 88vw);
+    z-index: 40;
+  }
+
   .hero-grid,
   .circle-page-header-grid,
   .mission-page-header-grid,
@@ -2932,6 +3371,7 @@ button:focus-visible {
   }
 
   .page-intro-grid,
+  .explore-continue-section,
   .passport-footer,
   .missions-intro-grid,
   .mission-detail-grid,
@@ -2958,6 +3398,8 @@ button:focus-visible {
     min-height: 60vw;
   }
 
+  .explore-featured-grid,
+  .explore-mission-grid,
   .explore-preview-grid,
   .circle-grid,
   .mission-grid {
@@ -3054,6 +3496,15 @@ button:focus-visible {
     flex-direction: column;
   }
 
+  .explore-section-heading,
+  .profile-reward-heading,
+  .reward-claim-header,
+  .reward-receipt-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
   .campaign-row {
     align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3093,6 +3544,11 @@ button:focus-visible {
 
   .passport-meta {
     gap: 18px 12px;
+  }
+
+  .reward-claim-meta,
+  .reward-receipt-meta {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .passport-meta dd {

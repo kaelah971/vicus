@@ -1,5 +1,6 @@
 import type { Circle, MissionPreview } from "@/lib/vicus-data";
 import type { SubmissionStatus } from "@/lib/missions/types";
+import type { RewardStateView } from "@/lib/rewards/types";
 
 export type CircleVerificationSummary = {
   enabled: boolean;
@@ -83,6 +84,7 @@ export type UserProfile = {
   memberships: ProfileMembership[];
   badges: ProfileBadge[];
   contributions: ProfileContribution[];
+  rewards: RewardStateView[];
   approvedPoints: number;
 };
 

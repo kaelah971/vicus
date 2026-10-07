@@ -4,6 +4,7 @@ import { assets, badges, circleMemberships, circles, stellarWallets, users } fro
 import type { ProfileBadge, ProfileMembership, UserProfile } from "@/lib/data/types";
 import { mapCircle } from "@/lib/data/circles";
 import { getUserContributions } from "@/lib/data/missions";
+import { getUserRewardStates } from "@/lib/data/rewards";
 
 async function buildUserProfile(
   database: ReturnType<typeof getDatabase>,
@@ -47,6 +48,7 @@ async function buildUserProfile(
     getUserContributions(user.id),
     walletRowsPromise,
   ]);
+  const rewards = includeWallets ? await getUserRewardStates(user.id, walletRows[0]?.publicKey ?? null) : [];
 
   const memberships: ProfileMembership[] = membershipRows.map(({ membership, circle, asset }) => ({
     id: membership.id,
@@ -70,6 +72,7 @@ async function buildUserProfile(
     memberships,
     badges: profileBadges,
     contributions: participation.contributions,
+    rewards,
     approvedPoints: participation.approvedPoints,
   };
 }

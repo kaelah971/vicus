@@ -1,11 +1,22 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
+import { getDatabase, isDatabaseUnavailableError } from "@/db";
 import { authSessions, stellarWallets, users } from "@/db/schema";
 
 export const AUTH_COOKIE_NAME = "vicus_session";
 export const AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+
+export class SessionUnavailableError extends Error {
+  constructor() {
+    super("The Vicus session service is temporarily unavailable.");
+    this.name = "SessionUnavailableError";
+  }
+}
+
+export function isSessionUnavailableError(error: unknown): error is SessionUnavailableError {
+  return error instanceof SessionUnavailableError;
+}
 
 export type AuthenticatedSession = {
   sessionId: string;
@@ -94,7 +105,10 @@ export async function getCurrentSession(): Promise<AuthenticatedSession | null> 
       throw error;
     }
 
-    throw toDatabaseUnavailableError("get auth session");
+    console.error("[auth] session lookup failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+    throw new SessionUnavailableError();
   }
 }
 

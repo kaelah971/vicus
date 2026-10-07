@@ -13,7 +13,7 @@ import type {
   SubmissionStatus,
 } from "@/lib/missions/types";
 import { submissionStatuses } from "@/lib/missions/types";
-import type { ProfileContribution, SubmissionReviewRecord } from "@/lib/data/types";
+import type { MissionRecord, ProfileContribution, SubmissionReviewRecord } from "@/lib/data/types";
 
 type MissionRow = typeof missions.$inferSelect;
 type SubmissionRow = typeof missionSubmissions.$inferSelect;
@@ -187,6 +187,62 @@ export async function getMissionById(
     }
 
     throw toDatabaseUnavailableError("get mission");
+  }
+}
+
+function mapMissionIndexRecord(
+  mission: MissionRow,
+  circle: { name: string; slug: string },
+  submission: SubmissionState | null,
+): MissionRecord & { circle: { name: string; slug: string } } {
+  const review =
+    mission.reviewMode === "manual"
+      ? "Manual review"
+      : mission.reviewMode === "automatic"
+        ? "Automatic grading"
+        : mission.reviewMode === "not-connected"
+          ? "Preview only"
+          : mission.reviewMode;
+  const reward = mission.rewardAsset && mission.rewardAmount
+    ? `${mission.rewardAmount} ${mission.rewardAsset}`
+    : "No reward configured";
+
+  return {
+    id: mission.id,
+    title: mission.title,
+    description: mission.description,
+    type: mission.type,
+    review,
+    reward,
+    points: mission.points,
+    status: mission.status,
+    submissionStatus: submission?.status ?? null,
+    submissionScore: submission?.score ?? null,
+    circle,
+  };
+}
+
+export async function listMissions(
+  userId?: string | null,
+): Promise<Array<MissionRecord & { circle: { name: string; slug: string } }>> {
+  try {
+    const database = getDatabase();
+    const rows = await database
+      .select({ mission: missions, circle: circles })
+      .from(missions)
+      .innerJoin(circles, eq(missions.circleId, circles.id))
+      .orderBy(asc(missions.status), asc(missions.createdAt));
+    const submissionStates = await getSubmissionStatesForUser(
+      rows.map(({ mission }) => mission.id),
+      userId,
+    );
+
+    return rows.map(({ mission, circle }) =>
+      mapMissionIndexRecord(mission, circle, submissionStates.get(mission.id) ?? null),
+    );
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) throw error;
+    throw toDatabaseUnavailableError("list missions");
   }
 }
 

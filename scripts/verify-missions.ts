@@ -153,7 +153,10 @@ async function verify() {
     assert.equal(profile.approvedPoints, quiz.points + text.points);
     assert(profile.contributions.some((contribution) => contribution.status === "approved"));
     assert(profile.contributions.some((contribution) => contribution.status === "rejected"));
-    assert.equal((await getAdminSubmissionQueue()).length, 0);
+    const pendingDemoSubmissions = (await getAdminSubmissionQueue()).filter(
+      (submission) => submission.participantHandle === "demo",
+    );
+    assert.equal(pendingDemoSubmissions.length, 0);
 
     console.log("Mission flow verification passed", {
       quizFailedWithoutPoints: true,

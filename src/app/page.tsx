@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  AppShell,
   AssetPassport,
+  MarketingShell,
   ButtonLink,
   CircleCard,
   DataState,
@@ -14,15 +14,17 @@ import {
 } from "@/components/vicus";
 import { isDatabaseUnavailableError } from "@/db";
 import { listCircles } from "@/lib/data/circles";
+import { listMissions } from "@/lib/data/missions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   let featuredCircles = [] as Awaited<ReturnType<typeof listCircles>>;
+  let featuredMissions = [] as Awaited<ReturnType<typeof listMissions>>;
   let databaseUnavailable = false;
 
   try {
-    featuredCircles = await listCircles();
+    [featuredCircles, featuredMissions] = await Promise.all([listCircles(), listMissions()]);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       databaseUnavailable = true;
@@ -32,8 +34,9 @@ export default async function Home() {
   }
 
   const featuredCircle = featuredCircles[0];
+  const featuredMission = featuredMissions[0];
   return (
-    <AppShell active="home">
+    <MarketingShell>
       <main>
         <section className="hero">
           <div className="shell hero-grid">
@@ -46,8 +49,8 @@ export default async function Home() {
                 useful knowledge, and claim eligible rewards.
               </p>
               <div className="hero-actions">
-                <ButtonLink href="/explore" variant="white">
-                  Explore circles <Icon name="arrow-right" size={16} />
+                <ButtonLink href="/circles" variant="white">
+                  Explore Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
                 <ButtonLink href="#verification" variant="outline">
                   See how verification works
@@ -73,8 +76,8 @@ export default async function Home() {
                 Browse asset circles, read the Passport, and understand what each community is for
                 before deciding whether to verify a role.
               </p>
-              <Link className="home-section-link" href="/explore">
-                Browse the directory <Icon name="arrow-right" size={16} />
+              <Link className="home-section-link" href="/circles">
+                Browse all circles <Icon name="arrow-right" size={16} />
               </Link>
             </div>
             <div className="section-visual-stack">
@@ -138,7 +141,7 @@ export default async function Home() {
                 balance sheet.
               </p>
               <span className="section-note">
-                Read-only Stellar checks are available on configured circles; wallet connection remains deferred.
+                Read-only Stellar checks are available on configured circles; connect only when you choose a verified action.
               </span>
             </div>
             <div className="role-preview">
@@ -173,16 +176,16 @@ export default async function Home() {
                 Complete proof-based missions, contribute research, and build a record of
                 participation that is more meaningful than a click count.
               </p>
-              <Link className="home-section-link" href="/explore#missions">
-                See mission structure <Icon name="arrow-right" size={16} />
+              <Link className="home-section-link" href="/missions">
+                Explore missions <Icon name="arrow-right" size={16} />
               </Link>
             </div>
             <div className="mission-preview-grid">
-              {featuredCircle?.mission ? (
-                <MissionCard mission={featuredCircle.mission} />
+              {featuredMission ? (
+                <MissionCard mission={featuredMission} />
               ) : (
                 <EmptyState title="No mission configured">
-                  Mission content will appear when the database provides a mission for this circle.
+                  The database has no missions to show. No fixture mission is displayed.
                 </EmptyState>
               )}
               <div className="hairline-card">
@@ -212,8 +215,8 @@ export default async function Home() {
                 different moments. Vicus should show each one rather than compressing uncertainty
                 into a success label.
               </p>
-              <Link className="home-section-link" href="/profile/demo#reward-history">
-                See the receipt shell <Icon name="arrow-right" size={16} />
+              <Link className="home-section-link" href="/profile/me">
+                View your profile <Icon name="arrow-right" size={16} />
               </Link>
             </div>
             <div className="reward-preview-grid">
@@ -227,7 +230,7 @@ export default async function Home() {
                   <span><b>03</b> Submitted</span>
                   <span><b>04</b> Confirmed</span>
                 </div>
-                <p className="panel-copy">No transaction has been created in this static shell.</p>
+                <p className="panel-copy">This landing-page preview describes reward states; no reward settlement is implied here.</p>
               </div>
             </div>
           </div>
@@ -255,10 +258,10 @@ export default async function Home() {
 
         <footer className="shell home-footer">
           Vicus keeps its circle, mission, profile, and campaign content in the database. Stellar
-          Read-only role checks are available on configured circles; wallet connection, persistence,
-          and reward settlement remain intentionally deferred.
+          read-only role checks, wallet-backed sessions, and mission persistence are live; reward
+          settlement is not presented as shipped.
         </footer>
       </main>
-    </AppShell>
+    </MarketingShell>
   );
 }

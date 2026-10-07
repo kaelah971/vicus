@@ -73,7 +73,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
         <header className="circle-page-header">
           <div className="shell">
             <div className="breadcrumbs">
-              <Link href="/explore">Explore</Link>
+              <Link href="/circles">Circles</Link>
               <span>/</span>
               <span>{circle.name}</span>
             </div>
@@ -207,8 +207,8 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 <Eyebrow>Community / contributors</Eyebrow>
                 <h2>Useful contributions have a home.</h2>
                 <EmptyState title="No live contributors yet">
-                  This preview has no connected submissions or approved research. A later slice can
-                  add reviewable contributions here.
+                  No connected submissions or approved research are associated with this circle yet.
+                  Approved mission responses remain explicit about their review state.
                 </EmptyState>
               </div>
             </div>

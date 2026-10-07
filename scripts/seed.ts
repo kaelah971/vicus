@@ -256,8 +256,8 @@ async function seed() {
       description:
         "Read the USDC Passport and check your understanding of what the asset represents, what it does not promise, and which eligibility and risk notes matter.",
       points: 100,
-      rewardAsset: null,
-      rewardAmount: null,
+      rewardAsset: "XLM",
+      rewardAmount: "0.1",
       eligibilityRule: { kind: "education-only", note: "This is a proof-of-understanding check." },
       missionConfig: {
         kind: "quiz",

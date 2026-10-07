@@ -80,7 +80,7 @@ export function VicusWordmark({ href = "/" }: { href?: string }) {
   );
 }
 
-type ShellSection = "explore" | "circles" | "missions" | "admin" | "home";
+type ShellSection = "circles" | "missions" | "profile" | "admin";
 
 export function AppShell({
   active,
@@ -90,42 +90,46 @@ export function AppShell({
   children: ReactNode;
 }) {
   const navLink = (section: ShellSection) =>
-    cx("nav-link", active === section && "nav-link-active");
+    cx("nav-link", "sidebar-link", active === section && "nav-link-active");
 
   return (
     <>
+      <aside aria-label="Primary navigation" className="desktop-sidebar">
+        <VicusWordmark />
+        <nav className="sidebar-links">
+          <Link aria-current={active === "circles" ? "page" : undefined} className={navLink("circles")} href="/circles">
+            Circles
+          </Link>
+          <Link aria-current={active === "missions" ? "page" : undefined} className={navLink("missions")} href="/missions">
+            Missions
+          </Link>
+          <Link aria-current={active === "profile" ? "page" : undefined} className={navLink("profile")} href="/profile/me">
+            Profile
+          </Link>
+        </nav>
+      </aside>
       <header className="site-nav">
         <div className="shell nav-inner">
-          <VicusWordmark />
-          <nav aria-label="Primary navigation" className="nav-links">
-            <Link
-              aria-current={active === "explore" ? "page" : undefined}
-              className={navLink("explore")}
-              href="/explore"
-            >
-              Explore
-            </Link>
-            <Link
-              aria-current={active === "circles" ? "page" : undefined}
-              className={navLink("circles")}
-              href="/explore#circle-directory"
-            >
-              Circles
-            </Link>
-            <Link
-              aria-current={active === "missions" ? "page" : undefined}
-              className={navLink("missions")}
-              href="/explore#missions"
-            >
-              Missions
-            </Link>
-          </nav>
+          <div className="mobile-wordmark"><VicusWordmark /></div>
           <div className="nav-actions">
             <WalletAuthButton />
             <Link className="nav-issuer" href="/admin">
               Issuer access
             </Link>
           </div>
+        </div>
+      </header>
+      <div className="app-content">{children}</div>
+    </>
+  );
+}
+
+export function MarketingShell({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <header className="marketing-nav">
+        <div className="shell marketing-nav-inner">
+          <VicusWordmark />
         </div>
       </header>
       {children}
@@ -384,7 +388,10 @@ function missionStatusLabel(mission: MissionCardData) {
   if (mission.submissionStatus === "pending") return "Pending review";
   if (mission.submissionStatus === "needs_revision") return "Needs revision";
   if (mission.submissionStatus === "rejected") return "Rejected";
-  return mission.status === "open" ? "Open" : "Preview only";
+  if (mission.status === "open") return "Open";
+  if (mission.status === "scheduled") return "Scheduled";
+  if (mission.status === "closed") return "Closed";
+  return "Preview only";
 }
 
 function missionStatusTone(mission: MissionCardData): "violet" | "blue" | "muted" | "green" {
@@ -440,25 +447,25 @@ export function RewardState({ compact = false }: { compact?: boolean }) {
     <div className={cx("reward-state", compact && "reward-state-compact")}>
       <div className="reward-state-header">
         <span className="state-orb state-orb-muted" />
-        <StatusPill tone="muted">Not created</StatusPill>
+        <StatusPill tone="blue">Reward path</StatusPill>
       </div>
-      <h3>No reward has been created</h3>
+      <h3>Native XLM settlement is available</h3>
       <p>
-        Reward and claim wiring is intentionally deferred. This is the honest state for the
-        static product shell.
+        Approved reward-enabled missions can create a real XLM transaction after wallet and network checks.
+        Testnet XLM has no monetary value.
       </p>
       <dl className="reward-meta">
         <div>
           <dt>Eligibility</dt>
-          <dd>Not evaluated</dd>
+          <dd>Approved mission + verified wallet</dd>
         </div>
         <div>
           <dt>Settlement</dt>
-          <dd>No transaction</dd>
+          <dd>Direct native XLM payment</dd>
         </div>
         <div>
           <dt>Receipt</dt>
-          <dd>Not available</dd>
+          <dd>Durable transaction proof</dd>
         </div>
       </dl>
     </div>

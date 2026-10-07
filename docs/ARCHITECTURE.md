@@ -1,6 +1,6 @@
 # Vicus architecture
 
-This document describes the current implementation only. Reward settlement, claimable balances, Soroban vaults, CCTP, cross-chain identity, and full issuer onboarding are roadmap items and are intentionally not shown as live components.
+This document describes the current implementation only. A Stellar Testnet native-XLM settlement path is live in code; mainnet settlement, claimable balances, Soroban vaults, CCTP, cross-chain identity, and full issuer onboarding remain roadmap or safety-gated work.
 
 ## System map
 
@@ -15,6 +15,7 @@ flowchart TD
     Auth --> SEP53[SEP-53 signed messages]
     Stellar --> Horizon[Stellar mainnet Horizon reads]
     Stellar --> Role[Canonical USDC holder/trustline checks]
+    Stellar --> Rewards[Testnet XLM settlement + durable receipt]
 ```
 
 ## Frontend
@@ -41,6 +42,8 @@ Route handlers keep data access and security-sensitive decisions on the server:
 - `GET /api/profile/me` loads the authenticated profile.
 - `POST /api/missions/[id]/submit` validates and records a mission submission.
 - `POST /api/admin/submissions/[id]/review` applies an authenticated admin review transition.
+- `GET /api/rewards/me` loads the current user's eligible and claimed rewards.
+- `POST /api/rewards/submissions/[id]/claim` derives the reward from the approved submission and submits native XLM when configured.
 
 Server-only modules under `src/lib/` contain the auth, mission, data-access, and Stellar rules. The server reads canonical asset verification configuration from the database rather than accepting an issuer from the browser.
 
@@ -55,8 +58,9 @@ The current schema covers:
 - campaign records and mission definitions
 - mission submissions, review state, evidence URLs, and reviewer metadata
 - circle memberships and badges
+- reward claims with durable status, transaction proof, network, destination, and recovery metadata
 
-There is no reward-claims table or payout ledger in the current system. Approved Vicus points are derived from approved mission submissions and remain offchain participation data.
+Approved Vicus points are derived from approved mission submissions and remain offchain participation data. Reward claims are separate from points and only cover native XLM in the configured reward network.
 
 ## Mission system
 
@@ -67,7 +71,7 @@ The shipped paths are:
 - proof-of-understanding quiz: auto-graded to `approved` or `needs_revision`
 - text/research contribution: `pending`, then admin `approved`, `rejected`, or `needs_revision`
 
-A live submission requires an authenticated wallet session. Approval awards derived Vicus points; it does not create a blockchain reward.
+A live submission requires an authenticated wallet session. Approval awards derived Vicus points and makes an XLM reward-enabled mission eligible; settlement still requires an explicit user claim and a configured server-side distributor.
 
 ## Authentication and sessions
 
@@ -93,6 +97,12 @@ A signed message proves control of the selected signing key. It does not establi
 
 Pasted addresses are not persisted or logged by this path. Exact balances, unrelated assets, issuer accounts, and wallet-ownership claims are not returned. Unsupported or deferred assets remain learn/watch-only.
 
+## Reward settlement
+
+The reward service supports native XLM only. It selects a configured Testnet or public-network Horizon endpoint, verifies the destination account exists, loads the distributor sequence, builds and signs a normal payment server-side, persists the signed envelope and transaction hash, submits the transaction, and stores confirmation metadata.
+
+The current default is Stellar Testnet. Public-network settlement is rejected unless `VICUS_ENABLE_MAINNET_REWARDS=true`. USDC rewards, claimable balances, Soroban, and issuer treasury funding are not part of this slice.
+
 ## Security boundaries
 
 - Environment variables are server-only; `.env.local` is ignored.
@@ -101,16 +111,18 @@ Pasted addresses are not persisted or logged by this path. Exact balances, unrel
 - Auth challenges expire, are consumed, and have bounded verification attempts.
 - Session cookies are HttpOnly and SameSite; sessions are revocable and stored by hash.
 - The browser never holds a payment or admin signing key.
-- No current route submits a payment, creates a claimable balance, or claims a blockchain reward.
+- The reward distributor secret is server-only, never persisted, and never returned to the browser.
+- The browser cannot choose reward amount, asset, network, or destination.
+- The current route submits only configured native-XLM payments; no claimable balance or Soroban route exists.
 
 ## Local verification
 
 ```bash
 npm run db:migrate
-npm run db:seed
 npm run db:verify
 npm run mission:verify
 npm run auth:verify
+npm run reward:verify
 npm run lint
 npx tsc --noEmit
 npm run build

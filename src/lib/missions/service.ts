@@ -38,6 +38,15 @@ function getSubmissionOrThrow(
   return submission;
 }
 
+function approvedMissionMessage(mission: typeof missions.$inferSelect, points: number) {
+  const rewardConfigured = Boolean(
+    mission.rewardAsset && mission.rewardAmount && Number(mission.rewardAmount) > 0,
+  );
+  return rewardConfigured
+    ? `You completed this mission and earned ${points} Vicus points. Your reward is now eligible to claim from your profile.`
+    : `You completed this mission and earned ${points} Vicus points. No blockchain reward was created.`;
+}
+
 export async function submitMission(
   missionId: string,
   payload: unknown,
@@ -152,7 +161,7 @@ export async function submitMission(
         submission,
         pointsAwarded: passed ? context.mission.points : 0,
         message: passed
-          ? `You completed this mission and earned ${context.mission.points} Vicus points. No blockchain reward was created.`
+          ? approvedMissionMessage(context.mission, context.mission.points)
           : "Your response needs one more review of the Passport before you can pass this mission.",
       };
     }
@@ -310,7 +319,7 @@ export async function reviewMissionSubmission(
       pointsAwarded,
       message:
         action === "approved"
-          ? `Your response was approved. You earned ${pointsAwarded} Vicus points. No blockchain reward was created.`
+          ? approvedMissionMessage(row.mission, pointsAwarded)
           : action === "needs_revision"
             ? "Your response needs one more piece of evidence."
             : "This response was not approved. Review the reason and try again if the mission allows it.",

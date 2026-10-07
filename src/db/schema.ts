@@ -210,6 +210,44 @@ export const missionSubmissions = pgTable(
   ],
 );
 
+export const rewardClaims = pgTable(
+  "reward_claims",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    missionSubmissionId: uuid("mission_submission_id")
+      .notNull()
+      .references(() => missionSubmissions.id, { onDelete: "cascade" }),
+    missionId: uuid("mission_id")
+      .notNull()
+      .references(() => missions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    walletId: uuid("wallet_id")
+      .notNull()
+      .references(() => stellarWallets.id, { onDelete: "cascade" }),
+    network: varchar("network", { length: 32 }).notNull(),
+    asset: varchar("asset", { length: 32 }).notNull(),
+    amount: numeric("amount", { precision: 24, scale: 7 }).notNull(),
+    destinationPublicKey: varchar("destination_public_key", { length: 64 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull(),
+    transactionHash: varchar("transaction_hash", { length: 128 }),
+    signedEnvelopeXdr: text("signed_envelope_xdr"),
+    ledger: integer("ledger"),
+    failureCode: varchar("failure_code", { length: 80 }),
+    failureMessage: text("failure_message"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("reward_claims_submission_unique").on(table.missionSubmissionId),
+    uniqueIndex("reward_claims_transaction_hash_unique").on(table.transactionHash),
+    index("reward_claims_user_status_idx").on(table.userId, table.status),
+    index("reward_claims_mission_idx").on(table.missionId),
+  ],
+);
+
 export const circleMemberships = pgTable(
   "circle_memberships",
   {
