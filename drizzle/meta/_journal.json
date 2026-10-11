@@ -106,6 +106,13 @@
       "when": 1791736115883,
       "tag": "0014_space_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791738900027,
+      "tag": "0015_asset_capabilities",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,7 @@ import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data
 import { getCircleOrganization } from "@/lib/organizations/service";
 import { getCirclePeople } from "@/lib/social/service";
 import { listCirclePosts } from "@/lib/community/service";
+import { getCircleCapabilities, supportModeBadge } from "@/lib/utility/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
 
@@ -114,6 +115,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
     hostOrg = null;
   }
 
+  let capabilities: Awaited<ReturnType<typeof getCircleCapabilities>> = [];
+  try {
+    capabilities = await getCircleCapabilities(circle.slug);
+  } catch {
+    capabilities = [];
+  }
+
   let people: Awaited<ReturnType<typeof getCirclePeople>> = [];
   try {
     people = await getCirclePeople(circle.id);
@@ -187,6 +195,44 @@ export default async function CirclePage({ params }: CirclePageProps) {
               </p>
             </section>
           )}
+
+          {capabilities.length > 0 ? (
+            <section className="circle-section" id="use" aria-labelledby="circle-use-title">
+              <div className="circle-section-heading">
+                <div>
+                  <Eyebrow>Put it to work</Eyebrow>
+                  <h2 id="circle-use-title">What you can actually do with {circle.name}.</h2>
+                </div>
+                <p>
+                  Real, source-backed uses — not investment advice. Anything executed outside
+                  Vicus happens in your own wallet or the official flow.
+                </p>
+              </div>
+              <div className="mission-grid">
+                {capabilities.map((capability) => (
+                  <article className="mission-card" key={capability.id}>
+                    <div className="mission-card-header">
+                      <span className="mission-type">{supportModeBadge[capability.supportMode]}</span>
+                    </div>
+                    <h3>
+                      <Link href={`/circles/${circle.slug}/use/${capability.capabilityType}`}>
+                        {capability.title}
+                      </Link>
+                    </h3>
+                    <p>{capability.shortDescription}</p>
+                    <div className="mission-footer">
+                      <Link
+                        className="mission-action-link"
+                        href={`/circles/${circle.slug}/use/${capability.capabilityType}`}
+                      >
+                        {capability.ctaLabel}
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section className="circle-section" id="missions">
             <div className="circle-section-heading">

@@ -23,6 +23,7 @@
     "admin:verify": "tsx scripts/verify-admin.ts",
     "org:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-orgs.ts",
     "spaces:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-spaces.ts",
+    "utility:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-utility.ts",
     "org:seed": "tsx scripts/seed-circle-org.ts",
     "xeco:seed": "tsx scripts/add-cross-ecosystem-assets.ts"
   },

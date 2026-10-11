@@ -80,7 +80,8 @@ export default async function HostPage() {
               <Eyebrow>Host on Vicus</Eyebrow>
               <h1>Host your community on Vicus.</h1>
               <p>
-                A Space showcases your tokenized assets, publishes lessons, runs missions with
+                A Space showcases your tokenized assets, teaches people what they are, shows
+                real ways to use them, publishes lessons, runs activation missions with
                 Stellar-settled rewards, builds a contributor community, and reviews submissions —
                 together with learners.
               </p>

@@ -15,6 +15,7 @@ import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getOrganizationBySlug } from "@/lib/organizations/service";
 import { getSpaceCommunityActivity } from "@/lib/community/service";
+import { getSpaceCapabilities } from "@/lib/utility/service";
 import { getSpacePeople } from "@/lib/social/service";
 import { PersonCard } from "@/components/person-card";
 
@@ -70,14 +71,17 @@ export default async function SpacePage({ params }: SpacePageProps) {
 
   let community: Awaited<ReturnType<typeof getSpaceCommunityActivity>> = [];
   let people: Awaited<ReturnType<typeof getSpacePeople>> = [];
+  let utility: Awaited<ReturnType<typeof getSpaceCapabilities>> = [];
   try {
-    [community, people] = await Promise.all([
+    [community, people, utility] = await Promise.all([
       getSpaceCommunityActivity(org.id, 6),
       getSpacePeople(org.id, 8),
+      getSpaceCapabilities(org.id),
     ]);
   } catch {
     community = [];
     people = [];
+    utility = [];
   }
 
   const memberRole = org.role && org.role !== "global-admin" ? org.role : null;
@@ -228,6 +232,39 @@ export default async function SpacePage({ params }: SpacePageProps) {
             ) : (
               <EmptyState title="No open missions right now">
                 There are no participant-visible missions from this Space right now.
+              </EmptyState>
+            )}
+          </section>
+
+          <section className="circle-section" id="utility" aria-labelledby="space-utility-title">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>Put assets to work</Eyebrow>
+                <h2 id="space-utility-title">Real uses across {org.name}.</h2>
+              </div>
+              <p>Source-backed capabilities from hosted Circles — guides and official flows, never execution inside Vicus.</p>
+            </div>
+            {utility.length > 0 ? (
+              <div className="mission-grid">
+                {utility.map((group) => (
+                  <article className="mission-card" key={group.circleSlug}>
+                    <h3>
+                      <Link href={`/circles/${group.circleSlug}#use`}>{group.circleName}</Link>
+                    </h3>
+                    <p>
+                      {group.capabilities.map((capability) => capability.title).join(" · ")}
+                    </p>
+                    <div className="mission-footer">
+                      <Link className="mission-action-link" href={`/circles/${group.circleSlug}#use`}>
+                        Explore uses
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No documented uses yet">
+                Source-backed capabilities for hosted assets will appear here.
               </EmptyState>
             )}
           </section>

@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -504,5 +505,30 @@ export const spaceApplications = pgTable(
   (table) => [
     index("space_applications_applicant_status_idx").on(table.applicantUserId, table.status),
     index("space_applications_status_idx").on(table.status),
+  ],
+);
+
+export const assetCapabilities = pgTable(
+  "asset_capabilities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    capabilityType: varchar("capability_type", { length: 32 }).notNull(),
+    title: varchar("title", { length: 120 }).notNull(),
+    shortDescription: text("short_description").notNull(),
+    supportMode: varchar("support_mode", { length: 16 }).notNull(),
+    ctaLabel: varchar("cta_label", { length: 60 }).notNull(),
+    destinationUrl: text("destination_url"),
+    sourceUrl: text("source_url").notNull(),
+    eligibilityNote: text("eligibility_note"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("asset_capabilities_circle_type_unique").on(table.circleId, table.capabilityType),
+    index("asset_capabilities_circle_active_idx").on(table.circleId, table.active),
   ],
 );
