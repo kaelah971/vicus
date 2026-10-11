@@ -21,6 +21,8 @@ import { getCircleBySlug } from "@/lib/data/circles";
 import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data/roles";
 import { getCircleOrganization } from "@/lib/organizations/service";
 import { getCirclePeople } from "@/lib/social/service";
+import { listCirclePosts } from "@/lib/community/service";
+import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
 
 type CirclePageProps = {
@@ -118,6 +120,18 @@ export default async function CirclePage({ params }: CirclePageProps) {
   } catch {
     people = [];
   }
+
+  let communityPreview: Awaited<ReturnType<typeof listCirclePosts>> = [];
+  try {
+    communityPreview = await listCirclePosts(circle.slug, null, null, 30);
+  } catch {
+    communityPreview = [];
+  }
+  const communityByType = {
+    question: communityPreview.filter((post) => post.type === "question").slice(0, 2),
+    insight: communityPreview.filter((post) => post.type === "insight").slice(0, 2),
+    source: communityPreview.filter((post) => post.type === "source").slice(0, 2),
+  };
 
   return (
     <AppShell active="discover">
@@ -238,6 +252,31 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 </EmptyState>
               )}
             </div>
+          </section>
+
+          <section className="circle-section" id="community">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>Community</Eyebrow>
+                <h2>Questions, insights, sources.</h2>
+              </div>
+              <p>
+                {communityPreview.length} contributions ·{" "}
+                <Link href={`/circles/${circle.slug}/community`}>View community</Link>
+              </p>
+            </div>
+            {communityPreview.length > 0 ? (
+              <div className="mission-grid">
+                {[...communityByType.question, ...communityByType.insight, ...communityByType.source].map((post) => (
+                  <CommunityPostCard circleSlug={circle.slug} key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No community contributions yet">
+                Ask the first question for this Circle.{" "}
+                <Link href={`/circles/${circle.slug}/community`}>Open community</Link>
+              </EmptyState>
+            )}
           </section>
 
           <section className="circle-section" id="people">

@@ -458,17 +458,19 @@ export function ActivityItem({
   label,
   title,
   detail,
+  href,
 }: {
   label: string;
   title: string;
   detail: string;
+  href?: string;
 }) {
   return (
     <div className="activity-item">
       <span className="activity-line" />
       <div>
         <span className="activity-label">{label}</span>
-        <h3>{title}</h3>
+        <h3>{href ? <Link href={href}>{title}</Link> : title}</h3>
         <p>{detail}</p>
       </div>
     </div>

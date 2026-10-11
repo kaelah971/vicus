@@ -15,6 +15,7 @@ import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getEcosystemHub } from "@/lib/data/ecosystems";
 import { getEcosystemPeople } from "@/lib/social/service";
+import { getEcosystemCommunityActivity } from "@/lib/community/service";
 import { PersonCard } from "@/components/person-card";
 
 type HubPageProps = {
@@ -72,6 +73,13 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
     hubPeople = await getEcosystemPeople(hub.value, 4);
   } catch {
     hubPeople = [];
+  }
+
+  let hubCommunity: Awaited<ReturnType<typeof getEcosystemCommunityActivity>> = [];
+  try {
+    hubCommunity = await getEcosystemCommunityActivity(hub.value, 4);
+  } catch {
+    hubCommunity = [];
   }
 
   return (
@@ -222,6 +230,33 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
             ) : (
               <EmptyState title="No active people yet">
                 Watch a {hub.label} Circle or complete a mission to appear here.
+              </EmptyState>
+            )}
+          </section>
+
+          <section className="circle-section" id="community" aria-labelledby="hub-community-title">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>Community activity</Eyebrow>
+                <h2 id="hub-community-title">Recent across {hub.label}.</h2>
+              </div>
+              <p>A few recent questions, insights, sources, and answers. Each links back to its Circle.</p>
+            </div>
+            {hubCommunity.length > 0 ? (
+              <div className="content-panel">
+                {hubCommunity.map((item) => (
+                  <ActivityItem
+                    detail={`${item.circleName} · @${item.authorHandle} · ${item.createdAt.slice(0, 10)}`}
+                    href={`/circles/${item.circleSlug}/community/${item.postId}`}
+                    key={`${item.kind}-${item.id}`}
+                    label={item.kind === "post" ? (item.type ?? "post") : "answer"}
+                    title={item.title}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No community activity yet">
+                Questions and insights from {hub.label} Circles will appear here.
               </EmptyState>
             )}
           </section>

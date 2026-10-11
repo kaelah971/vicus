@@ -13,6 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getPublicProfileByHandle } from "@/lib/social/service";
+import { getUserCommunityContributions } from "@/lib/community/service";
 import { FollowButton } from "@/components/follow-button";
 import { personInitials } from "@/components/person-card";
 
@@ -65,6 +66,13 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   }
 
   if (!profile) notFound();
+
+  let community: Awaited<ReturnType<typeof getUserCommunityContributions>> = [];
+  try {
+    community = await getUserCommunityContributions(profile.user.handle);
+  } catch {
+    community = [];
+  }
 
   const isSelf = viewerId === profile.user.id;
 
@@ -149,6 +157,33 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             ) : (
               <EmptyState title="No approved contributions yet">
                 Approved mission responses will appear here.
+              </EmptyState>
+            )}
+          </section>
+
+          <section className="circle-section" aria-labelledby="person-community-title">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>Community</Eyebrow>
+                <h2 id="person-community-title">Questions, insights, sources, answers.</h2>
+              </div>
+              <p>Only active public content. Removed content never appears here.</p>
+            </div>
+            {community.length > 0 ? (
+              <div className="content-panel">
+                {community.slice(0, 10).map((item) => (
+                  <ActivityItem
+                    detail={`${item.circleSlug} · ${item.createdAt.slice(0, 10)}`}
+                    href={`/circles/${item.circleSlug}/community/${item.postId}`}
+                    key={`${item.kind}-${item.id}`}
+                    label={item.kind === "post" ? (item.type ?? "post") : "answer"}
+                    title={item.title}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No community contributions yet">
+                Questions, insights, sources, and answers will appear here.
               </EmptyState>
             )}
           </section>

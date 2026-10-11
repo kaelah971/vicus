@@ -417,3 +417,65 @@ export const userFollows = pgTable(
     index("user_follows_followed_idx").on(table.followedUserId),
   ],
 );
+
+export const circlePosts = pgTable(
+  "circle_posts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 32 }).notNull(),
+    title: varchar("title", { length: 180 }).notNull(),
+    body: text("body").notNull(),
+    sourceUrl: text("source_url"),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
+    ...timestamps,
+  },
+  (table) => [
+    index("circle_posts_circle_status_idx").on(table.circleId, table.status, table.createdAt),
+    index("circle_posts_author_idx").on(table.authorUserId),
+  ],
+);
+
+export const circleAnswers = pgTable(
+  "circle_answers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => circlePosts.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
+    ...timestamps,
+  },
+  (table) => [
+    index("circle_answers_post_idx").on(table.postId, table.status, table.createdAt),
+    index("circle_answers_author_idx").on(table.authorUserId),
+  ],
+);
+
+export const circlePostHelpful = pgTable(
+  "circle_post_helpful",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => circlePosts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("circle_post_helpful_post_user_unique").on(table.postId, table.userId),
+    index("circle_post_helpful_post_idx").on(table.postId),
+    index("circle_post_helpful_user_idx").on(table.userId),
+  ],
+);
