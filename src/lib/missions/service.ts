@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
-import { missionSubmissions, missions, users } from "@/db/schema";
+import { circles, missionSubmissions, missions, users } from "@/db/schema";
+import { normalizeXlmAmount } from "@/lib/rewards/config-core";
 import {
   assertOpenMission,
   getMissionSubmissionContext,
@@ -313,7 +315,6 @@ export async function reviewMissionSubmission(
       .returning();
     const submission = getSubmissionOrThrow(mapSubmissionState(updatedRows[0] ?? null));
     const pointsAwarded = action === "approved" ? row.mission.points : 0;
-
     return {
       submission,
       pointsAwarded,
@@ -330,5 +331,328 @@ export async function reviewMissionSubmission(
     }
 
     throw toDatabaseUnavailableError("review mission submission");
+  }
+}
+
+export type MissionCreateType = "quiz" | "text" | "research";
+
+export type MissionCreateQuizQuestion = {
+  prompt: unknown;
+  choices: unknown;
+  correctAnswer: unknown;
+};
+
+export type MissionCreateInput = {
+  circleId: unknown;
+  title: unknown;
+  description: unknown;
+  type: unknown;
+  points: unknown;
+  status: unknown;
+  rewardEnabled: unknown;
+  rewardAmount: unknown;
+  questions: MissionCreateQuizQuestion[] | unknown;
+  evidenceRequired: unknown;
+  evidencePrompt: unknown;
+};
+
+export type MissionCreateOutcome = {
+  mission: {
+    id: string;
+    circleId: string;
+    type: string;
+    title: string;
+    status: string;
+    points: number;
+    rewardAsset: string | null;
+    rewardAmount: string | null;
+  };
+};
+
+function asBoundedString(value: unknown, min: number, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length < min || trimmed.length > max) return null;
+  return trimmed;
+}
+
+async function assertMissionCreator(creatorId: string) {
+  const database = getDatabase();
+  const [creator] = await database
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.id, creatorId))
+    .limit(1);
+
+  if (!creator) {
+    throw new MissionActionError("unauthenticated", "Sign in with an admin wallet to create missions.", 401);
+  }
+
+  if (creator.role !== "admin") {
+    throw new MissionActionError("forbidden", "This wallet is not authorized to create missions.", 403);
+  }
+}
+
+function buildQuizConfig(questionsValue: unknown): Record<string, unknown> {
+  if (!Array.isArray(questionsValue) || questionsValue.length < 1 || questionsValue.length > 10) {
+    throw new MissionActionError("invalid-request", "Add between 1 and 10 quiz questions.", 400);
+  }
+
+  const questions = questionsValue.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new MissionActionError("invalid-request", `Question ${index + 1} is invalid.`, 400);
+    }
+
+    const prompt = asBoundedString(entry.prompt, 8, 500);
+    if (!prompt) {
+      throw new MissionActionError("invalid-request", `Question ${index + 1} needs a prompt of 8 to 500 characters.`, 400);
+    }
+
+    const rawChoices = Array.isArray(entry.choices) ? entry.choices : null;
+    const choices = rawChoices
+      ?.filter((choice): choice is string => typeof choice === "string")
+      .map((choice) => choice.trim())
+      .filter(Boolean);
+    const uniqueChoices = choices ? Array.from(new Set(choices)) : [];
+    if (uniqueChoices.length < 2 || uniqueChoices.length > 6 || uniqueChoices.some((choice) => choice.length > 280)) {
+      throw new MissionActionError("invalid-request", `Question ${index + 1} needs 2 to 6 unique choices of 280 characters or fewer.`, 400);
+    }
+
+    const correctAnswer = typeof entry.correctAnswer === "string" ? entry.correctAnswer.trim() : "";
+    if (!uniqueChoices.includes(correctAnswer)) {
+      throw new MissionActionError("invalid-request", `Question ${index + 1} needs a correct answer matching one of its choices.`, 400);
+    }
+
+    return { id: `q${index + 1}`, prompt, choices: uniqueChoices, correctAnswer };
+  });
+
+  return { kind: "quiz", passingScore: questions.length, questions };
+}
+
+function buildTextConfig(
+  kind: "text" | "research",
+  evidenceRequiredValue: unknown,
+  evidencePromptValue: unknown,
+): Record<string, unknown> {
+  const evidenceRequired = evidenceRequiredValue === true;
+  const evidencePrompt = asBoundedString(evidencePromptValue, 8, 500);
+  if (!evidencePrompt) {
+    throw new MissionActionError("invalid-request", "Add source guidance of 8 to 500 characters.", 400);
+  }
+
+  return {
+    kind,
+    minLength: kind === "text" ? 80 : 40,
+    maxLength: 2_000,
+    evidenceRequired,
+    evidencePrompt,
+  };
+}
+
+/**
+ * Create a mission for an existing circle. Admin-only; answer keys stay in
+ * server-side missionConfig and are stripped from public payloads by
+ * publicMissionConfig. Rewards reuse the existing XLM eligibility path:
+ * creation only configures them, never settles anything.
+ */
+export async function createMission(
+  input: MissionCreateInput,
+  creatorId: string,
+): Promise<MissionCreateOutcome> {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(creatorId)) {
+      throw new MissionActionError("unauthenticated", "Sign in with an admin wallet to create missions.", 401);
+    }
+
+    await assertMissionCreator(creatorId);
+
+    const circleId = typeof input.circleId === "string" ? input.circleId.trim() : "";
+    if (!/^[0-9a-f-]{36}$/i.test(circleId)) {
+      throw new MissionActionError("invalid-request", "Choose an existing Circle for this mission.", 400);
+    }
+
+    const title = asBoundedString(input.title, 8, 180);
+    if (!title) {
+      throw new MissionActionError("invalid-request", "Add a mission title of 8 to 180 characters.", 400);
+    }
+
+    const description = asBoundedString(input.description, 20, 2_000);
+    if (!description) {
+      throw new MissionActionError("invalid-request", "Add mission instructions of 20 to 2,000 characters.", 400);
+    }
+
+    if (input.type !== "quiz" && input.type !== "text" && input.type !== "research") {
+      throw new MissionActionError("invalid-request", "Choose a quiz, text, or research mission type.", 400);
+    }
+
+    if (input.status !== "draft" && input.status !== "open") {
+      throw new MissionActionError("invalid-request", "New missions start as draft or open.", 400);
+    }
+
+    const points = typeof input.points === "number" && Number.isInteger(input.points) ? input.points : null;
+    if (points === null || points < 0 || points > 10_000) {
+      throw new MissionActionError("invalid-request", "Set Vicus points between 0 and 10,000.", 400);
+    }
+
+    let rewardAsset: string | null = null;
+    let rewardAmount: string | null = null;
+    if (input.rewardEnabled === true) {
+      rewardAsset = "XLM";
+      try {
+        rewardAmount = normalizeXlmAmount(typeof input.rewardAmount === "string" ? input.rewardAmount : "");
+      } catch {
+        throw new MissionActionError("invalid-request", "Set a positive XLM reward amount.", 400);
+      }
+      if (Number(rewardAmount) <= 0) {
+        throw new MissionActionError("invalid-request", "Set a positive XLM reward amount.", 400);
+      }
+    }
+
+    const missionConfig =
+      input.type === "quiz"
+        ? buildQuizConfig(input.questions)
+        : buildTextConfig(input.type, input.evidenceRequired, input.evidencePrompt);
+
+    if (!parseMissionConfig(missionConfig)) {
+      throw new MissionActionError("invalid-request", "The mission configuration is invalid.", 400);
+    }
+
+    const database = getDatabase();
+    const [circle] = await database
+      .select({ id: circles.id })
+      .from(circles)
+      .where(eq(circles.id, circleId))
+      .limit(1);
+    if (!circle) {
+      throw new MissionActionError("mission-not-found", "That Circle could not be found.", 404);
+    }
+
+    const now = new Date();
+    const [created] = await database
+      .insert(missions)
+      .values({
+        id: randomUUID(),
+        circleId: circle.id,
+        campaignId: null,
+        type: input.type,
+        title,
+        description,
+        points,
+        rewardAsset,
+        rewardAmount,
+        eligibilityRule: { kind: "education-only", note: "Created in Campaign Studio; eligibility follows review state." },
+        missionConfig,
+        duplicatePolicy: "allow-revision",
+        reviewMode: input.type === "quiz" ? "automatic" : "manual",
+        status: input.status,
+        startsAt: null,
+        endsAt: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({
+        id: missions.id,
+        circleId: missions.circleId,
+        type: missions.type,
+        title: missions.title,
+        status: missions.status,
+        points: missions.points,
+        rewardAsset: missions.rewardAsset,
+        rewardAmount: missions.rewardAmount,
+      });
+
+    if (!created) {
+      throw toDatabaseUnavailableError("create mission");
+    }
+
+    return {
+      mission: {
+        ...created,
+        rewardAmount: created.rewardAmount ? String(created.rewardAmount) : null,
+      },
+    };
+  } catch (error) {
+    if (preserveExpectedError(error)) {
+      throw error;
+    }
+
+    throw toDatabaseUnavailableError("create mission");
+  }
+}
+
+/**
+ * Admin-only campaign lifecycle control. Only DRAFT <-> OPEN is supported.
+ * Reward settlement is untouched: this only flips the persisted mission
+ * status so participant visibility follows DB state immediately.
+ */
+export type MissionStatusTransition = "draft" | "open";
+
+export type MissionStatusOutcome = {
+  mission: {
+    id: string;
+    status: MissionStatusTransition;
+    title: string;
+  };
+};
+
+export async function updateMissionStatus(
+  missionId: string,
+  status: unknown,
+  adminId?: string | null,
+): Promise<MissionStatusOutcome> {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(missionId)) {
+      throw new MissionActionError("mission-not-found", "That mission could not be found.", 404);
+    }
+
+    if (!adminId || !/^[0-9a-f-]{36}$/i.test(adminId)) {
+      throw new MissionActionError("unauthenticated", "Sign in with an admin wallet to change campaign status.", 401);
+    }
+
+    if (status !== "draft" && status !== "open") {
+      throw new MissionActionError("invalid-request", "Campaign status must be draft or open.", 400);
+    }
+
+    await assertMissionCreator(adminId);
+
+    const database = getDatabase();
+    const [existing] = await database
+      .select({ id: missions.id, status: missions.status })
+      .from(missions)
+      .where(eq(missions.id, missionId))
+      .limit(1);
+
+    if (!existing) {
+      throw new MissionActionError("mission-not-found", "That mission could not be found.", 404);
+    }
+
+    if (existing.status !== "draft" && existing.status !== "open") {
+      throw new MissionActionError("invalid-transition", "This mission is not in a draft/open lifecycle state.", 409);
+    }
+
+    const now = new Date();
+    const [updated] = await database
+      .update(missions)
+      .set({ status, updatedAt: now })
+      .where(eq(missions.id, missionId))
+      .returning({ id: missions.id, status: missions.status, title: missions.title });
+
+    if (!updated) {
+      throw toDatabaseUnavailableError("update mission status");
+    }
+
+    return {
+      mission: {
+        id: updated.id,
+        status: updated.status as MissionStatusTransition,
+        title: updated.title,
+      },
+    };
+  } catch (error) {
+    if (preserveExpectedError(error)) {
+      throw error;
+    }
+
+    throw toDatabaseUnavailableError("update mission status");
   }
 }

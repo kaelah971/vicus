@@ -198,10 +198,11 @@ export async function listCircles(userId?: string | null): Promise<CircleRecord[
 export async function getCircleMissions(circleId: string): Promise<MissionRecord[]> {
   try {
     const database = getDatabase();
+    // Participant surface: only open missions are participant-visible.
     const rows = await database
       .select()
       .from(missions)
-      .where(eq(missions.circleId, circleId))
+      .where(and(eq(missions.circleId, circleId), eq(missions.status, "open")))
       .orderBy(asc(missions.createdAt));
 
     return rows.map((mission) => mapMission(mission));
@@ -276,7 +277,8 @@ export async function getCircleBySlug(
       database
         .select()
         .from(missions)
-        .where(eq(missions.circleId, joinedCircle.circle.id))
+        // Participant surface: drafts stay in Campaign Studio only.
+        .where(and(eq(missions.circleId, joinedCircle.circle.id), eq(missions.status, "open")))
         .orderBy(asc(missions.createdAt)),
       database
         .select()

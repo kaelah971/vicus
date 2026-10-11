@@ -70,6 +70,17 @@ export type ProfileContribution = {
   revisionReason: string | null;
 };
 
+export type VerifiedRoleSummary = {
+  id: string;
+  role: string;
+  lastState: string;
+  ecosystem: string;
+  network: string;
+  verifiedAt: Date;
+  lastCheckedAt: Date;
+  circle: CircleRecord;
+};
+
 export type UserProfile = {
   user: {
     id: string;
@@ -88,6 +99,7 @@ export type UserProfile = {
     verifiedAt: Date;
   }>;
   memberships: ProfileMembership[];
+  verifiedRoles: VerifiedRoleSummary[];
   badges: ProfileBadge[];
   contributions: ProfileContribution[];
   rewards: RewardStateView[];
@@ -110,6 +122,8 @@ export type SubmissionReviewRecord = {
   missionTitle: string;
   missionType: string;
   missionPoints: number;
+  missionRewardAsset: string | null;
+  missionRewardAmount: string | null;
   circleName: string;
   circleSlug: string;
   participantHandle: string;
@@ -122,6 +136,26 @@ export type SubmissionReviewRecord = {
   submittedAt: string;
 };
 
+export type AdminMissionRecord = {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  points: number;
+  rewardAsset: string | null;
+  rewardAmount: string | null;
+  reviewMode: string;
+  createdAt: string;
+  circle: CircleRecord;
+  submissions: {
+    pending: number;
+    needsRevision: number;
+    approved: number;
+    rejected: number;
+    total: number;
+  };
+};
+
 export type AdminSummary = {
   circles: number;
   campaigns: number;
@@ -131,4 +165,6 @@ export type AdminSummary = {
   activityEvents: number;
   pendingSubmissions: number;
   approvedSubmissions: number;
+  activeMissions: number;
+  openRewardExposureXlm: string;
 };

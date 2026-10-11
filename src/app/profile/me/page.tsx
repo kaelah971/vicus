@@ -44,7 +44,7 @@ function initials(name: string) {
 }
 
 type ProfileActivity = {
-  kind: "WATCHED" | "MISSION" | "REWARD";
+  kind: "WATCHED" | "MISSION" | "REWARD" | "ROLE";
   title: string;
   detail: string;
   date: Date;
@@ -131,6 +131,12 @@ export default async function MyProfilePage() {
     ecosystems = [];
   }
   const activity: ProfileActivity[] = [
+    ...profile.verifiedRoles.map((entry) => ({
+      kind: "ROLE" as const,
+      title: `Verified ${entry.role === "verified-holder" ? "Holder" : "Trustline"} · ${entry.circle.name}`,
+      detail: `${entry.ecosystem === "stellar" ? "Stellar" : entry.ecosystem} · Last verified ${entry.lastCheckedAt.toISOString().slice(0, 10)}`,
+      date: entry.lastCheckedAt,
+    })),
     ...profile.memberships.map((membership) => ({
       kind: "WATCHED" as const,
       title: `Started watching ${membership.circle.name}`,
@@ -154,7 +160,13 @@ export default async function MyProfilePage() {
   ].sort((left, right) => right.date.getTime() - left.date.getTime());
   const attentionRewards = profile.rewards.filter((reward) => ["eligible", "claimable", "submitted", "failed"].includes(reward.status));
   const confirmedRewards = profile.rewards.filter((reward) => reward.status === "confirmed" && reward.id);
-  const verifiedRoles = profile.memberships.filter((membership) => ["verified-holder", "verified-trustline"].includes(membership.role));
+  const verifiedRoles = profile.verifiedRoles;
+
+  function verifiedRoleLabel(role: string) {
+    if (role === "verified-holder") return "Verified Holder";
+    if (role === "verified-trustline") return "Verified Trustline";
+    return role;
+  }
 
   return (
     <AppShell active="profile">
@@ -275,11 +287,13 @@ export default async function MyProfilePage() {
               <h2>Proof when a role is supported.</h2>
               {verifiedRoles.length > 0 ? (
                 <div className="fixture-list">
-                  {verifiedRoles.map((membership) => (
-                    <div className="fixture-row" key={membership.id}>
+                  {verifiedRoles.map((entry) => (
+                    <div className="fixture-row" key={entry.id}>
                       <span className="fixture-row-main">
-                        <strong>{membership.role}</strong>
-                        <span>{membership.circle.name} · {membership.circle.ecosystemLabel}</span>
+                        <Link href={`/circles/${entry.circle.slug}`}>
+                          <strong>{verifiedRoleLabel(entry.role)} · {entry.circle.name}</strong>
+                        </Link>
+                        <span>{entry.ecosystem === "stellar" ? "Stellar" : entry.ecosystem} · {entry.network} · Last verified {entry.lastCheckedAt.toISOString().slice(0, 10)}</span>
                       </span>
                       <StatusPill tone="green">Verified</StatusPill>
                     </div>

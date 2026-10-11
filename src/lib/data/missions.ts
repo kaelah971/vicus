@@ -132,6 +132,24 @@ export async function getMissionById(
       return null;
     }
 
+    // Participant boundary: draft missions are admin/issuer work-in-progress.
+    // Only an admin viewer may read a non-open mission here; everyone else
+    // gets a not-found so no mission configuration leaks.
+    if (row.mission.status !== "open") {
+      let viewerIsAdmin = false;
+      if (userId) {
+        const [viewer] = await database
+          .select({ role: users.role })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        viewerIsAdmin = viewer?.role === "admin";
+      }
+      if (!viewerIsAdmin) {
+        return null;
+      }
+    }
+
     const participant = userId ? await findParticipant(database, userId) : null;
     let submission: SubmissionRow | null = null;
 
@@ -227,10 +245,14 @@ export async function listMissions(
 ): Promise<Array<MissionRecord & { circle: { name: string; slug: string } }>> {
   try {
     const database = getDatabase();
+    // Participant surface: drafts are issuer/admin work-in-progress and must
+    // never appear in the Mission Center. Admin Studio reads via
+    // getAdminMissions instead.
     const rows = await database
       .select({ mission: missions, circle: circles })
       .from(missions)
       .innerJoin(circles, eq(missions.circleId, circles.id))
+      .where(eq(missions.status, "open"))
       .orderBy(asc(missions.status), asc(missions.createdAt));
     const submissionStates = await getSubmissionStatesForUser(
       rows.map(({ mission }) => mission.id),
@@ -323,7 +345,31 @@ export async function getUserContributions(
   }
 }
 
-export async function getAdminSubmissionQueue(): Promise<SubmissionReviewRecord[]> {
+export type AdminQueueFilters = {
+  status?: string | null;
+  circleSlug?: string | null;
+  missionId?: string | null;
+};
+
+export async function getAdminSubmissionQueue(filters: AdminQueueFilters = {}): Promise<SubmissionReviewRecord[]> {
+  const rawStatus = typeof filters.status === "string" ? filters.status.trim() : "";
+  // Backward-compatible default: the review queue shows pending work unless a
+  // state (or "all") is requested explicitly.
+  const status = rawStatus === "" ? "pending" : rawStatus;
+  const circleSlug = typeof filters.circleSlug === "string" ? filters.circleSlug.trim() : "";
+  const missionId = typeof filters.missionId === "string" ? filters.missionId.trim() : "";
+
+  const conditions = [];
+  if (status !== "all" && (submissionStatuses as readonly string[]).includes(status)) {
+    conditions.push(eq(missionSubmissions.status, status));
+  }
+  if (circleSlug && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(circleSlug) && circleSlug.length <= 140) {
+    conditions.push(eq(circles.slug, circleSlug));
+  }
+  if (missionId && /^[0-9a-f-]{36}$/i.test(missionId)) {
+    conditions.push(eq(missions.id, missionId));
+  }
+
   try {
     const database = getDatabase();
     const rows = await database
@@ -332,8 +378,8 @@ export async function getAdminSubmissionQueue(): Promise<SubmissionReviewRecord[
       .innerJoin(missions, eq(missionSubmissions.missionId, missions.id))
       .innerJoin(circles, eq(missions.circleId, circles.id))
       .innerJoin(users, eq(missionSubmissions.userId, users.id))
-      .where(eq(missionSubmissions.status, "pending"))
-      .orderBy(asc(missionSubmissions.submittedAt));
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(missionSubmissions.submittedAt));
 
     return rows.flatMap(({ submission, mission, circle, participant }) => {
       if (!isSubmissionStatus(submission.status)) {
@@ -347,6 +393,8 @@ export async function getAdminSubmissionQueue(): Promise<SubmissionReviewRecord[
           missionTitle: mission.title,
           missionType: mission.type,
           missionPoints: mission.points,
+          missionRewardAsset: mission.rewardAsset,
+          missionRewardAmount: mission.rewardAmount ? String(mission.rewardAmount) : null,
           circleName: circle.name,
           circleSlug: circle.slug,
           participantHandle: participant.handle,

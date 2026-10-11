@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDatabase, toDatabaseUnavailableError } from "@/db";
-import { assets, badges, circleMemberships, circles, stellarWallets, users } from "@/db/schema";
-import type { ProfileBadge, ProfileMembership, UserProfile } from "@/lib/data/types";
+import { assets, badges, circleMemberships, circles, stellarRoleVerifications, stellarWallets, users } from "@/db/schema";
+import type { ProfileBadge, ProfileMembership, UserProfile, VerifiedRoleSummary } from "@/lib/data/types";
 import { mapCircle } from "@/lib/data/circles";
 import { getUserContributions } from "@/lib/data/missions";
 import { getUserRewardStates } from "@/lib/data/rewards";
@@ -33,7 +33,7 @@ async function buildUserProfile(
         .orderBy(asc(stellarWallets.createdAt))
     : Promise.resolve([]);
 
-  const [membershipRows, badgeRows, participation, walletRows] = await Promise.all([
+  const [membershipRows, badgeRows, participation, walletRows, verifiedRows] = await Promise.all([
     database
       .select({ membership: circleMemberships, circle: circles, asset: assets })
       .from(circleMemberships)
@@ -50,6 +50,14 @@ async function buildUserProfile(
       .orderBy(asc(badges.awardedAt)),
     getUserContributions(user.id),
     walletRowsPromise,
+    database
+      .select({ verification: stellarRoleVerifications, circle: circles, asset: assets })
+      .from(stellarRoleVerifications)
+      .innerJoin(circles, eq(stellarRoleVerifications.circleId, circles.id))
+      .leftJoin(assets, eq(stellarRoleVerifications.assetId, assets.id))
+      .where(eq(stellarRoleVerifications.userId, user.id))
+      .orderBy(asc(stellarRoleVerifications.lastCheckedAt))
+      .catch(() => [] as Array<{ verification: typeof stellarRoleVerifications.$inferSelect; circle: typeof circles.$inferSelect; asset: typeof assets.$inferSelect | null }>),
   ]);
   const rewards = includeWallets ? await getUserRewardStates(user.id, walletRows[0]?.publicKey ?? null) : [];
 
@@ -69,10 +77,24 @@ async function buildUserProfile(
     circle: circle ? mapCircle({ circle, asset }) : null,
   }));
 
+  const verifiedRoles: VerifiedRoleSummary[] = verifiedRows
+    .filter(({ verification }) => verification.role === "verified-holder" || verification.role === "verified-trustline")
+    .map(({ verification, circle, asset }) => ({
+      id: verification.id,
+      role: verification.role,
+      lastState: verification.lastState,
+      ecosystem: verification.ecosystem,
+      network: verification.network,
+      verifiedAt: verification.verifiedAt,
+      lastCheckedAt: verification.lastCheckedAt,
+      circle: mapCircle({ circle, asset }),
+    }));
+
   return {
     user,
     wallets: walletRows,
     memberships,
+    verifiedRoles,
     badges: profileBadges,
     contributions: participation.contributions,
     rewards,

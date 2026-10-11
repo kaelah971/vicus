@@ -1767,7 +1767,37 @@ button:focus-visible {
 }
 
 .circle-page-body {
-  padding: 56px 0 124px;
+  padding: 32px 0 124px;
+}
+
+.circle-identity {
+  align-items: end;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.5fr);
+  padding: 20px 0 8px;
+}
+
+.circle-identity h1 {
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  margin-top: 12px;
+}
+
+.circle-identity-meta {
+  color: var(--subtle);
+  font-size: 0.74rem;
+  margin-top: 10px;
+}
+
+.circle-identity > div > p:last-of-type {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin-top: 12px;
+  max-width: 640px;
 }
 
 .mission-page-header {
@@ -3311,6 +3341,71 @@ button:focus-visible {
   padding-inline: 14px;
 }
 
+.admin-queue-filters {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+
+.admin-queue-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mission-create-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.mission-create-form select,
+.mission-create-form input[type="text"],
+.mission-create-form input[type="number"],
+.mission-create-form textarea {
+  background: #050507;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+  color: var(--foreground);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.mission-create-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mission-create-checkrow {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.mission-create-checkrow input[type="checkbox"] {
+  height: 16px;
+  width: 16px;
+}
+
+.mission-create-question {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+}
+
+.mission-create-question label,
+.mission-create-form .field-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .form-message-success {
   color: var(--success);
 }
@@ -3521,6 +3616,7 @@ button:focus-visible {
 
   .hero-grid,
   .circle-page-header-grid,
+  .circle-identity,
   .mission-page-header-grid,
   .profile-header-grid,
   .admin-header-grid {

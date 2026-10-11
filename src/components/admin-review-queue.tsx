@@ -19,6 +19,18 @@ type ReviewResponse =
   | { ok: true; message: string }
   | { ok: false; message: string };
 
+function statusTone(status: string) {
+  if (status === "approved") return "status-green";
+  if (status === "pending") return "status-blue";
+  if (status === "needs_revision") return "status-violet";
+  return "status-muted";
+}
+
+function statusLabel(status: string) {
+  if (status === "needs_revision") return "Needs revision";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function isReviewResponse(value: unknown): value is ReviewResponse {
   if (typeof value !== "object" || value === null) return false;
   const response = value as Partial<ReviewResponse>;
@@ -90,11 +102,16 @@ export function AdminReviewQueue({ submissions }: AdminReviewQueueProps) {
                   <span className="eyebrow">{submission.missionType} · {submission.circleName}</span>
                   <h3>{submission.missionTitle}</h3>
                 </div>
-                <span className="status-pill status-blue">Pending review</span>
+                <span className={`status-pill ${statusTone(submission.status)}`}>{statusLabel(submission.status)}</span>
               </div>
               <div className="review-submission-meta">
                 <span>@{submission.participantHandle} · {submission.participantName}</span>
-                <span>{submission.missionPoints} Vicus points if approved</span>
+                <span>
+                  {submission.missionPoints} Vicus points if approved
+                  {submission.missionRewardAsset && submission.missionRewardAmount
+                    ? ` · ${submission.missionRewardAmount} ${submission.missionRewardAsset} reward eligible on approval`
+                    : " · no XLM reward configured"}
+                </span>
                 <span>Submitted {new Date(submission.submittedAt).toLocaleString()}</span>
               </div>
               <div className="review-submission-content">
@@ -106,6 +123,13 @@ export function AdminReviewQueue({ submissions }: AdminReviewQueueProps) {
                   </a>
                 ) : null}
               </div>
+              {submission.revisionReason ? (
+                <div className="review-submission-content">
+                  <span className="field-label">Review feedback</span>
+                  <p>{submission.revisionReason}</p>
+                </div>
+              ) : null}
+              {submission.status === "pending" ? (
               <div className="review-submission-actions">
                 <label htmlFor={`review-reason-${submission.id}`}>Review note</label>
                 <textarea
@@ -132,6 +156,7 @@ export function AdminReviewQueue({ submissions }: AdminReviewQueueProps) {
                   ))}
                 </div>
               </div>
+              ) : null}
             </article>
           ))}
         </div>

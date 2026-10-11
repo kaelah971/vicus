@@ -70,6 +70,7 @@ async function verify() {
   const assetVerificationRows = await database
     .select({
       code: assets.code,
+      ecosystem: assets.ecosystem,
       stellarAssetCode: assets.stellarAssetCode,
       stellarNetwork: assets.stellarNetwork,
       stellarIssuerAccount: assets.stellarIssuerAccount,
@@ -98,13 +99,16 @@ async function verify() {
     "pyusd-on-stellar",
     "usdy-on-stellar",
     "tokenized-treasury-education",
+    "usdc-on-ethereum",
+    "usdc-on-base",
+    "usdc-on-solana",
   ];
 
   const countsMatch =
     counts.users === 1 &&
-    counts.assets === 3 &&
-    counts.circles === 4 &&
-    counts.missions === 6 &&
+    counts.assets === 6 &&
+    counts.circles === 7 &&
+    counts.missions === 7 &&
     counts.campaigns === 2 &&
     counts.memberships === 3 &&
     counts.badges === 4 &&
@@ -114,7 +118,7 @@ async function verify() {
     counts.authChallenges === 0 &&
     counts.authSessions === 0;
   const slugsMatch = expectedSlugs.every((slug) => slugs.includes(slug));
-  const usdcConfig = assetVerificationRows.find((asset) => asset.code === "USDC");
+  const usdcConfig = assetVerificationRows.find((asset) => asset.code === "USDC" && asset.ecosystem === "stellar");
   const pyusdConfig = assetVerificationRows.find((asset) => asset.code === "PYUSD");
   const usdyConfig = assetVerificationRows.find((asset) => asset.code === "USDY");
   const canonicalConfigMatch = Boolean(

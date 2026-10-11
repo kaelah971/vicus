@@ -14,7 +14,11 @@
     "mission:verify": "tsx scripts/verify-missions.ts",
     "auth:verify": "tsx scripts/verify-auth.ts",
     "reward:verify": "tsx scripts/verify-rewards.ts",
-    "watch:verify": "tsx scripts/verify-watch.ts"
+    "watch:verify": "tsx scripts/verify-watch.ts",
+    "role:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-roles.ts",
+    "ecosystem:verify": "tsx scripts/verify-cross-ecosystem.ts",
+    "admin:verify": "tsx scripts/verify-admin.ts",
+    "xeco:seed": "tsx scripts/add-cross-ecosystem-assets.ts"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.7.0",
@@ -24,7 +28,8 @@
     "drizzle-orm": "^0.45.3",
     "next": "16.3.8",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

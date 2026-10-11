@@ -73,6 +73,10 @@ The shipped paths are:
 
 A live submission requires an authenticated wallet session. Approval awards derived Vicus points and makes an XLM reward-enabled mission eligible; settlement still requires an explicit user claim and a configured server-side distributor.
 
+## Campaign Studio (admin)
+
+`/admin` is server-gated on the admin allowlist role. Authorized admins can create missions for existing Circles (quiz with server-side answer keys, or text/research with source guidance), configure points and optional XLM rewards (Testnet-bound by server configuration; creation never settles anything), filter the review queue by status/Circle/mission, and approve, request revision, or reject with notes. Reviews reuse `reviewMissionSubmission`: pending-only transitions, reviewer + timestamp preserved, points and reward eligibility flow through the existing paths. Campaign detail lives at `/admin/missions/[id]`. Quiz `correctAnswer` values are stripped from public payloads by `publicMissionConfig`.
+
 ## Authentication and sessions
 
 1. Stellar Wallets Kit discovers Freighter and requires Stellar mainnet.
@@ -96,6 +100,18 @@ A signed message proves control of the selected signing key. It does not establi
 - `unsupported`
 
 Pasted addresses are not persisted or logged by this path. Exact balances, unrelated assets, issuer accounts, and wallet-ownership claims are not returned. Unsupported or deferred assets remain learn/watch-only.
+
+Successful supported checks on the authenticated user's linked wallet persist as `stellar_role_verifications` rows (user, wallet, circle, role, ecosystem, network, timestamps — never balances or secrets) under a unique `(user_id, circle_id)` constraint, so reverify updates one logical row. These surface on Profile Verified Roles. Pasted-address checks can never create a Profile role.
+
+## Cross-ecosystem discovery (v1)
+
+Vicus is cross-ecosystem for discovery and learning; Stellar remains the wallet, identity, verification, and settlement rail:
+
+- Discover, sidebar ecosystems, and profile preferences are data-driven from stored assets, so Ethereum, Base, and Solana circles (currently source-backed USDC entries) appear automatically.
+- Every Circle supports Watch, Passport, missions, Vicus points, and Stellar-settled reward eligibility where configured.
+- Onchain holder verification is Stellar-only. Non-Stellar circles render a restrained capability notice and never mount Stellar verification controls.
+- The cross-ecosystem proof mission ("Understand USDC on Base") settles its 0.05 XLM reward on Stellar Testnet: asset ecosystem and reward network are distinct by design.
+- Future per-ecosystem verification adapters do not exist yet and are not claimed.
 
 ## Reward settlement
 
@@ -123,6 +139,10 @@ npm run db:verify
 npm run mission:verify
 npm run auth:verify
 npm run reward:verify
+npm run watch:verify
+npm run role:verify
+npm run ecosystem:verify
+npm run admin:verify
 npm run lint
 npx tsc --noEmit
 npm run build

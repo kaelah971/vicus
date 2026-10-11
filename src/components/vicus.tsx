@@ -277,22 +277,38 @@ export function AssetPassport({
           <dd>{circle.category}</dd>
         </div>
         <div>
-          <dt>Issuer / source</dt>
-          <dd>{circle.issuerSource}</dd>
+          <dt>Source / status</dt>
+          <dd>{circle.sourceStatus}</dd>
         </div>
       </dl>
 
       <div className="passport-body">
         <div className="passport-copy-block">
-          <span className="field-label">What it represents</span>
+          <span className="field-label">What it is</span>
           <p>{circle.description}</p>
         </div>
         <div className="passport-copy-block">
-          <span className="field-label">Intended use</span>
-          <p>{circle.intendedUse}</p>
+          <span className="field-label">Ecosystem</span>
+          <p>
+            {circle.ecosystemLabel ?? circle.ecosystem ?? circle.network} · {circle.network} · {circle.category}.
+            Vicus Circles stay compatible with future ecosystems, but role checks here remain Stellar-only.
+          </p>
         </div>
         <div className="passport-copy-block">
-          <span className="field-label">Eligibility note</span>
+          <span className="field-label">Asset identity</span>
+          <p>
+            {circle.code} · {circle.issuerSource}. Vicus shows only stored source-backed identity — no issuer,
+            price, market-cap, or availability claims beyond what is recorded.
+          </p>
+        </div>
+        <div className="passport-copy-block">
+          <span className="field-label">What it does not promise</span>
+          <p>
+            No prices, yields, market caps, availability, or returns are stated or implied here. {circle.intendedUse}
+          </p>
+        </div>
+        <div className="passport-copy-block">
+          <span className="field-label">Eligibility / access</span>
           <p>{circle.eligibilityNote}</p>
         </div>
         <div className="passport-copy-block passport-risk">
@@ -303,7 +319,11 @@ export function AssetPassport({
 
       <div className="passport-footer">
         <div className="passport-source">
-          <span className="field-label">Source</span>
+          <span className="field-label">Source status</span>
+          <span className="source-status">{circle.sourceStatus}</span>
+        </div>
+        <div className="passport-source">
+          <span className="field-label">Official sources</span>
           {circle.sourceUrl ? (
             <a href={circle.sourceUrl} rel="noreferrer" target="_blank">
               {circle.sourceLabel} <Icon name="external" size={14} />
@@ -311,7 +331,6 @@ export function AssetPassport({
           ) : (
             <span className="source-status">{circle.sourceLabel}</span>
           )}
-          <span className="source-status">{circle.sourceStatus}</span>
         </div>
         <div className="passport-source passport-verified">
           <span className="field-label">Last verified</span>
@@ -385,6 +404,10 @@ export function MissionCard({ mission }: { mission: MissionCardData }) {
         <div>
           <dt>Points</dt>
           <dd>{mission.points ?? "—"} Vicus points</dd>
+        </div>
+        <div>
+          <dt>Reward</dt>
+          <dd>{mission.reward}</dd>
         </div>
       </dl>
       <div className="mission-footer">

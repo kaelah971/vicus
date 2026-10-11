@@ -304,3 +304,32 @@ export const activityEvents = pgTable(
     index("activity_events_user_created_idx").on(table.userId, table.createdAt),
   ],
 );
+
+export const stellarRoleVerifications = pgTable(
+  "stellar_role_verifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    walletId: uuid("wallet_id")
+      .notNull()
+      .references(() => stellarWallets.id, { onDelete: "cascade" }),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
+    role: varchar("role", { length: 32 }).notNull(),
+    ecosystem: varchar("ecosystem", { length: 32 }).notNull().default("stellar"),
+    network: varchar("network", { length: 32 }).notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).defaultNow().notNull(),
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }).defaultNow().notNull(),
+    lastState: varchar("last_state", { length: 48 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("stellar_role_verifications_user_circle_unique").on(table.userId, table.circleId),
+    index("stellar_role_verifications_user_idx").on(table.userId),
+    index("stellar_role_verifications_circle_idx").on(table.circleId),
+  ],
+);
