@@ -13,6 +13,7 @@ type ReviewAction = keyof typeof reviewLabels;
 
 type AdminReviewQueueProps = {
   submissions: SubmissionReviewRecord[];
+  actionBase?: string;
 };
 
 type ReviewResponse =
@@ -37,7 +38,7 @@ function isReviewResponse(value: unknown): value is ReviewResponse {
   return typeof response.ok === "boolean" && typeof response.message === "string";
 }
 
-export function AdminReviewQueue({ submissions }: AdminReviewQueueProps) {
+export function AdminReviewQueue({ submissions, actionBase = "/api/admin/submissions" }: AdminReviewQueueProps) {
   const [queue, setQueue] = useState(submissions);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState("");
@@ -50,7 +51,7 @@ export function AdminReviewQueue({ submissions }: AdminReviewQueueProps) {
     setBusyId(submissionId);
 
     try {
-      const response = await fetch(`/api/admin/submissions/${submissionId}/review`, {
+      const response = await fetch(`${actionBase}/${submissionId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, reason: reasons[submissionId] ?? "" }),

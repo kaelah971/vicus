@@ -137,6 +137,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   Create missions for any Circle, configure points and Stellar-settled XLM rewards,
                   and review contributions. Asset ecosystem and reward network are separate concepts.
                 </p>
+                <p className="control-note">
+                  <Link href="/admin/organizations">Organization studios →</Link>
+                </p>
               </div>
             </div>
           </div>

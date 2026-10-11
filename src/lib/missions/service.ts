@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
-import { circles, missionSubmissions, missions, users } from "@/db/schema";
+import { circles, missionSubmissions, missions, organizationMemberships, organizations, users } from "@/db/schema";
 import { normalizeXlmAmount } from "@/lib/rewards/config-core";
 import {
   assertOpenMission,
@@ -288,43 +288,7 @@ export async function reviewMissionSubmission(
       throw new MissionActionError("submission-not-found", "That submission could not be found.", 404);
     }
 
-    if (row.submission.status !== "pending") {
-      throw new MissionActionError(
-        "invalid-transition",
-        "This submission is no longer waiting for review.",
-        409,
-      );
-    }
-
-    const now = new Date();
-    const updatedRows = await database
-      .update(missionSubmissions)
-      .set({
-        status: action,
-        reviewedBy: reviewer.id,
-        reviewedAt: now,
-        revisionReason: action === "approved" ? null : reason,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(missionSubmissions.id, submissionId),
-          eq(missionSubmissions.status, "pending"),
-        ),
-      )
-      .returning();
-    const submission = getSubmissionOrThrow(mapSubmissionState(updatedRows[0] ?? null));
-    const pointsAwarded = action === "approved" ? row.mission.points : 0;
-    return {
-      submission,
-      pointsAwarded,
-      message:
-        action === "approved"
-          ? approvedMissionMessage(row.mission, pointsAwarded)
-          : action === "needs_revision"
-            ? "Your response needs one more piece of evidence."
-            : "This response was not approved. Review the reason and try again if the mission allows it.",
-    };
+    return applyReviewDecision(database, row, submissionId, action, reason, reviewer.id);
   } catch (error) {
     if (preserveExpectedError(error)) {
       throw error;
@@ -332,6 +296,63 @@ export async function reviewMissionSubmission(
 
     throw toDatabaseUnavailableError("review mission submission");
   }
+}
+
+export type ReviewDecisionRow = {
+  submission: typeof missionSubmissions.$inferSelect;
+  mission: typeof missions.$inferSelect;
+};
+
+/**
+ * Shared review core: grading/points/eligibility behavior is identical
+ * whether the reviewer is authorized as a global admin or as an
+ * organization's owner/admin. Only the authorization differs.
+ */
+export async function applyReviewDecision(
+  database: ReturnType<typeof getDatabase>,
+  row: ReviewDecisionRow,
+  submissionId: string,
+  action: ReviewAction,
+  reason: string | null,
+  reviewerId: string,
+): Promise<SubmissionOutcome> {
+  if (row.submission.status !== "pending") {
+    throw new MissionActionError(
+      "invalid-transition",
+      "This submission is no longer waiting for review.",
+      409,
+    );
+  }
+
+  const now = new Date();
+  const updatedRows = await database
+    .update(missionSubmissions)
+    .set({
+      status: action,
+      reviewedBy: reviewerId,
+      reviewedAt: now,
+      revisionReason: action === "approved" ? null : reason,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(missionSubmissions.id, submissionId),
+        eq(missionSubmissions.status, "pending"),
+      ),
+    )
+    .returning();
+  const submission = getSubmissionOrThrow(mapSubmissionState(updatedRows[0] ?? null));
+  const pointsAwarded = action === "approved" ? row.mission.points : 0;
+  return {
+    submission,
+    pointsAwarded,
+    message:
+      action === "approved"
+        ? approvedMissionMessage(row.mission, pointsAwarded)
+        : action === "needs_revision"
+          ? "Your response needs one more piece of evidence."
+          : "This response was not approved. Review the reason and try again if the mission allows it.",
+  };
 }
 
 export type MissionCreateType = "quiz" | "text" | "research";
@@ -344,6 +365,7 @@ export type MissionCreateQuizQuestion = {
 
 export type MissionCreateInput = {
   circleId: unknown;
+  organizationId?: unknown;
   title: unknown;
   description: unknown;
   type: unknown;
@@ -391,6 +413,46 @@ async function assertMissionCreator(creatorId: string) {
   if (creator.role !== "admin") {
     throw new MissionActionError("forbidden", "This wallet is not authorized to create missions.", 403);
   }
+}
+
+/**
+ * Organization creation path: owners, admins, and editors may create
+ * missions, but only for their own organization. Membership is read directly
+ * here so the mission pipeline stays a single function without a module
+ * cycle with the organization service.
+ */
+async function assertOrgMissionCreator(creatorId: string, organizationId: string): Promise<string> {
+  const database = getDatabase();
+  const [creator] = await database
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.id, creatorId))
+    .limit(1);
+
+  if (!creator) {
+    throw new MissionActionError("unauthenticated", "Sign in to create missions for this organization.", 401);
+  }
+
+  if (creator.role === "admin") {
+    return creator.id;
+  }
+
+  const [membership] = await database
+    .select({ role: organizationMemberships.role })
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.userId, creatorId),
+      ),
+    )
+    .limit(1);
+
+  if (!membership || !["owner", "admin", "editor"].includes(membership.role)) {
+    throw new MissionActionError("forbidden", "This wallet is not authorized to create missions for this organization.", 403);
+  }
+
+  return creator.id;
 }
 
 function buildQuizConfig(questionsValue: unknown): Record<string, unknown> {
@@ -464,7 +526,16 @@ export async function createMission(
       throw new MissionActionError("unauthenticated", "Sign in with an admin wallet to create missions.", 401);
     }
 
-    await assertMissionCreator(creatorId);
+    const orgClaim =
+      input.organizationId !== undefined && input.organizationId !== null
+        ? String(input.organizationId)
+        : null;
+    if (orgClaim) {
+      // Organization path: membership authorizes creation for the org's circles.
+      await assertOrgMissionCreator(creatorId, orgClaim);
+    } else {
+      await assertMissionCreator(creatorId);
+    }
 
     const circleId = typeof input.circleId === "string" ? input.circleId.trim() : "";
     if (!/^[0-9a-f-]{36}$/i.test(circleId)) {
@@ -527,6 +598,25 @@ export async function createMission(
       throw new MissionActionError("mission-not-found", "That Circle could not be found.", 404);
     }
 
+    // Optional ownership relation. Authorization is enforced by the caller
+    // (global admin path or organization path); creation still flows through
+    // this single pipeline.
+    let organizationDbId: string | null = null;
+    if (input.organizationId !== undefined && input.organizationId !== null) {
+      if (typeof input.organizationId !== "string" || !/^[0-9a-f-]{36}$/i.test(input.organizationId)) {
+        throw new MissionActionError("invalid-request", "The organization is invalid.", 400);
+      }
+      const [org] = await database
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.id, input.organizationId))
+        .limit(1);
+      if (!org) {
+        throw new MissionActionError("invalid-request", "That organization could not be found.", 404);
+      }
+      organizationDbId = org.id;
+    }
+
     const now = new Date();
     const [created] = await database
       .insert(missions)
@@ -534,6 +624,7 @@ export async function createMission(
         id: randomUUID(),
         circleId: circle.id,
         campaignId: null,
+        organizationId: organizationDbId,
         type: input.type,
         title,
         description,
@@ -615,39 +706,7 @@ export async function updateMissionStatus(
 
     await assertMissionCreator(adminId);
 
-    const database = getDatabase();
-    const [existing] = await database
-      .select({ id: missions.id, status: missions.status })
-      .from(missions)
-      .where(eq(missions.id, missionId))
-      .limit(1);
-
-    if (!existing) {
-      throw new MissionActionError("mission-not-found", "That mission could not be found.", 404);
-    }
-
-    if (existing.status !== "draft" && existing.status !== "open") {
-      throw new MissionActionError("invalid-transition", "This mission is not in a draft/open lifecycle state.", 409);
-    }
-
-    const now = new Date();
-    const [updated] = await database
-      .update(missions)
-      .set({ status, updatedAt: now })
-      .where(eq(missions.id, missionId))
-      .returning({ id: missions.id, status: missions.status, title: missions.title });
-
-    if (!updated) {
-      throw toDatabaseUnavailableError("update mission status");
-    }
-
-    return {
-      mission: {
-        id: updated.id,
-        status: updated.status as MissionStatusTransition,
-        title: updated.title,
-      },
-    };
+    return applyMissionStatus(missionId, status);
   } catch (error) {
     if (preserveExpectedError(error)) {
       throw error;
@@ -655,4 +714,48 @@ export async function updateMissionStatus(
 
     throw toDatabaseUnavailableError("update mission status");
   }
+}
+
+/**
+ * Shared lifecycle core: the persisted Draft/Open transition is identical
+ * whether authorized as a global admin or as an organization's owner/admin.
+ * Only the authorization differs. Reward settlement and points are untouched.
+ */
+export async function applyMissionStatus(
+  missionId: string,
+  status: MissionStatusTransition,
+): Promise<MissionStatusOutcome> {
+  const database = getDatabase();
+  const [existing] = await database
+    .select({ id: missions.id, status: missions.status })
+    .from(missions)
+    .where(eq(missions.id, missionId))
+    .limit(1);
+
+  if (!existing) {
+    throw new MissionActionError("mission-not-found", "That mission could not be found.", 404);
+  }
+
+  if (existing.status !== "draft" && existing.status !== "open") {
+    throw new MissionActionError("invalid-transition", "This mission is not in a draft/open lifecycle state.", 409);
+  }
+
+  const now = new Date();
+  const [updated] = await database
+    .update(missions)
+    .set({ status, updatedAt: now })
+    .where(eq(missions.id, missionId))
+    .returning({ id: missions.id, status: missions.status, title: missions.title });
+
+  if (!updated) {
+    throw toDatabaseUnavailableError("update mission status");
+  }
+
+  return {
+    mission: {
+      id: updated.id,
+      status: updated.status as MissionStatusTransition,
+      title: updated.title,
+    },
+  };
 }

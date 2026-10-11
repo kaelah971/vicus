@@ -125,6 +125,9 @@ export const circles = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
     slug: varchar("slug", { length: 140 }).notNull(),
     name: varchar("name", { length: 180 }).notNull(),
     tagline: text("tagline"),
@@ -137,6 +140,62 @@ export const circles = pgTable(
   (table) => [
     uniqueIndex("circles_slug_unique").on(table.slug),
     index("circles_category_status_idx").on(table.category, table.status),
+  ],
+);
+
+export const organizations = pgTable(
+  "organizations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 180 }).notNull(),
+    slug: varchar("slug", { length: 140 }).notNull(),
+    description: text("description").notNull(),
+    websiteUrl: text("website_url"),
+    ecosystemFocus: varchar("ecosystem_focus", { length: 32 }),
+    ...timestamps,
+  },
+  (table) => [uniqueIndex("organizations_slug_unique").on(table.slug)],
+);
+
+export const organizationMemberships = pgTable(
+  "organization_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 32 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("organization_memberships_org_user_unique").on(table.organizationId, table.userId),
+    index("organization_memberships_org_idx").on(table.organizationId),
+    index("organization_memberships_user_idx").on(table.userId),
+  ],
+);
+
+export const lessons = pgTable(
+  "lessons",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    circleId: uuid("circle_id").references(() => circles.id, { onDelete: "set null" }),
+    title: varchar("title", { length: 180 }).notNull(),
+    slug: varchar("slug", { length: 140 }).notNull(),
+    summary: text("summary").notNull(),
+    body: text("body").notNull(),
+    status: varchar("status", { length: 40 }).notNull(),
+    sources: jsonb("sources").$type<Array<{ label: string; url: string }>>().notNull().default([]),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("lessons_slug_unique").on(table.slug),
+    index("lessons_org_status_idx").on(table.organizationId, table.status),
   ],
 );
 
@@ -168,6 +227,9 @@ export const missions = pgTable(
       .notNull()
       .references(() => circles.id, { onDelete: "cascade" }),
     campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
     type: varchar("type", { length: 60 }).notNull(),
     title: varchar("title", { length: 180 }).notNull(),
     description: text("description").notNull(),

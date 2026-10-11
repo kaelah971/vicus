@@ -3,7 +3,11 @@ import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { hasOversizedBody, isSameOriginRequest } from "@/lib/auth/request";
 import { MissionActionError } from "@/lib/missions/errors";
-import { updateMissionStatus } from "@/lib/missions/service";
+import { getDatabase } from "@/db";
+import { missions } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { requireOrgRoles } from "@/lib/organizations/service";
+import { applyMissionStatus, updateMissionStatus } from "@/lib/missions/service";
 
 export const dynamic = "force-dynamic";
 
@@ -67,12 +71,8 @@ export async function PATCH(
     );
   }
 
-  if (session.user.role !== "admin") {
-    return NextResponse.json(
-      { ok: false, code: "forbidden", message: "This wallet is not authorized to change campaign status." },
-      { status: 403, headers: { "Cache-Control": "no-store" } },
-    );
-  }
+  // Authorization is enforced per path below: global admins via
+  // updateMissionStatus, organization owners/admins via their org scope.
 
   let payload: unknown;
   try {
@@ -93,7 +93,31 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const outcome = await updateMissionStatus(id, payload.status, session.user.id);
+    if (session.user.role === "admin") {
+      const outcome = await updateMissionStatus(id, payload.status, session.user.id);
+      return NextResponse.json({ ok: true, ...outcome }, { headers: { "Cache-Control": "no-store" } });
+    }
+    // Organization path: owners/admins may move their own org's missions.
+    // updateMissionStatus would reject non-global callers, so authorize the
+    // org scope here and reuse the shared persisted transition.
+    const database = getDatabase();
+    const [mission] = await database
+      .select({ organizationId: missions.organizationId })
+      .from(missions)
+      .where(eq(missions.id, id))
+      .limit(1);
+    if (!mission?.organizationId) {
+      return NextResponse.json(
+        { ok: false, code: "forbidden", message: "This wallet is not authorized to change campaign status." },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    try {
+      await requireOrgRoles(session.user.id, mission.organizationId, ["owner", "admin"]);
+    } catch (error) {
+      return errorResponse(error);
+    }
+    const outcome = await applyMissionStatus(id, payload.status as "draft" | "open");
     return NextResponse.json({ ok: true, ...outcome }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error);

@@ -19,6 +19,7 @@ import { WatchButton } from "@/components/watch-button";
 import { RoleVerification } from "@/components/role-verification";
 import { getCircleBySlug } from "@/lib/data/circles";
 import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data/roles";
+import { getCircleOrganization } from "@/lib/organizations/service";
 
 type CirclePageProps = {
   params: Promise<{ slug: string }>;
@@ -102,6 +103,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
     // Participation counts stay zeroed rather than blocking the circle.
   }
 
+  let hostOrg: { id: string; name: string; slug: string } | null = null;
+  try {
+    hostOrg = await getCircleOrganization(circle.id);
+  } catch {
+    hostOrg = null;
+  }
+
   return (
     <AppShell active="discover">
       <main className="page-main">
@@ -121,6 +129,11 @@ export default async function CirclePage({ params }: CirclePageProps) {
               <p className="circle-identity-meta">
                 {circle.ecosystemLabel} · {circle.category} · {circle.sourceStatus}
               </p>
+              {hostOrg ? (
+                <p className="circle-identity-meta">
+                  Hosted by <Link href={`/organizations/${hostOrg.slug}`}>{hostOrg.name}</Link>
+                </p>
+              ) : null}
               <p>{circle.summary}</p>
             </div>
             <div className="circle-page-actions">

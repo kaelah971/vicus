@@ -19,6 +19,8 @@
     "ecosystem:verify": "tsx scripts/verify-cross-ecosystem.ts",
     "hub:verify": "tsx scripts/verify-ecosystem-hubs.ts",
     "admin:verify": "tsx scripts/verify-admin.ts",
+    "org:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-orgs.ts",
+    "org:seed": "tsx scripts/seed-circle-org.ts",
     "xeco:seed": "tsx scripts/add-cross-ecosystem-assets.ts"
   },
   "dependencies": {

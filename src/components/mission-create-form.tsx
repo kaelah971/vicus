@@ -28,7 +28,7 @@ function isCreateResponse(value: unknown): value is CreateResponse {
 
 const emptyQuestion = (): DraftQuestion => ({ prompt: "", choicesText: "", correctAnswer: "" });
 
-export function MissionCreateForm({ circles }: { circles: StudioCircle[] }) {
+export function MissionCreateForm({ circles, endpoint = "/api/admin/missions" }: { circles: StudioCircle[]; endpoint?: string }) {
   const [circleId, setCircleId] = useState(circles[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -81,7 +81,7 @@ export function MissionCreateForm({ circles }: { circles: StudioCircle[] }) {
     }
 
     try {
-      const response = await fetch("/api/admin/missions", {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
