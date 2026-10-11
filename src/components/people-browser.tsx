@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { EmptyState, Icon } from "@/components/vicus";
+import { EmptyState, Icon, plural } from "@/components/vicus";
 import { PersonCard } from "@/components/person-card";
 import type { PersonCard as PersonCardData } from "@/lib/social/service";
 
@@ -106,7 +106,7 @@ function PeopleBrowser({
           <Icon name="chevron-down" size={15} />
         </label>
         <span className="directory-count">
-          {people.length} contributors
+          {plural(people.length, "contributor")}
         </span>
       </div>
 

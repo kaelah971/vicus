@@ -44,7 +44,7 @@ export default async function Home() {
               <span className="eyebrow hero-eyebrow">THE COMMUNITY LAYER FOR TOKENIZED ASSETS</span>
               <h1 className="hero-title">Tokenized assets need a place to belong.</h1>
               <p className="hero-support">
-                Vicus turns Stellar assets into living communities where people can learn what they
+                Vicus turns tokenized assets into living communities where people can learn what they
                 represent, watch before connecting a wallet, prove relevant participation, contribute
                 useful knowledge, and claim eligible rewards.
               </p>
@@ -93,7 +93,7 @@ export default async function Home() {
                     ))}
                   </div>
                   <p className="section-note">
-                    Watch mode is a low-friction entry point. These database records remain source-review fixtures.
+                    Watch mode is a low-friction entry point. Every circle here is source-backed and under ongoing review.
                   </p>
                 </>
               ) : (
@@ -248,18 +248,20 @@ export default async function Home() {
                 </p>
               </div>
               <div className="issuer-band-action">
-                <ButtonLink href="/admin" variant="outline">
-                  Open issuer shell <Icon name="arrow-up-right" size={16} />
+                <ButtonLink href="/host" variant="outline">
+                  Host on Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
+                <Link className="home-section-link" href="/spaces">
+                  Browse Spaces <Icon name="arrow-right" size={16} />
+                </Link>
               </div>
             </div>
           </div>
         </section>
 
         <footer className="shell home-footer">
-          Vicus keeps its circle, mission, profile, and campaign content in the database. Stellar
-          read-only role checks, wallet-backed sessions, and mission persistence are live; reward
-          settlement is not presented as shipped.
+          Vicus is a learning community for tokenized assets — not financial advice. Asset access
+          and reward eligibility vary by issuer and region.
         </footer>
       </main>
     </MarketingShell>

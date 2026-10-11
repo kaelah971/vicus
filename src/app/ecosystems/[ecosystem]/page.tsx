@@ -176,10 +176,10 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
                 <Eyebrow>Community pulse</Eyebrow>
                 <h2 id="hub-pulse-title">Participation on {hub.label}.</h2>
               </div>
-              <p>Derived from persisted Vicus records only — no synthetic users, posts, or counts.</p>
+              <p>Real participation only — counted from member records.</p>
             </div>
             <div className="profile-metrics">
-              <MetricCard detail="Persisted holder/trustline checks" label="Role verifications" value={String(hub.totals.verifications)} />
+              <MetricCard detail="Holder and trustline checks" label="Role verifications" value={String(hub.totals.verifications)} />
               <MetricCard
                 detail={
                   verificationAvailable

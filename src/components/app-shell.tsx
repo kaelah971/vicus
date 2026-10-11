@@ -6,7 +6,7 @@ import { listEcosystems } from "@/lib/data/circles";
 import { VicusWordmark } from "@/components/vicus";
 import { WalletAuthButton } from "@/components/wallet-auth";
 
-export type AppShellSection = "discover" | "missions" | "profile" | "admin" | "ecosystems";
+export type AppShellSection = "discover" | "missions" | "spaces" | "profile" | "admin" | "ecosystems" | "host";
 
 export async function AppShell({
   active,
@@ -38,6 +38,9 @@ export async function AppShell({
           <Link aria-current={active === "missions" ? "page" : undefined} className={navLink("missions")} href="/missions">
             Missions
           </Link>
+          <Link aria-current={active === "spaces" ? "page" : undefined} className={navLink("spaces")} href="/spaces">
+            Spaces
+          </Link>
           <Link aria-current={active === "profile" ? "page" : undefined} className={navLink("profile")} href="/profile/me">
             Profile
           </Link>
@@ -57,6 +60,16 @@ export async function AppShell({
             ))}
           </div>
         ) : null}
+        <div className="sidebar-ecosystems">
+          <span className="sidebar-section-label">For projects</span>
+          <Link
+            aria-current={active === "host" ? "page" : undefined}
+            className={`sidebar-ecosystem-link${active === "host" ? " nav-link-active" : ""}`}
+            href="/host"
+          >
+            Host on Vicus
+          </Link>
+        </div>
       </aside>
       <header className="site-nav">
         <div className="shell nav-inner">

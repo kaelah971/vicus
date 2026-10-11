@@ -534,3 +534,52 @@ export async function getEcosystemPeople(
     throw toDatabaseUnavailableError("get ecosystem people");
   }
 }
+
+/**
+ * Space People: unique people across an organization's hosted Circles,
+ * merged from the same safe loaders as Circle People. Scoped strictly to
+ * hosted circles — never cross-org.
+ */
+export async function getSpacePeople(organizationId: string, limit = 12): Promise<PersonCard[]> {
+  if (!/^[0-9a-f-]{36}$/i.test(organizationId)) return [];
+  try {
+    const database = getDatabase();
+    const hosted = await database
+      .select({ id: circles.id })
+      .from(circles)
+      .where(eq(circles.organizationId, organizationId));
+    if (hosted.length === 0) return [];
+    const merged = new Map<string, PersonCard>();
+    for (const circle of hosted) {
+      const cards = await getCirclePeople(circle.id);
+      for (const card of cards) {
+        const existing = merged.get(card.user.id);
+        if (!existing) {
+          merged.set(card.user.id, {
+            ...card,
+            relationships: [...card.relationships],
+          });
+          continue;
+        }
+        for (const relationship of card.relationships) {
+          if (!existing.relationships.includes(relationship)) {
+            existing.relationships.push(relationship);
+          }
+        }
+        existing.approvedContributionCount += card.approvedContributionCount;
+        existing.approvedPoints += card.approvedPoints;
+        if (
+          card.recentApprovedAt &&
+          (!existing.recentApprovedAt || existing.recentApprovedAt < card.recentApprovedAt)
+        ) {
+          existing.recentApprovedAt = card.recentApprovedAt;
+        }
+      }
+    }
+    return [...merged.values()]
+      .sort((a, b) => (b.recentApprovedAt ?? "").localeCompare(a.recentApprovedAt ?? ""))
+      .slice(0, Math.min(Math.max(limit, 1), 24));
+  } catch {
+    throw toDatabaseUnavailableError("get space people");
+  }
+}

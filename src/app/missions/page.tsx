@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DataState, EmptyState, Eyebrow } from "@/components/vicus";
+import { DataState, EmptyState, Eyebrow, plural } from "@/components/vicus";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -44,7 +44,7 @@ export default async function MissionsPage() {
               </p>
             </div>
             <div className="page-intro-note">
-              <strong>{databaseUnavailable ? "Mission center unavailable" : `${missions?.length ?? 0} open missions in Vicus`}</strong>
+              <strong>{databaseUnavailable ? "Mission center unavailable" : `${plural(missions?.length ?? 0, "open mission")} in Vicus`}</strong>
               Browse freely. A verified wallet session is required to submit a response.
             </div>
           </div>
@@ -64,7 +64,7 @@ export default async function MissionsPage() {
           ) : (
             <section className="directory-section">
               <EmptyState title="No missions configured">
-                The database has no missions to show yet. No fixture missions are displayed.
+                There are no open missions right now. New missions appear here once published.
               </EmptyState>
             </section>
           )}

@@ -687,3 +687,84 @@ export async function getEcosystemCommunityActivity(
     throw toDatabaseUnavailableError("get ecosystem community activity");
   }
 }
+
+/**
+ * Space community: recent active posts and answers across an organization's
+ * hosted Circles only. Still authored by users, still circle-scoped.
+ */
+export async function getSpaceCommunityActivity(
+  organizationId: string,
+  limit = 6,
+): Promise<EcosystemCommunityItem[]> {
+  if (!/^[0-9a-f-]{36}$/i.test(organizationId)) return [];
+  try {
+    const database = getDatabase();
+    const hosted = await database
+      .select({ id: circles.id, slug: circles.slug, name: circles.name })
+      .from(circles)
+      .where(eq(circles.organizationId, organizationId));
+    if (hosted.length === 0) return [];
+    const hostedIds = hosted.map((circle) => circle.id);
+    const byId = new Map(hosted.map((circle) => [circle.id, circle]));
+    const [postRows, answerRows] = await Promise.all([
+      database
+        .select({ post: circlePosts, circleId: circlePosts.circleId, author: users })
+        .from(circlePosts)
+        .innerJoin(users, eq(circlePosts.authorUserId, users.id))
+        .where(
+          and(
+            inArray(circlePosts.circleId, hostedIds),
+            eq(circlePosts.status, "active"),
+          ),
+        )
+        .orderBy(desc(circlePosts.createdAt))
+        .limit(40),
+      database
+        .select({
+          answer: circleAnswers,
+          post: circlePosts,
+          circleId: circlePosts.circleId,
+          author: users,
+        })
+        .from(circleAnswers)
+        .innerJoin(circlePosts, eq(circleAnswers.postId, circlePosts.id))
+        .innerJoin(users, eq(circleAnswers.authorUserId, users.id))
+        .where(
+          and(
+            inArray(circlePosts.circleId, hostedIds),
+            eq(circleAnswers.status, "active"),
+          ),
+        )
+        .orderBy(desc(circleAnswers.createdAt))
+        .limit(40),
+    ]);
+    return [
+      ...postRows.map(({ post, circleId, author }) => ({
+        id: post.id,
+        postId: post.id,
+        circleSlug: byId.get(circleId)?.slug ?? "",
+        circleName: byId.get(circleId)?.name ?? "",
+        kind: "post" as const,
+        type: post.type as CommunityPostType,
+        title: post.title,
+        authorHandle: author.handle,
+        createdAt: post.createdAt.toISOString(),
+      })),
+      ...answerRows.map(({ answer, post, circleId, author }) => ({
+        id: answer.id,
+        postId: post.id,
+        circleSlug: byId.get(circleId)?.slug ?? "",
+        circleName: byId.get(circleId)?.name ?? "",
+        kind: "answer" as const,
+        type: null,
+        title: post.title,
+        authorHandle: author.handle,
+        createdAt: answer.createdAt.toISOString(),
+      })),
+    ]
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, Math.min(Math.max(limit, 1), 10));
+  } catch {
+    throw toDatabaseUnavailableError("get space community activity");
+  }
+}

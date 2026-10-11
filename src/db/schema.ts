@@ -479,3 +479,30 @@ export const circlePostHelpful = pgTable(
     index("circle_post_helpful_user_idx").on(table.userId),
   ],
 );
+
+export const spaceApplications = pgTable(
+  "space_applications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    applicantUserId: uuid("applicant_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    proposedName: varchar("proposed_name", { length: 180 }).notNull(),
+    proposedSlug: varchar("proposed_slug", { length: 140 }).notNull(),
+    description: text("description").notNull(),
+    websiteUrl: text("website_url"),
+    projectType: varchar("project_type", { length: 48 }).notNull(),
+    ecosystemFocus: varchar("ecosystem_focus", { length: 32 }),
+    requestedPurpose: text("requested_purpose").notNull(),
+    affiliationNote: text("affiliation_note"),
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewNote: text("review_note"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("space_applications_applicant_status_idx").on(table.applicantUserId, table.status),
+    index("space_applications_status_idx").on(table.status),
+  ],
+);

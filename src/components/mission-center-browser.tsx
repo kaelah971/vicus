@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DataState, EmptyState, Eyebrow, Icon, MissionCard } from "@/components/vicus";
+import { DataState, EmptyState, Eyebrow, Icon, MissionCard, plural } from "@/components/vicus";
 import type { MissionRecord } from "@/lib/data/types";
 import type { MissionIndexCircle } from "@/lib/data/missions";
 
@@ -98,7 +98,7 @@ export function MissionCenterBrowser({ missions }: { missions: CenterMission[] }
           </select>
           <Icon name="chevron-down" size={15} />
         </label>
-        <span className="directory-count">{filtered.length} of {missions.length} missions</span>
+        <span className="directory-count">{plural(filtered.length, "mission")} of {missions.length} total</span>
       </div>
 
       {filtered.length === 0 ? (
@@ -117,7 +117,7 @@ export function MissionCenterBrowser({ missions }: { missions: CenterMission[] }
                   {type === "quiz" ? "Learn with a quiz." : type === "research" ? "Research with sources." : "Contribute in writing."}
                 </h2>
               </div>
-              <span className="directory-count">{items.length} database-backed missions</span>
+              <span className="directory-count">{plural(items.length, "database-backed mission")}</span>
             </div>
             <div className="mission-grid">
               {items.map((mission) => (

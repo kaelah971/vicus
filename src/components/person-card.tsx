@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { StatusPill } from "@/components/vicus";
+import { plural, StatusPill } from "@/components/vicus";
 import type { PersonCard as PersonCardData } from "@/lib/social/service";
 
 export function personInitials(name: string) {
@@ -36,7 +36,7 @@ export function PersonCard({ person }: { person: PersonCardData }) {
         <div>
           <dt>Approved</dt>
           <dd>
-            {person.approvedContributionCount} contributions · {person.approvedPoints} points
+            {plural(person.approvedContributionCount, "contribution")} · {plural(person.approvedPoints, "point")}
           </dd>
         </div>
       </dl>

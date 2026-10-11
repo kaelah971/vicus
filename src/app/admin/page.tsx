@@ -16,6 +16,8 @@ import { getAdminMissions, getAdminOverview } from "@/lib/data/admin";
 import { getAdminSubmissionQueue } from "@/lib/data/missions";
 import { AdminReviewQueue } from "@/components/admin-review-queue";
 import { MissionCreateForm } from "@/components/mission-create-form";
+import { SpaceApplicationReview } from "@/components/space-application-review";
+import { listPendingSpaceApplications } from "@/lib/organizations/service";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let overview;
   let missionRecords;
   let reviewQueue;
+  let spaceApplications: Awaited<ReturnType<typeof listPendingSpaceApplications>> = [];
 
   try {
     [overview, missionRecords, reviewQueue] = await Promise.all([
@@ -90,6 +93,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       getAdminMissions(),
       getAdminSubmissionQueue({ status: statusFilter, circleSlug: circleFilter }),
     ]);
+    spaceApplications = await listPendingSpaceApplications(session.user.id);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return (
@@ -282,6 +286,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   : "Quiz missions are graded automatically; text missions appear here while pending."}
               </EmptyState>
             )}
+          </section>
+
+          <section className="hairline-card admin-panel" id="space-applications">
+            <div className="admin-panel-header">
+              <div>
+                <Eyebrow>Space applications</Eyebrow>
+                <h2>Approve new project Spaces.</h2>
+              </div>
+              <p>Approval creates the Space and makes the applicant its owner. Rejection creates nothing.</p>
+            </div>
+            <SpaceApplicationReview applications={spaceApplications} />
           </section>
 
           <p className="admin-footnote">

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDatabase, toDatabaseUnavailableError } from "@/db";
 import {
@@ -10,6 +10,7 @@ import {
   missions,
   organizationMemberships,
   organizations,
+  spaceApplications,
   users,
 } from "@/db/schema";
 import { mapCircle } from "@/lib/data/circles";
@@ -917,5 +918,415 @@ export async function getCircleOrganization(
     return { id: row.org.id, name: row.org.name, slug: row.org.slug };
   } catch {
     throw toDatabaseUnavailableError("get circle organization");
+  }
+}
+
+export const spaceProjectTypes = [
+  "ecosystem",
+  "issuer",
+  "protocol",
+  "foundation",
+  "community",
+  "other",
+] as const;
+
+export type SpaceApplicationRecord = {
+  id: string;
+  proposedName: string;
+  proposedSlug: string;
+  description: string;
+  websiteUrl: string | null;
+  projectType: string;
+  ecosystemFocus: string | null;
+  requestedPurpose: string;
+  affiliationNote: string | null;
+  status: string;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  applicant: { id: string; handle: string; displayName: string };
+};
+
+function mapApplication(
+  application: typeof spaceApplications.$inferSelect,
+  applicant: { id: string; handle: string; displayName: string },
+): SpaceApplicationRecord {
+  return {
+    id: application.id,
+    proposedName: application.proposedName,
+    proposedSlug: application.proposedSlug,
+    description: application.description,
+    websiteUrl: application.websiteUrl,
+    projectType: application.projectType,
+    ecosystemFocus: application.ecosystemFocus,
+    requestedPurpose: application.requestedPurpose,
+    affiliationNote: application.affiliationNote,
+    status: application.status,
+    reviewNote: application.reviewNote,
+    reviewedAt: application.reviewedAt?.toISOString() ?? null,
+    createdAt: application.createdAt.toISOString(),
+    applicant,
+  };
+}
+
+export type SpaceDirectoryEntry = OrgSummary & {
+  hostedCircleCount: number;
+  publishedLessonCount: number;
+  openMissionCount: number;
+  approvedContributionCount: number;
+};
+
+/** Public Spaces directory: real organizations with derived live counts only. */
+export async function listSpaces(): Promise<SpaceDirectoryEntry[]> {
+  try {
+    const database = getDatabase();
+    const orgs = await database
+      .select()
+      .from(organizations)
+      .orderBy(asc(organizations.name));
+    const entries: SpaceDirectoryEntry[] = [];
+    for (const org of orgs) {
+      const [circleRows, lessonRows, missionRows] = await Promise.all([
+        database
+          .select({ id: circles.id })
+          .from(circles)
+          .where(eq(circles.organizationId, org.id)),
+        database
+          .select({ id: lessons.id })
+          .from(lessons)
+          .where(and(eq(lessons.organizationId, org.id), eq(lessons.status, "published"))),
+        database
+          .select({ id: missions.id })
+          .from(missions)
+          .where(and(eq(missions.organizationId, org.id), eq(missions.status, "open"))),
+      ]);
+      const circleIds = circleRows.map((row) => row.id);
+      const [approvedRows] = circleIds.length > 0
+        ? await database
+            .select({ value: count() })
+            .from(missionSubmissions)
+            .innerJoin(missions, eq(missionSubmissions.missionId, missions.id))
+            .where(
+              and(
+                inArray(missions.circleId, circleIds),
+                eq(missionSubmissions.status, "approved"),
+              ),
+            )
+        : [{ value: 0 }];
+      entries.push({
+        id: org.id,
+        slug: org.slug,
+        name: org.name,
+        description: org.description,
+        websiteUrl: org.websiteUrl,
+        ecosystemFocus: org.ecosystemFocus,
+        role: null,
+        hostedCircleCount: circleRows.length,
+        publishedLessonCount: lessonRows.length,
+        openMissionCount: missionRows.length,
+        approvedContributionCount: Number(approvedRows?.value ?? 0),
+      });
+    }
+    return entries;
+  } catch {
+    throw toDatabaseUnavailableError("list spaces");
+  }
+}
+
+export type SpaceApplicationInput = {
+  proposedName: unknown;
+  proposedSlug: unknown;
+  description: unknown;
+  websiteUrl: unknown;
+  projectType: unknown;
+  ecosystemFocus: unknown;
+  requestedPurpose: unknown;
+  affiliationNote: unknown;
+};
+
+/** Authenticated users apply to host a Space. No wallet action beyond login. */
+export async function submitSpaceApplication(
+  applicantId: string | null | undefined,
+  input: SpaceApplicationInput,
+): Promise<SpaceApplicationRecord> {
+  if (!applicantId || !/^[0-9a-f-]{36}$/i.test(applicantId)) {
+    throw new MissionActionError("unauthenticated", "Sign in to apply for a Space.", 401);
+  }
+  const proposedName = asBoundedString(input.proposedName, 2, 180);
+  const proposedSlug = asSlug(input.proposedSlug);
+  const description = asBoundedString(input.description, 20, 2_000);
+  const requestedPurpose = asBoundedString(input.requestedPurpose, 20, 2_000);
+  if (!proposedName || !proposedSlug || !description || !requestedPurpose) {
+    throw new MissionActionError(
+      "invalid-request",
+      "An application needs a project name, slug, description, and hosting purpose.",
+      400,
+    );
+  }
+  const websiteUrl =
+    typeof input.websiteUrl === "string" && input.websiteUrl.trim()
+      ? input.websiteUrl.trim()
+      : null;
+  if (websiteUrl && (!isHttpUrl(websiteUrl) || websiteUrl.length > 500)) {
+    throw new MissionActionError("invalid-request", "Use a valid http or https website URL.", 400);
+  }
+  const projectType =
+    typeof input.projectType === "string" &&
+    (spaceProjectTypes as readonly string[]).includes(input.projectType)
+      ? input.projectType
+      : null;
+  if (!projectType) {
+    throw new MissionActionError("invalid-request", "Choose a valid project type.", 400);
+  }
+  const ecosystemFocus =
+    typeof input.ecosystemFocus === "string" && input.ecosystemFocus.trim()
+      ? input.ecosystemFocus.trim().toLowerCase()
+      : null;
+  if (ecosystemFocus && (ecosystemFocus.length > 32 || !/^[a-z0-9-]+$/.test(ecosystemFocus))) {
+    throw new MissionActionError("invalid-request", "The ecosystem focus is invalid.", 400);
+  }
+  const affiliationNote =
+    typeof input.affiliationNote === "string" && input.affiliationNote.trim()
+      ? input.affiliationNote.trim().slice(0, 2_000)
+      : null;
+
+  try {
+    const database = getDatabase();
+    const [applicant] = await database
+      .select({ id: users.id, handle: users.handle, displayName: users.displayName })
+      .from(users)
+      .where(eq(users.id, applicantId))
+      .limit(1);
+    if (!applicant) {
+      throw new MissionActionError("unauthenticated", "Your Vicus session is no longer valid.", 401);
+    }
+    // One active application per applicant + proposed identity.
+    const [existing] = await database
+      .select({ id: spaceApplications.id })
+      .from(spaceApplications)
+      .where(
+        and(
+          eq(spaceApplications.applicantUserId, applicant.id),
+          eq(spaceApplications.proposedSlug, proposedSlug),
+          eq(spaceApplications.status, "pending"),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      throw new MissionActionError(
+        "invalid-request",
+        "You already have a pending application for this Space.",
+        409,
+      );
+    }
+    const [created] = await database
+      .insert(spaceApplications)
+      .values({
+        id: randomUUID(),
+        applicantUserId: applicant.id,
+        proposedName,
+        proposedSlug,
+        description,
+        websiteUrl,
+        projectType,
+        ecosystemFocus,
+        requestedPurpose,
+        affiliationNote,
+        status: "pending",
+      })
+      .returning();
+    if (!created) {
+      throw toDatabaseUnavailableError("submit space application");
+    }
+    return mapApplication(created, applicant);
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("submit space application");
+  }
+}
+
+/** Applicants see only their own applications. */
+export async function listMySpaceApplications(
+  applicantId: string | null | undefined,
+): Promise<SpaceApplicationRecord[]> {
+  if (!applicantId || !/^[0-9a-f-]{36}$/i.test(applicantId)) return [];
+  try {
+    const database = getDatabase();
+    const rows = await database
+      .select({ application: spaceApplications, applicant: users })
+      .from(spaceApplications)
+      .innerJoin(users, eq(spaceApplications.applicantUserId, users.id))
+      .where(eq(spaceApplications.applicantUserId, applicantId))
+      .orderBy(desc(spaceApplications.createdAt));
+    return rows.map(({ application, applicant }) =>
+      mapApplication(application, {
+        id: applicant.id,
+        handle: applicant.handle,
+        displayName: applicant.displayName,
+      }),
+    );
+  } catch {
+    throw toDatabaseUnavailableError("list space applications");
+  }
+}
+
+/** Global admins review the pending queue. Org roles never approve Spaces. */
+export async function listPendingSpaceApplications(actorId: string): Promise<SpaceApplicationRecord[]> {
+  if (!actorId || !/^[0-9a-f-]{36}$/i.test(actorId) || !(await isGlobalAdmin(actorId))) {
+    throw new MissionActionError("forbidden", "This wallet is not authorized to review Spaces.", 403);
+  }
+  try {
+    const database = getDatabase();
+    const rows = await database
+      .select({ application: spaceApplications, applicant: users })
+      .from(spaceApplications)
+      .innerJoin(users, eq(spaceApplications.applicantUserId, users.id))
+      .where(eq(spaceApplications.status, "pending"))
+      .orderBy(asc(spaceApplications.createdAt));
+    return rows.map(({ application, applicant }) =>
+      mapApplication(application, {
+        id: applicant.id,
+        handle: applicant.handle,
+        displayName: applicant.displayName,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("list pending space applications");
+  }
+}
+
+export async function reviewSpaceApplication(
+  applicationId: string,
+  action: unknown,
+  reviewNoteValue: unknown,
+  actorId: string | null | undefined,
+): Promise<SpaceApplicationRecord & { organizationSlug: string | null }> {
+  if (!actorId || !/^[0-9a-f-]{36}$/i.test(actorId) || !(await isGlobalAdmin(actorId))) {
+    throw new MissionActionError("forbidden", "This wallet is not authorized to review Spaces.", 403);
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(applicationId)) {
+    throw new MissionActionError("invalid-request", "That application could not be found.", 404);
+  }
+  if (action !== "approved" && action !== "rejected") {
+    throw new MissionActionError("invalid-request", "Review action must be approved or rejected.", 400);
+  }
+  const reviewNote =
+    typeof reviewNoteValue === "string" && reviewNoteValue.trim()
+      ? reviewNoteValue.trim().slice(0, 2_000)
+      : null;
+
+  try {
+    const database = getDatabase();
+    const [row] = await database
+      .select({ application: spaceApplications, applicant: users })
+      .from(spaceApplications)
+      .innerJoin(users, eq(spaceApplications.applicantUserId, users.id))
+      .where(eq(spaceApplications.id, applicationId))
+      .limit(1);
+    if (!row || row.application.status !== "pending") {
+      throw new MissionActionError(
+        "invalid-transition",
+        "This application is no longer waiting for review.",
+        409,
+      );
+    }
+    const applicant = {
+      id: row.applicant.id,
+      handle: row.applicant.handle,
+      displayName: row.applicant.displayName,
+    };
+
+    if (action === "rejected") {
+      const [updated] = await database
+        .update(spaceApplications)
+        .set({
+          status: "rejected",
+          reviewedBy: actorId,
+          reviewNote,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(spaceApplications.id, applicationId),
+            eq(spaceApplications.status, "pending"),
+          ),
+        )
+        .returning();
+      if (!updated) {
+        throw new MissionActionError(
+          "invalid-transition",
+          "This application is no longer waiting for review.",
+          409,
+        );
+      }
+      return { ...mapApplication(updated, applicant), organizationSlug: null };
+    }
+
+    // Approve: never steal an existing Space on slug conflict.
+    const [conflict] = await database
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.slug, row.application.proposedSlug))
+      .limit(1);
+    if (conflict) {
+      throw new MissionActionError(
+        "invalid-request",
+        "A Space with this slug already exists. Resolve the conflict before approving.",
+        409,
+      );
+    }
+    const [created] = await database
+      .insert(organizations)
+      .values({
+        name: row.application.proposedName,
+        slug: row.application.proposedSlug,
+        description: row.application.description,
+        websiteUrl: row.application.websiteUrl,
+        ecosystemFocus: row.application.ecosystemFocus,
+      })
+      .onConflictDoNothing({ target: organizations.slug })
+      .returning({ id: organizations.id, slug: organizations.slug });
+    if (!created) {
+      throw new MissionActionError(
+        "invalid-request",
+        "A Space with this slug already exists. Resolve the conflict before approving.",
+        409,
+      );
+    }
+    await database
+      .insert(organizationMemberships)
+      .values({ organizationId: created.id, userId: applicant.id, role: "owner" })
+      .onConflictDoNothing({
+        target: [organizationMemberships.organizationId, organizationMemberships.userId],
+      });
+    const [updated] = await database
+      .update(spaceApplications)
+      .set({
+        status: "approved",
+        reviewedBy: actorId,
+        reviewNote,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(spaceApplications.id, applicationId),
+          eq(spaceApplications.status, "pending"),
+        ),
+      )
+      .returning();
+    if (!updated) {
+      throw new MissionActionError(
+        "invalid-transition",
+        "This application is no longer waiting for review.",
+        409,
+      );
+    }
+    return { ...mapApplication(updated, applicant), organizationSlug: created.slug };
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("review space application");
   }
 }

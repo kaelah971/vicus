@@ -2,6 +2,7 @@ import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { getDatabase, toDatabaseUnavailableError } from "@/db";
 import { activityEvents, assets, circleMemberships, circles, missions } from "@/db/schema";
 import type { MissionPreview } from "@/lib/vicus-data";
+import { normalizeXlmAmount } from "@/lib/rewards/config-core";
 import { getSubmissionStatesForUser } from "@/lib/data/missions";
 import type { ActivityRecord, CircleDetail, CircleRecord, MissionRecord } from "@/lib/data/types";
 import type { SubmissionState } from "@/lib/missions/types";
@@ -43,11 +44,20 @@ function stringMetadata(metadata: Record<string, unknown> | null | undefined, ke
   return typeof value === "string" ? value : undefined;
 }
 
+function formatRewardAmount(asset: string | null, amount: unknown): string | null {
+  if (!asset || amount === null || amount === undefined) return null;
+  const raw = String(amount);
+  try {
+    return asset.toUpperCase() === "XLM" ? normalizeXlmAmount(raw) : raw;
+  } catch {
+    return raw;
+  }
+}
+
 function mapMission(mission: MissionRow, submission: SubmissionState | null = null): MissionRecord {
+  const amount = formatRewardAmount(mission.rewardAsset, mission.rewardAmount);
   const reward =
-    mission.rewardAsset && mission.rewardAmount
-      ? `${mission.rewardAmount} ${mission.rewardAsset}`
-      : "No reward configured";
+    mission.rewardAsset && amount ? `${amount} ${mission.rewardAsset}` : "No reward configured";
 
   const preview: MissionPreview = {
     title: mission.title,
@@ -56,9 +66,11 @@ function mapMission(mission: MissionRow, submission: SubmissionState | null = nu
     review:
       mission.reviewMode === "manual"
         ? "Manual review"
-        : mission.reviewMode === "not-connected"
-          ? "Preview only"
-          : mission.reviewMode,
+        : mission.reviewMode === "automatic"
+          ? "Automatic grading"
+          : mission.reviewMode === "not-connected"
+            ? "Preview only"
+            : mission.reviewMode,
     reward,
   };
 

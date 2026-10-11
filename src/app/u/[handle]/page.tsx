@@ -100,7 +100,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                       {affiliation.role === "owner" || affiliation.role === "admin" || affiliation.role === "editor"
                         ? `${affiliation.role.charAt(0).toUpperCase() + affiliation.role.slice(1)} at `
                         : null}
-                      <Link href={`/organizations/${affiliation.organizationSlug}`}>
+                      <Link href={`/spaces/${affiliation.organizationSlug}`}>
                         {affiliation.organizationName}
                       </Link>{" "}
                     </span>

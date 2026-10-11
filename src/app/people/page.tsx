@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DataState, EmptyState, Eyebrow } from "@/components/vicus";
+import { DataState, EmptyState, Eyebrow, plural } from "@/components/vicus";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { listCircles, listEcosystems } from "@/lib/data/circles";
@@ -56,7 +56,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
             </div>
             <div className="page-intro-note">
               <strong>
-                {databaseUnavailable ? "People unavailable" : `${people.length} active contributors`}
+                {databaseUnavailable ? "People unavailable" : plural(people.length, "active contributor")}
               </strong>
               Open a profile to understand interests, roles, and history — then follow.
             </div>

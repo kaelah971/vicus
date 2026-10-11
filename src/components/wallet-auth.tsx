@@ -272,6 +272,9 @@ export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] 
       <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
         Missions
       </Link>
+      <Link className="wallet-menu-link" href="/spaces" onClick={() => setMobileMenuOpen(false)}>
+        Spaces
+      </Link>
       <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
         Profile
       </Link>
@@ -285,6 +288,10 @@ export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] 
           ))}
         </>
       ) : null}
+      <span className="wallet-menu-label">For projects</span>
+      <Link className="wallet-menu-link" href="/host" onClick={() => setMobileMenuOpen(false)}>
+        Host on Vicus
+      </Link>
       <Link className="wallet-menu-link" href="/admin" onClick={() => setMobileMenuOpen(false)}>
         Issuer access
       </Link>

@@ -15,6 +15,7 @@ import type {
 import { submissionStatuses } from "@/lib/missions/types";
 import type { MissionRecord, ProfileContribution, SubmissionReviewRecord } from "@/lib/data/types";
 import { ecosystemLabel } from "@/lib/data/circles";
+import { normalizeXlmAmount } from "@/lib/rewards/config-core";
 
 type MissionRow = typeof missions.$inferSelect;
 type SubmissionRow = typeof missionSubmissions.$inferSelect;
@@ -229,9 +230,17 @@ export function mapMissionIndexRecord<T extends { name: string; slug: string }>(
         : mission.reviewMode === "not-connected"
           ? "Preview only"
           : mission.reviewMode;
-  const reward = mission.rewardAsset && mission.rewardAmount
-    ? `${mission.rewardAmount} ${mission.rewardAsset}`
-    : "No reward configured";
+  const reward = (() => {
+    if (!mission.rewardAsset || !mission.rewardAmount) return "No reward configured";
+    const raw = String(mission.rewardAmount);
+    try {
+      const amount =
+        mission.rewardAsset.toUpperCase() === "XLM" ? normalizeXlmAmount(raw) : raw;
+      return `${amount} ${mission.rewardAsset}`;
+    } catch {
+      return `${raw} ${mission.rewardAsset}`;
+    }
+  })();
 
   return {
     id: mission.id,

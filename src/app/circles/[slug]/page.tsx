@@ -154,16 +154,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
               </p>
               {hostOrg ? (
                 <p className="circle-identity-meta">
-                  Hosted by <Link href={`/organizations/${hostOrg.slug}`}>{hostOrg.name}</Link>
+                  Hosted by <Link href={`/spaces/${hostOrg.slug}`}>{hostOrg.name}</Link>
                 </p>
               ) : null}
               <p>{circle.summary}</p>
             </div>
             <div className="circle-page-actions">
               <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
-              <span className="control-note">
-                Watching is a persisted Vicus relationship, not proof of ownership.
-              </span>
             </div>
           </header>
 
@@ -217,13 +214,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
             <div className="circle-section-heading">
               <div>
                 <Eyebrow>Participation</Eyebrow>
-                <h2>Derived state, nothing synthetic.</h2>
+                <h2>Live participation counts.</h2>
               </div>
-              <p>Counts only — no chat, no comments, no synthetic users, no wallet identities.</p>
+              <p>Watchers, approved contributions, and verified roles — counted from real records.</p>
             </div>
             <div className="profile-metrics">
               <MetricCard
-                detail="Persisted Watch relationships"
+                detail="Watch relationships for this circle"
                 label="Watchers"
                 value={String(participation.watcherCount)}
               />
@@ -233,7 +230,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 value={String(participation.approvedContributionCount)}
               />
               <MetricCard
-                detail="Supported persisted Stellar role checks"
+                detail="Stellar role checks in this circle"
                 label="Verified roles"
                 value={String(participation.verificationCount)}
                 accent
@@ -248,7 +245,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 </div>
               ) : (
                 <EmptyState title="No activity yet">
-                  This circle has no activity events in the database.
+                  Watch, contributions, and role checks will be counted here.
                 </EmptyState>
               )}
             </div>

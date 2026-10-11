@@ -21,6 +21,10 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+export function plural(count: number, one: string, many?: string) {
+  return `${count} ${count === 1 ? one : (many ?? `${one}s`)}`;
+}
+
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   const common = {
     fill: "none",

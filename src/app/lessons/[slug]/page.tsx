@@ -75,7 +75,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         <header className="mission-page-header">
           <div className="shell">
             <div className="breadcrumbs">
-              <Link href={`/organizations/${lesson.organization.slug}`}>{lesson.organization.name}</Link>
+              <Link href={`/spaces/${lesson.organization.slug}`}>{lesson.organization.name}</Link>
               <span>/</span>
               <span>{lesson.title}</span>
             </div>
