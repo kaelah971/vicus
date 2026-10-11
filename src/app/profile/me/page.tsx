@@ -14,6 +14,7 @@ import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { RewardClaimCard } from "@/components/reward-claim-card";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
+import { getFollowCounts } from "@/lib/social/service";
 import { listEcosystems } from "@/lib/data/circles";
 import { getUserProfileById } from "@/lib/data/profiles";
 
@@ -161,6 +162,12 @@ export default async function MyProfilePage() {
   const attentionRewards = profile.rewards.filter((reward) => ["eligible", "claimable", "submitted", "failed"].includes(reward.status));
   const confirmedRewards = profile.rewards.filter((reward) => reward.status === "confirmed" && reward.id);
   const verifiedRoles = profile.verifiedRoles;
+  let followCounts = { followers: 0, following: 0 };
+  try {
+    followCounts = await getFollowCounts(profile.user.id);
+  } catch {
+    followCounts = { followers: 0, following: 0 };
+  }
 
   function verifiedRoleLabel(role: string) {
     if (role === "verified-holder") return "Verified Holder";
@@ -213,7 +220,12 @@ export default async function MyProfilePage() {
             <MetricCard detail="Approved participation · offchain" label="Vicus points" value={String(profile.approvedPoints)} accent />
             <MetricCard detail="Pending, approved, and reviewed records" label="Contributions" value={String(profile.contributions.length)} />
             <MetricCard detail="Eligible and claimed reward states" label="Rewards" value={String(profile.rewards.length)} />
+            <MetricCard detail="People following this profile" label="Followers" value={String(followCounts.followers)} />
+            <MetricCard detail="People this profile follows" label="Following" value={String(followCounts.following)} />
           </div>
+          <p className="control-note">
+            <Link href={`/u/${profile.user.handle}`}>View public profile</Link>
+          </p>
 
           <section className="hairline-card profile-watched-panel">
             <div className="profile-reward-heading">

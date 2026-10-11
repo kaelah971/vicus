@@ -15,6 +15,7 @@
     "auth:verify": "tsx scripts/verify-auth.ts",
     "reward:verify": "tsx scripts/verify-rewards.ts",
     "watch:verify": "tsx scripts/verify-watch.ts",
+    "social:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-social.ts",
     "role:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-roles.ts",
     "ecosystem:verify": "tsx scripts/verify-cross-ecosystem.ts",
     "hub:verify": "tsx scripts/verify-ecosystem-hubs.ts",

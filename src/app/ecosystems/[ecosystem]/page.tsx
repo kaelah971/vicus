@@ -14,6 +14,8 @@ import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getEcosystemHub } from "@/lib/data/ecosystems";
+import { getEcosystemPeople } from "@/lib/social/service";
+import { PersonCard } from "@/components/person-card";
 
 type HubPageProps = {
   params: Promise<{ ecosystem: string }>;
@@ -64,6 +66,13 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
   if (!hub) notFound();
 
   const verificationAvailable = hub.circles.some((circle) => circle.verification.enabled);
+
+  let hubPeople: Awaited<ReturnType<typeof getEcosystemPeople>> = [];
+  try {
+    hubPeople = await getEcosystemPeople(hub.value, 4);
+  } catch {
+    hubPeople = [];
+  }
 
   return (
     <AppShell active="ecosystems" activeEcosystem={hub.value}>
@@ -190,6 +199,30 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
                   Approved responses on {hub.label} will appear here.
                 </EmptyState>
               </div>
+            )}
+          </section>
+
+          <section className="circle-section" id="people" aria-labelledby="hub-people-title">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>People</Eyebrow>
+                <h2 id="hub-people-title">Active in {hub.label}.</h2>
+              </div>
+              <p>
+                Contributors and watchers across {hub.label} Circles.{" "}
+                <Link href={`/people?ecosystem=${hub.value}`}>Browse all contributors</Link>
+              </p>
+            </div>
+            {hubPeople.length > 0 ? (
+              <div className="mission-grid">
+                {hubPeople.slice(0, 4).map((person) => (
+                  <PersonCard key={person.user.id} person={person} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No active people yet">
+                Watch a {hub.label} Circle or complete a mission to appear here.
+              </EmptyState>
             )}
           </section>
         </div>

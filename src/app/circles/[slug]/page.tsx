@@ -20,6 +20,8 @@ import { RoleVerification } from "@/components/role-verification";
 import { getCircleBySlug } from "@/lib/data/circles";
 import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data/roles";
 import { getCircleOrganization } from "@/lib/organizations/service";
+import { getCirclePeople } from "@/lib/social/service";
+import { PersonCard } from "@/components/person-card";
 
 type CirclePageProps = {
   params: Promise<{ slug: string }>;
@@ -108,6 +110,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
     hostOrg = await getCircleOrganization(circle.id);
   } catch {
     hostOrg = null;
+  }
+
+  let people: Awaited<ReturnType<typeof getCirclePeople>> = [];
+  try {
+    people = await getCirclePeople(circle.id);
+  } catch {
+    people = [];
   }
 
   return (
@@ -229,6 +238,27 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 </EmptyState>
               )}
             </div>
+          </section>
+
+          <section className="circle-section" id="people">
+            <div className="circle-section-heading">
+              <div>
+                <Eyebrow>People in this Circle</Eyebrow>
+                <h2>Real members, real relationships.</h2>
+              </div>
+              <p>Watchers, approved contributors, and verified role holders. No wallet addresses shown.</p>
+            </div>
+            {people.length > 0 ? (
+              <div className="mission-grid">
+                {people.slice(0, 6).map((person) => (
+                  <PersonCard key={person.user.id} person={person} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No people yet">
+                Watch this Circle or complete a mission to be the first person listed here.
+              </EmptyState>
+            )}
           </section>
 
           <section className="circle-section" id="sources">

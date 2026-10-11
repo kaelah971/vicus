@@ -85,6 +85,13 @@
       "when": 1791710186509,
       "tag": "0011_organization_spaces",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791712226319,
+      "tag": "0012_people_follow_graph",
+      "breakpoints": true
     }
   ]
 }

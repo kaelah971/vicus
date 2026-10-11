@@ -395,3 +395,25 @@ export const stellarRoleVerifications = pgTable(
     index("stellar_role_verifications_circle_idx").on(table.circleId),
   ],
 );
+
+export const userFollows = pgTable(
+  "user_follows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    followerUserId: uuid("follower_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followedUserId: uuid("followed_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_follows_follower_followed_unique").on(
+      table.followerUserId,
+      table.followedUserId,
+    ),
+    index("user_follows_follower_idx").on(table.followerUserId),
+    index("user_follows_followed_idx").on(table.followedUserId),
+  ],
+);
