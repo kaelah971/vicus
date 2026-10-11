@@ -6,13 +6,15 @@ import { listEcosystems } from "@/lib/data/circles";
 import { VicusWordmark } from "@/components/vicus";
 import { WalletAuthButton } from "@/components/wallet-auth";
 
-export type AppShellSection = "discover" | "missions" | "profile" | "admin";
+export type AppShellSection = "discover" | "missions" | "profile" | "admin" | "ecosystems";
 
 export async function AppShell({
   active,
+  activeEcosystem = null,
   children,
 }: {
   active?: AppShellSection;
+  activeEcosystem?: string | null;
   children: ReactNode;
 }) {
   let ecosystems: Array<{ value: string; label: string }> = [];
@@ -44,7 +46,12 @@ export async function AppShell({
           <div className="sidebar-ecosystems">
             <span className="sidebar-section-label">Ecosystems</span>
             {ecosystems.map((ecosystem) => (
-              <Link className="sidebar-ecosystem-link" href={`/discover?ecosystem=${encodeURIComponent(ecosystem.value)}`} key={ecosystem.value}>
+              <Link
+                aria-current={activeEcosystem === ecosystem.value ? "page" : undefined}
+                className={`sidebar-ecosystem-link${activeEcosystem === ecosystem.value ? " nav-link-active" : ""}`}
+                href={`/ecosystems/${encodeURIComponent(ecosystem.value)}`}
+                key={ecosystem.value}
+              >
                 {ecosystem.label}
               </Link>
             ))}
@@ -55,7 +62,7 @@ export async function AppShell({
         <div className="shell nav-inner">
           <div className="mobile-wordmark"><VicusWordmark /></div>
           <div className="nav-actions">
-            <WalletAuthButton />
+            <WalletAuthButton ecosystems={ecosystems} />
             <Link className="nav-issuer" href="/admin">
               Issuer access
             </Link>

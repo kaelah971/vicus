@@ -93,7 +93,7 @@ async function fetchSessionState(): Promise<SessionState> {
   };
 }
 
-export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNavigation?: boolean } = {}) {
+export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] }: { showMobileNavigation?: boolean; ecosystems?: Array<{ value: string; label: string }> } = {}) {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -275,6 +275,16 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
       <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
         Profile
       </Link>
+      {ecosystems.length > 0 ? (
+        <>
+          <span className="wallet-menu-label">Ecosystems</span>
+          {ecosystems.map((ecosystem) => (
+            <Link className="wallet-menu-link" href={`/ecosystems/${encodeURIComponent(ecosystem.value)}`} key={ecosystem.value} onClick={() => setMobileMenuOpen(false)}>
+              {ecosystem.label}
+            </Link>
+          ))}
+        </>
+      ) : null}
       <Link className="wallet-menu-link" href="/admin" onClick={() => setMobileMenuOpen(false)}>
         Issuer access
       </Link>

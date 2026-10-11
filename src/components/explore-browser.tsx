@@ -1,25 +1,55 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCard, EmptyState, Icon } from "@/components/vicus";
 import type { Circle } from "@/lib/vicus-data";
 
-export function ExploreBrowser({
-  circles,
-  initialEcosystem = null,
-}: {
-  circles: Circle[];
-  initialEcosystem?: string | null;
-}) {
+const ALL_ECOSYSTEMS = "all";
+
+/**
+ * The URL (?ecosystem=) is the source of truth for the ecosystem dimension:
+ * sidebar links, back/forward, and the dropdown all read and write it, so a
+ * client-side navigation can never leave stale results from another chain on
+ * screen. Search/category/status remain local field state.
+ */
+export function ExploreBrowser({ circles }: { circles: Circle[] }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [ecosystem, setEcosystem] = useState(initialEcosystem ?? "All ecosystems");
   const [category, setCategory] = useState("All categories");
   const [state, setState] = useState("All statuses");
 
-  const ecosystems = useMemo(
-    () => Array.from(new Set(circles.map((circle) => circle.ecosystemLabel ?? circle.ecosystem ?? circle.network))),
+  const ecosystemOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          circles.map((circle) => [
+            circle.ecosystem ?? circle.network,
+            circle.ecosystemLabel ?? circle.ecosystem ?? circle.network,
+          ]),
+        ),
+      ).map(([value, label]) => ({ value, label })),
     [circles],
   );
+  const ecosystemValues = useMemo(
+    () => new Set(ecosystemOptions.map((option) => option.value)),
+    [ecosystemOptions],
+  );
+  const requestedEcosystem = (searchParams.get("ecosystem") ?? "").trim().toLowerCase();
+  const ecosystem = ecosystemValues.has(requestedEcosystem) ? requestedEcosystem : ALL_ECOSYSTEMS;
+
+  function handleEcosystemChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === ALL_ECOSYSTEMS) {
+      params.delete("ecosystem");
+    } else {
+      params.set("ecosystem", value);
+    }
+    const next = params.toString();
+    router.push(next ? `${pathname}?${next}` : pathname);
+  }
   const categories = useMemo(
     () => Array.from(new Set(circles.map((circle) => circle.category))),
     [circles],
@@ -38,7 +68,8 @@ export function ExploreBrowser({
             .toLowerCase()
             .includes(normalizedQuery)
         : true;
-      const matchesEcosystem = ecosystem === "All ecosystems" || (circle.ecosystemLabel ?? circle.ecosystem ?? circle.network) === ecosystem;
+      const matchesEcosystem =
+        ecosystem === ALL_ECOSYSTEMS || (circle.ecosystem ?? circle.network) === ecosystem;
       const matchesCategory = category === "All categories" || circle.category === category;
       const matchesState = state === "All statuses" || circle.stateLabel === state;
 
@@ -72,10 +103,10 @@ export function ExploreBrowser({
         </label>
         <label className="select-field">
           <span className="sr-only">Filter by ecosystem</span>
-          <select aria-label="Filter by ecosystem" onChange={(event) => setEcosystem(event.target.value)} value={ecosystem}>
-            <option>All ecosystems</option>
-            {ecosystems.map((item) => (
-              <option key={item}>{item}</option>
+          <select aria-label="Filter by ecosystem" onChange={(event) => handleEcosystemChange(event.target.value)} value={ecosystem}>
+            <option value={ALL_ECOSYSTEMS}>All ecosystems</option>
+            {ecosystemOptions.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
           <Icon name="chevron-down" size={15} />

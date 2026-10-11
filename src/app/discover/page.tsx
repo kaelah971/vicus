@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DataState, Eyebrow } from "@/components/vicus";
 import { ExploreBrowser } from "@/components/explore-browser";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { listCircles } from "@/lib/data/circles";
-
-type DiscoverPageProps = {
-  searchParams: Promise<{ ecosystem?: string }>;
-};
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +14,7 @@ export const metadata: Metadata = {
   description: "Discover source-backed tokenized asset Circles across real ecosystems.",
 };
 
-export default async function DiscoverPage({ searchParams }: DiscoverPageProps) {
-  const params = await searchParams;
+export default async function DiscoverPage() {
   let circleData: Awaited<ReturnType<typeof listCircles>> = [];
   let databaseUnavailable = false;
 
@@ -33,11 +29,6 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
     }
   }
 
-  const requestedEcosystem = params.ecosystem?.trim().toLowerCase() || null;
-  const selectedEcosystem = requestedEcosystem
-    ? circleData.find((circle) => circle.ecosystem === requestedEcosystem)?.ecosystemLabel ?? null
-    : null;
-
   return (
     <AppShell active="discover">
       <main className="page-main">
@@ -47,8 +38,8 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
               <Eyebrow>Discover</Eyebrow>
               <h1>Find the assets worth understanding.</h1>
               <p>
-                Explore every source-backed Asset Circle in Vicus, filter by ecosystem and category,
-                and open a Circle before deciding whether to watch or verify.
+                Explore every source-backed Asset Circle in Vicus — what assets exist, across all
+                ecosystems. Then enter an ecosystem hub to learn, participate, and contribute.
               </p>
             </div>
             <div className="page-intro-note">
@@ -66,7 +57,9 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
               </DataState>
             </section>
           ) : (
-            <ExploreBrowser circles={circleData} initialEcosystem={selectedEcosystem} />
+            <Suspense>
+              <ExploreBrowser circles={circleData} />
+            </Suspense>
           )}
         </div>
       </main>

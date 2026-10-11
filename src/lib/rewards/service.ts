@@ -113,13 +113,20 @@ function assertRewardEligibility(context: RewardContext) {
   return amount;
 }
 
-async function transitionToSubmitted(database: ReturnType<typeof getDatabase>, claim: RewardClaimRow) {
-  if (claim.status === "submitted") return claim;
-  if (claim.status === "confirmed") return claim;
+async function transitionToSubmitted(
+  database: ReturnType<typeof getDatabase>,
+  claim: RewardClaimRow,
+): Promise<{ claim: RewardClaimRow; transitioned: boolean; contested: boolean }> {
+  if (claim.status === "submitted") return { claim, transitioned: false, contested: false };
+  if (claim.status === "confirmed") return { claim, transitioned: false, contested: false };
   if (claim.status === "expired") {
     throw new RewardActionError("not-eligible", 409, "This reward has expired and cannot be claimed.");
   }
 
+  // Single conditional write: exactly one concurrent request flips
+  // claimable/failed to submitted. A caller whose UPDATE matches zero rows
+  // lost to another request and must NOT settle — it reuses that request's
+  // receipt instead of submitting a second payment.
   const [updated] = await database
     .update(rewardClaims)
     .set({
@@ -132,7 +139,12 @@ async function transitionToSubmitted(database: ReturnType<typeof getDatabase>, c
     .where(and(eq(rewardClaims.id, claim.id), inArray(rewardClaims.status, ["claimable", "failed"])))
     .returning();
 
-  return updated ?? (await getClaim(database, claim.missionSubmissionId)) ?? claim;
+  if (updated) {
+    return { claim: updated, transitioned: true, contested: false };
+  }
+
+  const current = await getClaim(database, claim.missionSubmissionId);
+  return { claim: current ?? claim, transitioned: false, contested: true };
 }
 
 export function requireRewardSession(session: AuthenticatedSession | null): AuthenticatedSession {
@@ -199,8 +211,15 @@ export async function claimRewardForSession(
     if (claim.status === "confirmed") return mapRewardClaim(claim, context);
     if (claim.status === "submitted" && !claim.signedEnvelopeXdr) return mapRewardClaim(claim, context);
 
-    claim = await transitionToSubmitted(database, claim);
+    const transition = await transitionToSubmitted(database, claim);
+    claim = transition.claim;
     if (claim.status === "confirmed") return mapRewardClaim(claim, context);
+    if (transition.contested) {
+      // Another request won the settlement path for this claim. Reuse its
+      // receipt instead of submitting a second payment.
+      const current = await getClaim(database, context.submission.id);
+      return mapRewardClaim(current ?? claim, context);
+    }
     if (claim.status !== "submitted") return mapRewardClaim(claim, context);
 
     const settlementClaim: RewardSettlementClaim = {

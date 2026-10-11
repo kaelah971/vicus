@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { DataState, EmptyState, Eyebrow, MissionCard } from "@/components/vicus";
+import { Suspense } from "react";
+import { DataState, EmptyState, Eyebrow } from "@/components/vicus";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { listMissions } from "@/lib/data/missions";
+import { MissionCenterBrowser } from "@/components/mission-center-browser";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +39,12 @@ export default async function MissionsPage() {
               <h1>Make understanding useful.</h1>
               <p>
                 Read the objective, complete a quiz or contribution, and leave a record that stays
-                explicit about review and approval.
+                explicit about review and approval. Filter by ecosystem or mission type to find a
+                useful next step.
               </p>
             </div>
             <div className="page-intro-note">
-              <strong>{databaseUnavailable ? "Mission center unavailable" : `${missions?.length ?? 0} missions in Vicus`}</strong>
+              <strong>{databaseUnavailable ? "Mission center unavailable" : `${missions?.length ?? 0} open missions in Vicus`}</strong>
               Browse freely. A verified wallet session is required to submit a response.
             </div>
           </div>
@@ -56,26 +58,9 @@ export default async function MissionsPage() {
               </DataState>
             </section>
           ) : missions && missions.length > 0 ? (
-            <section aria-labelledby="mission-center-title" className="mission-center-section">
-              <div className="section-heading">
-                <div>
-                  <Eyebrow>Current missions</Eyebrow>
-                  <h2 id="mission-center-title">Choose a useful next step.</h2>
-                </div>
-                <span className="directory-count">{missions.length} database-backed missions</span>
-              </div>
-              <div className="mission-grid">
-                {missions.map((mission) => (
-                  <div className="mission-index-card" key={mission.id}>
-                    <div className="mission-index-context">
-                      <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
-                      <span>{mission.reward}</span>
-                    </div>
-                    <MissionCard mission={mission} />
-                  </div>
-                ))}
-              </div>
-            </section>
+            <Suspense>
+              <MissionCenterBrowser missions={missions} />
+            </Suspense>
           ) : (
             <section className="directory-section">
               <EmptyState title="No missions configured">

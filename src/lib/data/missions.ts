@@ -14,6 +14,7 @@ import type {
 } from "@/lib/missions/types";
 import { submissionStatuses } from "@/lib/missions/types";
 import type { MissionRecord, ProfileContribution, SubmissionReviewRecord } from "@/lib/data/types";
+import { ecosystemLabel } from "@/lib/data/circles";
 
 type MissionRow = typeof missions.$inferSelect;
 type SubmissionRow = typeof missionSubmissions.$inferSelect;
@@ -208,11 +209,18 @@ export async function getMissionById(
   }
 }
 
-function mapMissionIndexRecord(
+export type MissionIndexCircle = {
+  name: string;
+  slug: string;
+  ecosystem: string;
+  ecosystemLabel: string;
+};
+
+export function mapMissionIndexRecord<T extends { name: string; slug: string }>(
   mission: MissionRow,
-  circle: { name: string; slug: string },
+  circle: T,
   submission: SubmissionState | null,
-): MissionRecord & { circle: { name: string; slug: string } } {
+): MissionRecord & { circle: T } {
   const review =
     mission.reviewMode === "manual"
       ? "Manual review"
@@ -242,16 +250,17 @@ function mapMissionIndexRecord(
 
 export async function listMissions(
   userId?: string | null,
-): Promise<Array<MissionRecord & { circle: { name: string; slug: string } }>> {
+): Promise<Array<MissionRecord & { circle: MissionIndexCircle }>> {
   try {
     const database = getDatabase();
     // Participant surface: drafts are issuer/admin work-in-progress and must
     // never appear in the Mission Center. Admin Studio reads via
     // getAdminMissions instead.
     const rows = await database
-      .select({ mission: missions, circle: circles })
+      .select({ mission: missions, circle: circles, asset: assets })
       .from(missions)
       .innerJoin(circles, eq(missions.circleId, circles.id))
+      .leftJoin(assets, eq(circles.assetId, assets.id))
       .where(eq(missions.status, "open"))
       .orderBy(asc(missions.status), asc(missions.createdAt));
     const submissionStates = await getSubmissionStatesForUser(
@@ -259,8 +268,17 @@ export async function listMissions(
       userId,
     );
 
-    return rows.map(({ mission, circle }) =>
-      mapMissionIndexRecord(mission, circle, submissionStates.get(mission.id) ?? null),
+    return rows.map(({ mission, circle, asset }) =>
+      mapMissionIndexRecord(
+        mission,
+        {
+          name: circle.name,
+          slug: circle.slug,
+          ecosystem: asset?.ecosystem ?? "stellar",
+          ecosystemLabel: ecosystemLabel(asset?.ecosystem ?? "stellar"),
+        },
+        submissionStates.get(mission.id) ?? null,
+      ),
     );
   } catch (error) {
     if (isDatabaseUnavailableError(error)) throw error;

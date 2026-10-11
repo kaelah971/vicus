@@ -128,9 +128,21 @@ async function verify() {
   assert.equal(settlementCalls, 1, "Concurrent claim requests must settle only once.");
   assert(["submitted", "confirmed"].includes(firstClaim.status));
   assert(["submitted", "confirmed"].includes(secondClaim.status));
+  assert.equal(firstClaim.id, secondClaim.id, "Concurrent claims must resolve to one logical claim.");
+  const claimRows = await database
+    .select({ id: rewardClaims.id })
+    .from(rewardClaims)
+    .where(eq(rewardClaims.missionSubmissionId, approvedSubmissionId));
+  assert.equal(claimRows.length, 1, "Concurrent claims must persist exactly one claim row.");
   const confirmedClaim = await claimRewardForSession(approvedSubmissionId, approvedSession, { settle: fakeSettlement });
   assert.equal(confirmedClaim.status, "confirmed");
   assert.equal(settlementCalls, 1, "A confirmed reward must not be paid again.");
+  assert.equal(confirmedClaim.id, firstClaim.id, "The confirmed receipt must be the same claim.");
+  assert.equal(
+    confirmedClaim.transactionHash,
+    `test-reward-${approvedSubmissionId}`,
+    "The confirmed receipt hash must be reused, not re-issued.",
+  );
   assert.equal(confirmedClaim.amount, "0.1", "The client cannot override the configured amount.");
   assert.equal(confirmedClaim.destinationPublicKey, approvedParticipant.publicKey, "The client cannot redirect the destination.");
 
