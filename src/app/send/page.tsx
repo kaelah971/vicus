@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { SendRunner } from "@/components/send-runner";
+import { CrosschainSendRunner } from "@/components/crosschain-send-runner";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { getCurrentSession } from "@/lib/auth/session";
 import { isDatabaseUnavailableError } from "@/db";
@@ -17,10 +18,11 @@ export const metadata: Metadata = {
 export default async function SendPage({
   searchParams,
 }: {
-  searchParams: Promise<{ asset?: string }>;
+  searchParams: Promise<{ asset?: string; mode?: string }>;
 }) {
-  const { asset } = await searchParams;
+  const { asset, mode } = await searchParams;
   const initialAsset = typeof asset === "string" && getSendableAsset(asset) ? asset : null;
+  const crosschain = mode === "cross-chain";
 
   let session;
   try {
@@ -46,7 +48,21 @@ export default async function SendPage({
     <AppShell active="discover">
       <main className="page-main">
         <div className="shell circle-page-body">
-          {session ? <SendRunner initialAsset={initialAsset} /> : <WalletConnectPrompt />}
+          {session ? (
+            <>
+              <nav className="row" aria-label="Send mode">
+                <a className="button button-outline button-small" href="/send" aria-current={crosschain ? undefined : "page"}>
+                  Same network
+                </a>
+                <a className="button button-outline button-small" href="/send?mode=cross-chain" aria-current={crosschain ? "page" : undefined}>
+                  Cross-chain · Testnet
+                </a>
+              </nav>
+              {crosschain ? <CrosschainSendRunner /> : <SendRunner initialAsset={initialAsset} />}
+            </>
+          ) : (
+            <WalletConnectPrompt />
+          )}
         </div>
       </main>
     </AppShell>

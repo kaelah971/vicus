@@ -156,6 +156,11 @@ const CAPABILITY_META: Record<string, { tone: Tone; icon: GlyphName }> = {
   redeem: { tone: "pink", icon: "redeem" },
   collateral: { tone: "pink", icon: "lock" },
   save: { tone: "green", icon: "coins" },
+  access: { tone: "green", icon: "bolt" },
+  move: { tone: "blue", icon: "transfer" },
+  earn: { tone: "green", icon: "coins" },
+  supply: { tone: "violet", icon: "layers" },
+  borrow: { tone: "orange", icon: "credit" },
 };
 
 export function capabilityMeta(type: string) {

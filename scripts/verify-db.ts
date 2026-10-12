@@ -104,20 +104,20 @@ async function verify() {
     "usdc-on-solana",
   ];
 
-  const countsMatch =
-    counts.users === 1 &&
-    counts.assets === 6 &&
-    counts.circles === 7 &&
-    counts.missions === 7 &&
-    counts.campaigns === 2 &&
-    counts.memberships === 3 &&
-    counts.badges === 4 &&
-    counts.activityEvents === 4 &&
-    counts.missionSubmissions === 0 &&
-    counts.stellarWallets === 0 &&
-    counts.authChallenges === 0 &&
-    counts.authSessions === 0;
+  // Invariant checks (NOT exact fixture counts): a lived-in database keeps
+  // accumulating users, sessions, watches, and capstone circles. Assert
+  // minimum seeded presence, canonical config, and uniqueness instead.
+  const minimumsMatch =
+    counts.users >= 1 &&
+    counts.assets >= 6 &&
+    counts.circles >= 7 &&
+    counts.missions >= 7 &&
+    counts.campaigns >= 2 &&
+    counts.memberships >= 3 &&
+    counts.badges >= 4 &&
+    counts.activityEvents >= 4;
   const slugsMatch = expectedSlugs.every((slug) => slugs.includes(slug));
+  const slugsUnique = new Set(slugs).size === slugs.length;
   const usdcConfig = assetVerificationRows.find((asset) => asset.code === "USDC" && asset.ecosystem === "stellar");
   const pyusdConfig = assetVerificationRows.find((asset) => asset.code === "PYUSD");
   const usdyConfig = assetVerificationRows.find((asset) => asset.code === "USDY");
@@ -146,12 +146,15 @@ async function verify() {
       researchMission.config?.kind === "research",
   );
 
-  if (!demoUser || !countsMatch || !slugsMatch || !canonicalConfigMatch || !missionConfigMatch) {
+  if (!demoUser || !minimumsMatch || !slugsMatch || !slugsUnique || !canonicalConfigMatch || !missionConfigMatch) {
     console.error("Database verification failed.");
     console.error({
       counts,
       slugs,
       demoUser: Boolean(demoUser),
+      minimumsMatch,
+      slugsMatch,
+      slugsUnique,
       canonicalConfigMatch,
       missionConfigMatch,
     });

@@ -208,6 +208,7 @@ export const campaigns = pgTable(
     circleId: uuid("circle_id")
       .notNull()
       .references(() => circles.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "set null" }),
     objective: text("objective").notNull(),
     budgetAsset: varchar("budget_asset", { length: 32 }),
     budgetAmount: numeric("budget_amount", { precision: 24, scale: 7 }),
@@ -215,9 +216,54 @@ export const campaigns = pgTable(
     status: varchar("status", { length: 40 }).notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
+    targetAction: varchar("target_action", { length: 32 }).notNull().default("send"),
+    rewardAsset: varchar("reward_asset", { length: 16 }).notNull().default("USDC"),
+    rewardNetwork: varchar("reward_network", { length: 32 }).notNull().default("stellar_testnet"),
+    rewardPerCompletion: numeric("reward_per_completion", { precision: 24, scale: 7 }),
+    participantCap: integer("participant_cap"),
+    fundedAmount: numeric("funded_amount", { precision: 24, scale: 7 }).notNull().default("0"),
+    reservedAmount: numeric("reserved_amount", { precision: 24, scale: 7 }).notNull().default("0"),
+    paidAmount: numeric("paid_amount", { precision: 24, scale: 7 }).notNull().default("0"),
+    treasuryAccount: varchar("treasury_account", { length: 64 }),
+    fundingTxHash: varchar("funding_tx_hash", { length: 128 }),
+    fundingVerifiedAt: timestamp("funding_verified_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
     ...timestamps,
   },
-  (table) => [index("campaigns_circle_status_idx").on(table.circleId, table.status)],
+  (table) => [
+    index("campaigns_circle_status_idx").on(table.circleId, table.status),
+    uniqueIndex("campaigns_funding_tx_unique").on(table.fundingTxHash),
+  ],
+);
+
+export const campaignCompletions = pgTable(
+  "campaign_completions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    proofKind: varchar("proof_kind", { length: 16 }).notNull(),
+    proofId: uuid("proof_id").notNull(),
+    rewardAmount: numeric("reward_amount", { precision: 24, scale: 7 }).notNull(),
+    destinationPublicKey: varchar("destination_public_key", { length: 64 }).notNull(),
+    payoutTxHash: varchar("payout_tx_hash", { length: 128 }),
+    payoutEnvelope: text("payout_envelope"),
+    payoutLedger: integer("payout_ledger"),
+    status: varchar("status", { length: 24 }).notNull().default("reserved"),
+    lastError: text("last_error"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("campaign_completions_proof_unique").on(table.campaignId, table.proofKind, table.proofId),
+    index("campaign_completions_campaign_status_idx").on(table.campaignId, table.status),
+    index("campaign_completions_user_idx").on(table.userId),
+  ],
 );
 
 export const missions = pgTable(
@@ -752,5 +798,80 @@ export const assetTransfers = pgTable(
     uniqueIndex("asset_transfers_tx_hash_unique").on(table.transactionHash),
     index("asset_transfers_sender_idx").on(table.senderUserId),
     index("asset_transfers_status_idx").on(table.status),
+  ],
+);
+
+export const assetAccessOrders = pgTable(
+  "asset_access_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetCircleId: uuid("target_circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    sourceAsset: varchar("source_asset", { length: 16 }).notNull().default("USDC"),
+    sourceNetwork: varchar("source_network", { length: 32 }).notNull().default("stellar_testnet"),
+    sourceAmountSubunits: varchar("source_amount_subunits", { length: 32 }).notNull(),
+    destinationNetwork: varchar("destination_network", { length: 32 }).notNull().default("base"),
+    executionWallet: varchar("execution_wallet", { length: 64 }),
+    targetAssetAddress: varchar("target_asset_address", { length: 64 }).notNull(),
+    venue: varchar("venue", { length: 32 }).notNull(),
+    eligibilityAcknowledged: boolean("eligibility_acknowledged").notNull().default(false),
+    accessTransferId: uuid("access_transfer_id").references(() => crosschainTransfers.id, {
+      onDelete: "set null",
+    }),
+    quoteAmountOut: varchar("quote_amount_out", { length: 32 }),
+    quoteMinOut: varchar("quote_min_out", { length: 32 }),
+    quoteAt: timestamp("quote_at", { withTimezone: true }),
+    destinationUsdcAmount: varchar("destination_usdc_amount", { length: 32 }),
+    targetAmount: varchar("target_amount", { length: 32 }),
+    approvalHash: varchar("approval_hash", { length: 128 }),
+    swapHash: varchar("swap_hash", { length: 128 }),
+    status: varchar("status", { length: 24 }).notNull().default("draft"),
+    failureReason: varchar("failure_reason", { length: 64 }),
+    lastError: text("last_error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("access_orders_user_idx").on(table.userId),
+    index("access_orders_status_idx").on(table.status),
+  ],
+);
+
+export const externalUtilityOrders = pgTable(
+  "external_utility_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetCircleId: uuid("target_circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    actionKind: varchar("action_kind", { length: 16 }).notNull().default("swap"),
+    sourceMint: varchar("source_mint", { length: 64 }).notNull(),
+    sourceAmountSubunits: varchar("source_amount_subunits", { length: 32 }).notNull(),
+    targetMint: varchar("target_mint", { length: 64 }).notNull(),
+    destinationNetwork: varchar("destination_network", { length: 32 }).notNull().default("solana"),
+    executionWallet: varchar("execution_wallet", { length: 64 }),
+    venue: varchar("venue", { length: 32 }).notNull(),
+    eligibilityAcknowledged: boolean("eligibility_acknowledged").notNull().default(false),
+    quoteOutAmount: varchar("quote_out_amount", { length: 32 }),
+    quoteMinOut: varchar("quote_min_out", { length: 32 }),
+    quoteAt: timestamp("quote_at", { withTimezone: true }),
+    swapSignature: varchar("swap_signature", { length: 128 }),
+    targetAmount: varchar("target_amount", { length: 32 }),
+    status: varchar("status", { length: 24 }).notNull().default("draft"),
+    failureReason: varchar("failure_reason", { length: 64 }),
+    lastError: text("last_error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("utility_orders_user_idx").on(table.userId),
+    index("utility_orders_status_idx").on(table.status),
   ],
 );

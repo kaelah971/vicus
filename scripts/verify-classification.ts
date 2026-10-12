@@ -29,11 +29,15 @@ const KNOWN_SLUGS = new Set([
   "tipsx-on-stellar",
   "spxux-on-stellar",
   "techx-on-stellar",
+  "aaplc-on-base",
+  "aaplx-on-solana",
+  "tslax-on-solana",
+  "nvdac-on-base",
 ]);
 
 async function verify() {
   const all = await listCircles(null);
-  assert.equal(all.length, 13, "The directory holds the seven legacy rows plus the six Stellar-universe rows.");
+  assert.equal(all.length, 17, "The directory holds the seven legacy rows plus the six Stellar-universe rows plus the verified Base targets and the verified Solana swap targets.");
   for (const circle of all) {
     assert(KNOWN_SLUGS.has(circle.slug), `Unexpected circle ${circle.slug}.`);
   }
@@ -51,7 +55,7 @@ async function verify() {
     assert.equal(bySlug.get(slug)?.category, "fixed_income", `${slug} must classify as fixed_income.`);
     assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized Fixed Income");
   }
-  for (const slug of ["spxux-on-stellar", "techx-on-stellar"]) {
+  for (const slug of ["spxux-on-stellar", "techx-on-stellar", "aaplc-on-base", "aaplx-on-solana", "tslax-on-solana", "nvdac-on-base"]) {
     assert.equal(bySlug.get(slug)?.category, "equity_fund", `${slug} must classify as equity_fund.`);
     assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized Equity / Equity Fund");
   }
@@ -61,7 +65,7 @@ async function verify() {
   assert(education, "Education content must keep existing.");
   assert(!isAssetCircle(education!), "Education-only content must leave Discover.");
   const discoverEntries = all.filter(isAssetCircle);
-  assert.equal(discoverEntries.length, 12);
+  assert.equal(discoverEntries.length, 16);
   assert(discoverEntries.every((circle) => circle.slug !== "tokenized-treasury-education"));
   const direct = await getCircleBySlug("tokenized-treasury-education");
   assert(direct, "Education circle must stay directly reachable.");
@@ -90,7 +94,7 @@ async function verify() {
   );
   assert.deepEqual(
     equities.map((circle) => circle.slug).sort(),
-    ["spxux-on-stellar", "techx-on-stellar"],
+    ["aaplc-on-base", "aaplx-on-solana", "nvdac-on-base", "spxux-on-stellar", "techx-on-stellar", "tslax-on-solana"],
   );
 
   // Ecosystem filter works.
@@ -117,6 +121,14 @@ async function verify() {
     matchesCircleFilters(circle, { assetClass: "stablecoin", ecosystem: "base", query: "", state: "All statuses" }),
   );
   assert.deepEqual(stableBase.map((circle) => circle.slug), ["usdc-on-base"]);
+  const equityBase = discoverEntries.filter((circle) =>
+    matchesCircleFilters(circle, { assetClass: "equity_fund", ecosystem: "base", query: "", state: "All statuses" }),
+  );
+  assert.deepEqual(equityBase.map((circle) => circle.slug), ["aaplc-on-base", "nvdac-on-base"]);
+  const equitySolana = discoverEntries.filter((circle) =>
+    matchesCircleFilters(circle, { assetClass: "equity_fund", ecosystem: "solana", query: "", state: "All statuses" }),
+  );
+  assert.deepEqual(equitySolana.map((circle) => circle.slug), ["aaplx-on-solana", "tslax-on-solana"]);
   const treasuryStellar = discoverEntries.filter((circle) =>
     matchesCircleFilters(circle, { assetClass: "treasury_fund", ecosystem: "stellar", query: "", state: "All statuses" }),
   );

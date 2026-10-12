@@ -169,6 +169,27 @@
       "when": 1791802717847,
       "tag": "0023_asset_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791802717848,
+      "tag": "0024_asset_access_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791802717849,
+      "tag": "0025_external_utility_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791802717850,
+      "tag": "0026_campaign_funding",
+      "breakpoints": true
     }
   ]
 }

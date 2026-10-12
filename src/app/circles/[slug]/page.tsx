@@ -40,9 +40,9 @@ import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data
 import { getCircleOrganization } from "@/lib/organizations/service";
 import { getCirclePeople } from "@/lib/social/service";
 import { listCirclePosts } from "@/lib/community/service";
-import { getCircleCapabilities, supportModeBadge } from "@/lib/utility/service";
 import { getCircleLifecycle } from "@/lib/lifecycle/service";
-import { getSendableAsset } from "@/lib/send/service";
+import { resolveAssetActions } from "@/lib/asset-actions/service";
+import { listCircleCampaigns } from "@/lib/campaigns/service";
 import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
@@ -136,15 +136,18 @@ export default async function CirclePage({ params }: CirclePageProps) {
     hostOrg = null;
   }
 
-  let capabilities: Awaited<ReturnType<typeof getCircleCapabilities>> = [];
+  let resolvedActions: Awaited<ReturnType<typeof resolveAssetActions>> = [];
+  let circleCampaigns: Awaited<ReturnType<typeof listCircleCampaigns>> = [];
   let activationLinks: Awaited<ReturnType<typeof getActivationMissionLinks>> = new Map();
   let lifecycle: Awaited<ReturnType<typeof getCircleLifecycle>> = [];
   try {
-    capabilities = await getCircleCapabilities(circle.slug);
+    resolvedActions = await resolveAssetActions(circle.slug, circle.network ?? circle.ecosystem ?? "stellar");
+    circleCampaigns = await listCircleCampaigns(circle.slug);
     activationLinks = await getActivationMissionLinks(circle.id);
     lifecycle = await getCircleLifecycle(circle.slug);
   } catch {
-    capabilities = [];
+    resolvedActions = [];
+    circleCampaigns = [];
     activationLinks = new Map();
     lifecycle = [];
   }
@@ -174,53 +177,26 @@ export default async function CirclePage({ params }: CirclePageProps) {
     ? circle.missions.find((mission) => mission.id === activationEntry[1].id) ?? null
     : null;
   const rewardNetwork = rewardNetworkLabel();
-  const useActions: ActionItem[] = capabilities.map((capability) => {
-    const meta = capabilityMeta(capability.capabilityType);
-    const mission = activationLinks.get(capability.capabilityType);
+  // Asset Action Engine: ONE unified action model. Source-backed capability
+  // rows plus live Vicus execution (Send policy, CCTP MOVE, Access Router)
+  // resolve server-side; overlays win on kind collision so execution links
+  // appear only where execution truly exists.
+  const actionItems: ActionItem[] = resolvedActions.map((action) => {
+    const meta = capabilityMeta(action.kind);
+    const mission = activationLinks.get(action.kind);
     return {
-      key: capability.id,
-      label: capability.title,
-      href: `/circles/${circle.slug}/use/${capability.capabilityType}`,
+      key: `${action.kind}-${action.executionMode}`,
+      label: action.title,
+      href: action.href,
       tone: meta.tone,
       icon: meta.icon,
-      state: mission ? "Mission available" : supportModeBadge[capability.supportMode],
-      live: Boolean(mission),
+      state: mission ? "Mission available" : action.stateLabel,
+      live: mission ? true : action.live,
+      external: action.external,
     };
   });
-  // Send to @handle: only where the server-owned transfer policy confirms
-  // the Circle is a verified transferable Stellar asset. Never client-driven.
-  const sendPolicy = getSendableAsset(circle.slug);
-  const sendActions: ActionItem[] = sendPolicy
-    ? [
-        {
-          key: "send-to-handle",
-          label: "Send",
-          href: `/send?asset=${circle.slug}`,
-          tone: "blue",
-          icon: "send",
-          state: sendPolicy.permissioned ? "Permissioned transfer" : "Stellar Mainnet",
-          live: true,
-        },
-      ]
-    : [];
-  // Access from Stellar: native USDC moves outward via Circle CCTP. Surfaced
-  // only on the USDC circle — never on assets that are not CCTP-compatible.
-  const accessActions: ActionItem[] =
-    circle.code === "USDC"
-      ? [
-          {
-            key: "access-stellar",
-            label: "Move across networks",
-            href: "/access",
-            tone: "green",
-            icon: "send",
-            state: "Native USDC via Circle CCTP",
-            live: true,
-          },
-        ]
-      : [];
   const tabs = [
-    ...(capabilities.length > 0 ? [{ href: "#use", label: "Use" }] : []),
+    ...(actionItems.length > 0 ? [{ href: "#use", label: "Use" }] : []),
     { href: "#passport", label: "Learn" },
     { href: "#missions", label: "Missions", count: circle.missions.length },
     { href: "#community", label: "Community", count: communityPreview.length },
@@ -282,15 +258,42 @@ export default async function CirclePage({ params }: CirclePageProps) {
         <TabBar items={tabs} label="Circle sections" />
 
         <div className="shell c-body">
-          {capabilities.length > 0 ? (
+          {actionItems.length > 0 ? (
             <section aria-labelledby="circle-use-title" className="c-use" id="use">
               <GlowField tones={["blue", "green", "violet"]} />
               <div className="c-use-head">
-                <span className="v-eyebrow">Put it to work</span>
+                <span className="v-eyebrow">Your actions</span>
                 <h2 id="circle-use-title">What you can do with {circle.code}</h2>
-                <p>Opens the official flow or a guide — not investment advice. Vicus never moves funds.</p>
+                <p>Only actions this asset actually supports — nothing speculative. Vicus never moves funds.</p>
               </div>
-              <ActionTray actions={[...useActions, ...sendActions, ...accessActions]} />
+              <ActionTray actions={actionItems} />
+            </section>
+          ) : null}
+          {circleCampaigns.length > 0 ? (
+            <section aria-labelledby="circle-campaigns-title" className="c-use" id="campaigns">
+              <div className="c-use-head">
+                <span className="v-eyebrow">Active campaign</span>
+                <h2 id="circle-campaigns-title">Earn for using {circle.code}</h2>
+              </div>
+              <div className="stack">
+                {circleCampaigns.map((entry) => (
+                  <div className="card" key={entry.id}>
+                    <p><strong>{entry.objective}</strong></p>
+                    <p className="muted small">
+                      {entry.targetAction === "send"
+                        ? `Send ${circle.code}`
+                        : entry.targetAction === "swap"
+                          ? `Swap into ${circle.code}`
+                          : `Complete a ${circle.code} mission`}
+                      {" · Earn "}
+                      {entry.rewardPerCompletion ?? "—"} {entry.rewardAsset} ({entry.rewardNetworkLabel})
+                    </p>
+                    <div className="row">
+                      <a className="btn" href={`/campaigns/${entry.id}`}>View campaign</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
           ) : null}
 

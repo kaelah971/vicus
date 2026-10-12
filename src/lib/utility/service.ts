@@ -18,6 +18,11 @@ export const capabilityTypes = [
   "redeem",
   "collateral",
   "save",
+  "access",
+  "move",
+  "earn",
+  "supply",
+  "borrow",
 ] as const;
 
 export type CapabilityType = (typeof capabilityTypes)[number];

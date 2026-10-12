@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import { isDatabaseUnavailableError } from "@/db";
+import { getCurrentSession } from "@/lib/auth/session";
+import { hasOversizedBody, isSameOriginRequest } from "@/lib/auth/request";
+import { SWAP_TARGET_ASSET } from "@/lib/external-utility/config";
+import {
+  UtilityOrderError,
+  createExitOrder,
+  listMyExitOrders,
+} from "@/lib/external-utility/service";
+
+export const dynamic = "force-dynamic";
+
+function errorResponse(error: unknown) {
+  if (error instanceof UtilityOrderError) {
+    return NextResponse.json(
+      { ok: false, code: error.code, message: error.message },
+      { status: error.httpStatus, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  if (isDatabaseUnavailableError(error)) {
+    return NextResponse.json(
+      { ok: false, code: "database-unavailable", message: "The Vicus database is unavailable." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  return NextResponse.json(
+    { ok: false, code: "utility-unavailable", message: "Exit orders are temporarily unavailable." },
+    { status: 503, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+export async function GET() {
+  let session;
+  try {
+    session = await getCurrentSession();
+  } catch (error) {
+    return errorResponse(error);
+  }
+  if (!session) {
+    return NextResponse.json(
+      { ok: true, signedIn: false, target: SWAP_TARGET_ASSET, orders: [] },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  try {
+    const orders = await listMyExitOrders(session.user.id);
+    return NextResponse.json(
+      { ok: true, signedIn: true, target: SWAP_TARGET_ASSET, orders },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function POST(request: Request) {
+  let session;
+  try {
+    session = await getCurrentSession();
+  } catch (error) {
+    return errorResponse(error);
+  }
+  if (!session) {
+    return NextResponse.json(
+      { ok: false, code: "unauthenticated", message: "Sign in to exit." },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  if (!isSameOriginRequest(request) || (await hasOversizedBody(request, 8_000))) {
+    return NextResponse.json(
+      { ok: false, code: "invalid-request", message: "That request could not be accepted." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  let body: { sourceAmount?: unknown; executionWallet?: unknown; eligibilityAcknowledged?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { ok: false, code: "invalid-request", message: "Provide the exit details." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  // Server owns mints, venue, network, and slippage — the body carries only
+  // amount, wallet, and the eligibility acknowledgement.
+  try {
+    const order = await createExitOrder(session.user.id, body);
+    return NextResponse.json({ ok: true, order }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}

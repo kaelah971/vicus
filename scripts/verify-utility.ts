@@ -49,7 +49,7 @@ async function verify() {
       assert.deepEqual(Object.keys(entry).sort(), PUBLIC_KEYS, "Public loader must expose the exact key set.");
     }
     const stellarTypes = stellar.map((entry) => entry.capabilityType).sort();
-    assert.deepEqual(stellarTypes, ["build", "receive", "send"]);
+    assert.deepEqual(stellarTypes, ["build", "receive", "redeem", "send", "supply"]);
 
     // No truthful IN_VICUS capability exists anywhere yet.
     for (const slug of ["usdc-on-stellar", "usdc-on-base", "usdc-on-ethereum", "usdc-on-solana"]) {

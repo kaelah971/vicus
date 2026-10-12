@@ -411,10 +411,13 @@ async function verify() {
   assert.equal(hashProofs.length, 1, "Exactly one proof row per hash.");
 
   // Horizon unavailable → retryable, never a rejection, never points.
+  // Uses a fresh user: either racer may have won the approval above, and an
+  // approved user cannot resubmit (allow-revision covers needs_revision only).
   horizonDown = true;
   scenario = null;
+  const dave = await createUser(`activation-dave-${tag}`);
   outcome = await submitOnchainProof({
-    missionId: probeMissionId, userId: carol, walletPublicKey: WALLET_A,
+    missionId: probeMissionId, userId: dave, walletPublicKey: WALLET_A,
     transactionHash: HASH("6"), fetchJson: mockFetchJson,
   });
   horizonDown = false;
@@ -439,7 +442,7 @@ async function verify() {
   scenario = { tx: txFixture(WALLET_A, CREATED_AFTER), ops: [paymentOp()] };
   await expectCode(
     submitOnchainProof({
-      missionId: probeMissionId, userId: carol, walletPublicKey: WALLET_A,
+      missionId: probeMissionId, userId: dave, walletPublicKey: WALLET_A,
       transactionHash: HASH("7"), fetchJson: mockFetchJson,
     }),
     "unsupported-mission",

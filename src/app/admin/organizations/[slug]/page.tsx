@@ -19,6 +19,7 @@ import {
 } from "@/lib/organizations/service";
 import { AdminReviewQueue } from "@/components/admin-review-queue";
 import { MissionCreateForm } from "@/components/mission-create-form";
+import { CampaignStudio } from "@/components/campaign-studio";
 import { LessonForm } from "@/components/lesson-form";
 import { AdminMissionStatusControl } from "@/components/admin-mission-status-control";
 import { OrgCircleClaimForm, OrgMemberForm } from "@/components/org-studio-forms";
@@ -330,6 +331,19 @@ export default async function OrgStudioPage({ params }: OrgStudioPageProps) {
               </div>
             ) : null}
           </section>
+
+          {canManage ? (
+            <section className="hairline-card admin-panel" style={{ marginTop: 16 }}>
+              <div className="admin-panel-header">
+                <div>
+                  <Eyebrow>Activation campaigns</Eyebrow>
+                  <h2>Fund real adoption.</h2>
+                </div>
+                <p>Campaigns pay Stellar Testnet USDC for verified asset actions. Nothing activates until funding verifies onchain.</p>
+              </div>
+              <CampaignStudio organizationId={org.id} circles={studioCircles} />
+            </section>
+          ) : null}
 
           {canReview ? (
             <section className="hairline-card admin-panel" style={{ marginTop: 16 }}>
