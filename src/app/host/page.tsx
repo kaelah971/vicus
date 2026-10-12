@@ -90,6 +90,8 @@ export default async function HostPage() {
               <strong>Apply below — no wallet action needed</strong>
               Applications are reviewed by Vicus admins. Approved projects manage their Space
               through the organization studio.
+              New to issuance? <Link href="/lab">Prototype an asset on Stellar Testnet</Link> before
+              building an activation experience — a Lab demo is not production infrastructure.
             </div>
           </div>
         </header>

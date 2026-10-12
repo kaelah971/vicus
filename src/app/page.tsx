@@ -1,30 +1,56 @@
 import Link from "next/link";
+import { ButtonLink, DataState, Icon, MarketingShell } from "@/components/vicus";
 import {
-  AssetPassport,
-  MarketingShell,
-  ButtonLink,
-  CircleCard,
-  DataState,
-  EmptyState,
-  Eyebrow,
-  Icon,
-  MissionCard,
-  PortalVisual,
-  RewardState,
-} from "@/components/vicus";
+  ASSET_CLASSES,
+  ActionTray,
+  AssetToken,
+  Avatar,
+  Chip,
+  EcoChip,
+  Glyph,
+  GlowField,
+  MetricTile,
+  Orb,
+  PhoneFrame,
+  SectionHead,
+  StepFlow,
+  capabilityMeta,
+  EdgeLight,
+  edgeClass,
+  missionTypeMeta,
+  type ActionItem,
+} from "@/components/vicus-ui";
+import { VicusHeroVisual } from "@/components/vicus-hero-visual";
+import { VicusFooter } from "@/components/vicus-footer";
 import { isDatabaseUnavailableError } from "@/db";
-import { listCircles } from "@/lib/data/circles";
+import { isAssetCircle, listCircles } from "@/lib/data/circles";
 import { listMissions } from "@/lib/data/missions";
+import { getCircleCapabilities, supportModeBadge } from "@/lib/utility/service";
+import { getActivationMissionLinks } from "@/lib/activation/service";
+import { getOrganizationBySlug, listSpaces } from "@/lib/organizations/service";
+import { listCirclePosts } from "@/lib/community/service";
+import { getCirclePeople } from "@/lib/social/service";
+import { rewardNetworkLabel } from "@/lib/rewards/display";
 
 export const dynamic = "force-dynamic";
 
+async function soft<T>(load: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await load();
+  } catch {
+    return fallback;
+  }
+}
+
+const NO_REWARD = "No reward configured";
+
 export default async function Home() {
-  let featuredCircles = [] as Awaited<ReturnType<typeof listCircles>>;
-  let featuredMissions = [] as Awaited<ReturnType<typeof listMissions>>;
+  let circles = [] as Awaited<ReturnType<typeof listCircles>>;
+  let missions = [] as Awaited<ReturnType<typeof listMissions>>;
   let databaseUnavailable = false;
 
   try {
-    [featuredCircles, featuredMissions] = await Promise.all([listCircles(), listMissions()]);
+    [circles, missions] = await Promise.all([listCircles(), listMissions()]);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       databaseUnavailable = true;
@@ -33,237 +59,427 @@ export default async function Home() {
     }
   }
 
-  const featuredCircle = featuredCircles[0];
-  const featuredMission = featuredMissions[0];
+  const assets = circles.filter(isAssetCircle);
+  const featured = assets.find((circle) => circle.slug === "usdc-on-stellar") ?? assets[0] ?? null;
+  const ecosystems = Array.from(new Map(assets.map((circle) => [circle.ecosystem, circle.ecosystemLabel])));
+  const sameAsset = featured
+    ? assets.filter((circle) => circle.code === featured.code && circle.slug !== featured.slug)
+    : [];
+  const otherAssets = assets.filter((circle) => circle.slug !== featured?.slug).slice(0, 6);
+  const activation = missions.find((mission) => mission.type === "onchain_action") ?? null;
+  const spotlightMission = activation ?? missions[0] ?? null;
+
+  const [capabilities, activationLinks, spaces, posts, people] = await Promise.all([
+    featured ? soft(() => getCircleCapabilities(featured.slug), []) : Promise.resolve([]),
+    featured ? soft(() => getActivationMissionLinks(featured.id), new Map()) : Promise.resolve(new Map()),
+    soft(() => listSpaces(), []),
+    featured ? soft(() => listCirclePosts(featured.slug, null, null, 6), []) : Promise.resolve([]),
+    featured ? soft(() => getCirclePeople(featured.id), []) : Promise.resolve([]),
+  ]);
+  const rankedSpaces = [...spaces].sort(
+    (a, b) =>
+      b.hostedCircleCount + b.openMissionCount + b.publishedLessonCount -
+      (a.hostedCircleCount + a.openMissionCount + a.publishedLessonCount),
+  );
+  const featuredSpace = rankedSpaces[0] ?? null;
+  const featuredSpaceDetail = featuredSpace ? await soft(() => getOrganizationBySlug(featuredSpace.slug), null) : null;
+  const rewardNetwork = rewardNetworkLabel();
+
+  const workActions: ActionItem[] = capabilities.map((capability) => {
+    const meta = capabilityMeta(capability.capabilityType);
+    return {
+      key: capability.id,
+      label: capability.title,
+      href: `/circles/${capability.circleSlug}/use/${capability.capabilityType}`,
+      tone: meta.tone,
+      icon: meta.icon,
+      state: activationLinks.has(capability.capabilityType) ? "Mission available" : supportModeBadge[capability.supportMode],
+      live: activationLinks.has(capability.capabilityType),
+    };
+  });
+
   return (
     <MarketingShell>
-      <main>
+      <main className="landing">
+        {/* 1 — Hero */}
         <section className="hero">
           <div className="shell hero-grid">
             <div className="hero-copy">
               <span className="eyebrow hero-eyebrow">THE COMMUNITY LAYER FOR TOKENIZED ASSETS</span>
               <h1 className="hero-title">Tokenized assets need a place to belong.</h1>
-              <p className="hero-support">
-                Vicus turns tokenized assets into living communities where people can learn what they
-                represent, watch before connecting a wallet, prove relevant participation, contribute
-                useful knowledge, and claim eligible rewards.
-              </p>
+              <p className="hero-support">Discover them, understand them, and put them to work — together.</p>
               <div className="hero-actions">
                 <ButtonLink href="/discover" variant="white">
                   Explore Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
-                <ButtonLink href="#verification" variant="outline">
-                  See how verification works
+                <ButtonLink href="#how-it-works" variant="glass">
+                  How it works
                 </ButtonLink>
               </div>
+              {!databaseUnavailable ? (
+                <div className="hero-mini" aria-label="Live on Vicus">
+                  <span><strong>{assets.length}</strong> assets</span>
+                  <span><strong>{ecosystems.length}</strong> ecosystems</span>
+                  <span><strong>{missions.length}</strong> open missions</span>
+                </div>
+              ) : null}
               <p className="trust-line">
                 Educational and community product. Not financial advice. Asset access and reward
                 eligibility vary by issuer and region.
               </p>
             </div>
             <div className="hero-visual">
-              <PortalVisual label="Asset · portal · participation" />
+              <VicusHeroVisual />
             </div>
           </div>
         </section>
 
-        <section className="home-section" id="explore-first">
-          <div className="shell home-section-grid">
-            <div className="home-section-copy">
-              <Eyebrow>Explore first</Eyebrow>
-              <h2>Look around before you connect anything.</h2>
-              <p>
-                Browse asset circles, read the Passport, and understand what each community is for
-                before deciding whether to verify a role.
-              </p>
-              <Link className="home-section-link" href="/discover">
-                Browse all circles <Icon name="arrow-right" size={16} />
-              </Link>
-            </div>
-            <div className="section-visual-stack">
-              {databaseUnavailable ? (
-                <DataState title="Circle data is unavailable">
-                  The database could not provide the discovery preview. No fixture fallback is being shown.
-                </DataState>
-              ) : featuredCircles.length > 0 ? (
-                <>
-                  <div className="explore-preview-grid">
-                    {featuredCircles.slice(0, 2).map((circle) => (
-                      <CircleCard circle={circle} key={circle.slug} />
-                    ))}
-                  </div>
-                  <p className="section-note">
-                    Watch mode is a low-friction entry point. Every circle here is source-backed and under ongoing review.
-                  </p>
-                </>
-              ) : (
-                <EmptyState title="No circles yet">
-                  The database has no circle records to show. No fixture fallback is being shown.
-                </EmptyState>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="home-section" id="know-the-asset">
-          <div className="shell home-section-grid">
-            <div className="home-section-copy">
-              <Eyebrow>Know the asset</Eyebrow>
-              <h2>Context before action.</h2>
-              <p>
-                Every Passport explains what the asset represents, who or what the source is, which
-                restrictions apply, and which actions Vicus supports.
-              </p>
-              <Link className="home-section-link" href="/circles/usdc-on-stellar#passport">
-                Read a Passport <Icon name="arrow-right" size={16} />
-              </Link>
-            </div>
-            <div className="passport-spotlight">
-              {featuredCircle ? (
-                <AssetPassport circle={featuredCircle} compact />
-              ) : (
-                <DataState title="Passport data is unavailable">
-                  A database-backed circle is required before a Passport can be shown.
-                </DataState>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="home-section" id="verification">
-          <div className="shell home-section-grid">
-            <div className="home-section-copy">
-              <Eyebrow>Prove your role</Eyebrow>
-              <h2>Show the role that matters.</h2>
-              <p>
-                Verification should establish only the role or eligibility needed for an action.
-                Public profiles can show a role without turning an exact balance into a public
-                balance sheet.
-              </p>
-              <span className="section-note">
-                Read-only Stellar checks are available on configured circles; connect only when you choose a verified action.
-              </span>
-            </div>
-            <div className="role-preview">
-              <div className="role-card">
-                <div className="role-card-header">
-                  <Eyebrow>Role preview</Eyebrow>
-                  <span className="status-pill status-muted">Not connected</span>
-                </div>
-                <h3>Your role can be visible without your balance becoming public.</h3>
-                <p>
-                  A configured circle can check only the Stellar relationship it requires, then return
-                  an explicit result without showing an exact balance.
-                </p>
-                <div className="role-card-footer">
-                  <Icon name="lock" size={15} />
-                  The home page runs no lookup; open a configured circle when you are ready.
-                </div>
-              </div>
-              <div className="portal-inline">
-                <PortalVisual compact label="Role · proof · privacy" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="home-section" id="participate">
-          <div className="shell home-section-grid">
-            <div className="home-section-copy">
-              <Eyebrow>Participate</Eyebrow>
-              <h2>Make understanding useful.</h2>
-              <p>
-                Complete proof-based missions, contribute research, and build a record of
-                participation that is more meaningful than a click count.
-              </p>
-              <Link className="home-section-link" href="/missions">
-                Explore missions <Icon name="arrow-right" size={16} />
-              </Link>
-            </div>
-            <div className="mission-preview-grid">
-              {featuredMission ? (
-                <MissionCard mission={featuredMission} />
-              ) : (
-                <EmptyState title="No mission configured">
-                  The database has no missions to show. No fixture mission is displayed.
-                </EmptyState>
-              )}
-              <div className="hairline-card">
-                <Eyebrow>Contribution record</Eyebrow>
-                <h3 className="panel-title">Useful work should leave proof behind.</h3>
-                <p className="panel-copy">
-                  Review, revision, and approval states make contribution quality visible without
-                  pretending a response has already been accepted.
-                </p>
-                <div className="mini-rule-list">
-                  <span><i /> Evidence required when relevant</span>
-                  <span><i /> Review states stay explicit</span>
-                  <span><i /> Recognition follows useful work</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="home-section" id="see-what-happened">
-          <div className="shell home-section-grid">
-            <div className="home-section-copy">
-              <Eyebrow>See what happened</Eyebrow>
-              <h2>A reward is not complete until the state is clear.</h2>
-              <p>
-                Eligibility, approval, claim creation, submission, confirmation, and failure are
-                different moments. Vicus should show each one rather than compressing uncertainty
-                into a success label.
-              </p>
-              <Link className="home-section-link" href="/profile/me">
-                View your profile <Icon name="arrow-right" size={16} />
-              </Link>
-            </div>
-            <div className="reward-preview-grid">
-              <RewardState compact />
-              <div className="hairline-card receipt-preview">
-                <Eyebrow>Receipt language</Eyebrow>
-                <h3 className="panel-title">The state is the proof.</h3>
-                <div className="receipt-steps">
-                  <span><b>01</b> Eligible</span>
-                  <span><b>02</b> Approved</span>
-                  <span><b>03</b> Submitted</span>
-                  <span><b>04</b> Confirmed</span>
-                </div>
-                <p className="panel-copy">This landing-page preview describes reward states; no reward settlement is implied here.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="home-section" id="for-issuers">
+        {/* 2 — Discover tokenized assets */}
+        <section className="l-section l-discover" id="discover">
           <div className="shell">
-            <div className="issuer-band">
-              <div>
-                <Eyebrow>For issuers</Eyebrow>
-                <h3>Create informed attention around your asset.</h3>
-                <p>
-                  Launch campaigns, define missions, set eligibility, review contributions, and
-                  understand which activities turn watchers into informed participants.
-                </p>
+            <SectionHead
+              action={
+                <ButtonLink href="/discover" variant="glass">
+                  Explore assets <Icon name="arrow-right" size={16} />
+                </ButtonLink>
+              }
+              eyebrow="Discover"
+              line="Real tokenized assets across real ecosystems."
+              title="Every asset, one place to start."
+            />
+            {databaseUnavailable ? (
+              <DataState title="Asset data is unavailable">The database could not provide assets right now.</DataState>
+            ) : featured ? (
+              <div className="l-discover-stage">
+                <Link className="l-feature-asset" href={`/circles/${featured.slug}`}>
+                  <GlowField tones={["blue", "violet"]} />
+                  <div className="l-feature-token">
+                    <AssetToken code={featured.code} ecosystem={featured.ecosystem} ecosystemLabel={featured.ecosystemLabel} size="xl" />
+                  </div>
+                  <div className="l-feature-copy">
+                    <Chip icon="coins" tone="blue">{featured.assetClassLabel ?? featured.category}</Chip>
+                    <h3>{featured.name}</h3>
+                    {sameAsset.length > 0 ? (
+                      <div className="l-feature-ecos">
+                        <span>Also on</span>
+                        {sameAsset.map((circle) => (
+                          <EcoChip ecosystem={circle.ecosystem} key={circle.slug} label={circle.ecosystemLabel} />
+                        ))}
+                      </div>
+                    ) : null}
+                    <span className="l-link">
+                      Open asset <Icon name="arrow-right" size={15} />
+                    </span>
+                  </div>
+                </Link>
+                <div className="l-asset-cloud">
+                  {otherAssets.map((circle, index) => (
+                    <Link className="l-asset-chip" href={`/circles/${circle.slug}`} key={circle.slug} style={{ animationDelay: `${index * -1.3}s` }}>
+                      <AssetToken code={circle.code} ecosystem={circle.ecosystem} ecosystemLabel={circle.ecosystemLabel} size="sm" />
+                      <span>
+                        <strong>{circle.code}</strong>
+                        <small>{circle.ecosystemLabel}</small>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
-              <div className="issuer-band-action">
-                <ButtonLink href="/host" variant="outline">
+            ) : null}
+            <div className="l-class-rail" aria-label="Asset classes">
+              {ASSET_CLASSES.filter((entry) => entry.value !== "other_financial").map((entry) => {
+                const count = assets.filter((circle) => circle.category === entry.value).length;
+                return (
+                  <Link className={`l-class tone-${entry.tone}`} href={`/discover?class=${entry.value}`} key={entry.value}>
+                    <Orb icon={entry.icon} size="md" tone={entry.tone} />
+                    <strong>{entry.short}</strong>
+                    <small>{count > 0 ? `${count} ${count === 1 ? "asset" : "assets"}` : "Not listed yet"}</small>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* 3 — Discover → Understand → Use → Participate → Earn */}
+        <section className="l-section l-flow" id="how-it-works">
+          <div className="shell">
+            <SectionHead center eyebrow="How Vicus works" title="From first look to first reward." />
+            <StepFlow
+              label="The Vicus loop"
+              steps={[
+                { icon: "compass", label: "Discover", line: "Find real assets", tone: "blue" },
+                { icon: "book", label: "Understand", line: "Read the Passport", tone: "violet" },
+                { icon: "bolt", label: "Put it to work", line: "Use it for real", tone: "green" },
+                { icon: "users", label: "Participate", line: "Missions & community", tone: "pink" },
+                { icon: "gift", label: "Earn", line: "Points & XLM rewards", tone: "white" },
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* 4 — Put assets to work */}
+        {featured && workActions.length > 0 ? (
+          <section className="l-section l-work">
+            <div className="shell l-work-grid">
+              <div className="l-work-copy">
+                <SectionHead
+                  eyebrow="Put assets to work"
+                  line="Every action opens the official flow or a guide. Vicus never moves funds."
+                  title="Real actions. Not just reading."
+                />
+                <ButtonLink href={`/circles/${featured.slug}#use`} variant="white">
+                  See how {featured.code} works <Icon name="arrow-right" size={16} />
+                </ButtonLink>
+              </div>
+              <div className="l-work-stage">
+                <GlowField tones={["blue", "green", "violet"]} />
+                <div className={`l-wallet ${edgeClass("live")}`}>
+                  <EdgeLight />
+                  <div className="l-wallet-head">
+                    <AssetToken code={featured.code} ecosystem={featured.ecosystem} ecosystemLabel={featured.ecosystemLabel} size="lg" />
+                    <span>
+                      <strong>{featured.code}</strong>
+                      <small>{featured.ecosystemLabel} · {featured.assetClassLabel ?? featured.category}</small>
+                    </span>
+                    <Chip>{featured.stateLabel}</Chip>
+                  </div>
+                  <ActionTray actions={workActions} layout="stack" />
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* 5 — Project Spaces */}
+        <section className="l-section l-spaces">
+          <div className="shell">
+            <SectionHead
+              action={
+                <div className="v-button-row">
+                  <ButtonLink href="/spaces" variant="glass">Explore Spaces</ButtonLink>
+                  <ButtonLink href="/host" variant="outline">Host on Vicus</ButtonLink>
+                </div>
+              }
+              eyebrow="Project Spaces"
+              line="Projects host their assets, lessons, and missions in one home."
+              title="Storefronts for tokenized projects."
+            />
+            {featuredSpace ? (
+              <div className="l-spaces-grid">
+                <Link className={`space-feature ${edgeClass("slow")}`} href={`/spaces/${featuredSpace.slug}`}>
+                  <EdgeLight />
+                  <span aria-hidden="true" className="space-feature-banner">
+                    <GlowField tones={["violet", "pink", "blue"]} />
+                  </span>
+                  <span className="space-monogram">{featuredSpace.name.slice(0, 1)}</span>
+                  <span className="space-feature-body">
+                    <strong>{featuredSpace.name}</strong>
+                    <small>{featuredSpace.ecosystemFocus ? `${featuredSpace.ecosystemFocus} focus` : "Multi-ecosystem"}</small>
+                    <span className="space-feature-line">{featuredSpace.description}</span>
+                  </span>
+                  <span className="space-feature-metrics">
+                    <MetricTile icon="coins" label="Assets" tone="blue" value={String(featuredSpace.hostedCircleCount)} />
+                    <MetricTile icon="target" label="Missions" tone="green" value={String(featuredSpace.openMissionCount)} />
+                    <MetricTile icon="book" label="Lessons" tone="violet" value={String(featuredSpace.publishedLessonCount)} />
+                    <MetricTile icon="chat" label="Contributions" tone="pink" value={String(featuredSpace.approvedContributionCount)} />
+                  </span>
+                  {featuredSpaceDetail && featuredSpaceDetail.circles.length > 0 ? (
+                    <span className="space-feature-assets">
+                      {featuredSpaceDetail.circles.slice(0, 5).map((circle) => (
+                        <AssetToken code={circle.code} ecosystem={circle.ecosystem} key={circle.slug} size="sm" />
+                      ))}
+                      <small>Hosted assets</small>
+                    </span>
+                  ) : null}
+                </Link>
+                <div className="l-space-side">
+                  {rankedSpaces.slice(1, 3).map((space) => (
+                    <Link className="space-mini" href={`/spaces/${space.slug}`} key={space.id}>
+                      <span className="space-monogram space-monogram-sm">{space.name.slice(0, 1)}</span>
+                      <span>
+                        <strong>{space.name}</strong>
+                        <small>{space.hostedCircleCount} assets · {space.openMissionCount} missions</small>
+                      </span>
+                      <Icon name="arrow-right" size={15} />
+                    </Link>
+                  ))}
+                  <Link className="space-mini space-mini-host" href="/host">
+                    <Orb icon="spark" size="md" tone="white" />
+                    <span>
+                      <strong>Host your project</strong>
+                      <small>Lessons, missions, community</small>
+                    </span>
+                    <Icon name="arrow-right" size={15} />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {/* 6 — Missions / activation */}
+        {spotlightMission ? (
+          <section className="l-section l-activate">
+            <div className="shell l-activate-grid">
+              <div className="l-activate-copy">
+                <SectionHead
+                  eyebrow="Missions"
+                  line={activation ? "Do the real thing onchain, prove it, get rewarded." : "Complete a mission, build a record, earn."}
+                  title={activation ? "Use it. Prove it. Earn." : "Make understanding useful."}
+                />
+                <StepFlow
+                  label="Activation steps"
+                  steps={[
+                    { icon: "bolt", label: "Use", line: activation ? `Send ${featured?.code ?? "USDC"}` : "Complete", tone: "green" },
+                    { icon: "shield", label: "Prove", line: activation ? "Onchain proof" : "Submit", tone: "blue" },
+                    { icon: "gift", label: "Earn", line: `${spotlightMission.points} pts`, tone: "white" },
+                  ]}
+                  variant="compact"
+                />
+                <div className="l-activate-facts">
+                  {activation ? <Chip icon="globe">Stellar Mainnet</Chip> : null}
+                  {activation ? <Chip icon="shield">Onchain proof</Chip> : null}
+                  {spotlightMission.reward !== NO_REWARD ? (
+                    <Chip icon="gift" tone="white">
+                      {spotlightMission.reward}
+                      {rewardNetwork ? ` · ${rewardNetwork}` : ""}
+                    </Chip>
+                  ) : null}
+                </div>
+                <div className="v-button-row">
+                  <ButtonLink href={`/missions/${spotlightMission.id}`} variant="white">
+                    {activation ? "Start activation" : "Start mission"} <Icon name="arrow-right" size={16} />
+                  </ButtonLink>
+                  <ButtonLink href="/missions" variant="glass">All missions</ButtonLink>
+                </div>
+              </div>
+              <div className="l-activate-visual">
+                <GlowField tones={["green", "violet"]} />
+                <PhoneFrame edgeTone="green" label="Mission preview">
+                  <div className="phone-ui">
+                    <span className="phone-ui-top">
+                      <span>Mission</span>
+                      <span className="v-chip tone-green">{missionTypeMeta(spotlightMission.type).label}</span>
+                    </span>
+                    <span className="phone-ui-title">{spotlightMission.title}</span>
+                    <span className="phone-ui-sub">{spotlightMission.circle.name}</span>
+                    <span className="phone-ui-steps">
+                      {[
+                        ["bolt", "Use", "green"],
+                        ["shield", "Prove", "blue"],
+                        ["gift", "Earn", "white"],
+                      ].map(([icon, label, tone], index) => (
+                        <span className={`phone-ui-step tone-${tone}`} key={label}>
+                          <Orb icon={icon as "bolt"} size="sm" tone={tone as "green"} />
+                          <span>{label}</span>
+                          {index < 2 ? <i /> : null}
+                        </span>
+                      ))}
+                    </span>
+                    <span className="phone-ui-tiles">
+                      <span><strong>{spotlightMission.points}</strong><small>points</small></span>
+                      <span>
+                        <strong>{spotlightMission.reward !== NO_REWARD ? spotlightMission.reward : "—"}</strong>
+                        <small>{spotlightMission.reward !== NO_REWARD ? (rewardNetwork ?? "reward") : "no reward"}</small>
+                      </span>
+                    </span>
+                    {activation ? (
+                      <span className="phone-ui-proof">
+                        <Glyph name="shield" size={14} /> Transaction proof · Stellar Mainnet
+                      </span>
+                    ) : null}
+                    <span className="phone-ui-cta">
+                      {activation ? "Start activation" : "Start mission"} <Glyph name="arrow" size={15} />
+                    </span>
+                  </div>
+                </PhoneFrame>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* 7 — People / community */}
+        <section className="l-section l-community">
+          <div className="shell">
+            <SectionHead center eyebrow="Community" title="Learn from people, not paragraphs." />
+            <div className="l-community-stage">
+              <GlowField tones={["pink", "violet"]} />
+              {people.length > 0 ? (
+                <div className="l-people" aria-label="People in the community">
+                  {people.slice(0, 7).map((person) => (
+                    <Link className="l-person" href={`/u/${person.user.handle}`} key={person.user.id}>
+                      <Avatar name={person.user.displayName || person.user.handle} size="lg" />
+                      <small>@{person.user.handle}</small>
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+              {posts.length > 0 ? (
+                <div className="l-bubbles">
+                  {posts.slice(0, 4).map((post, index) => (
+                    <Link
+                      className={`l-bubble l-bubble-${index % 2 === 0 ? "left" : "right"}`}
+                      href={`/circles/${post.circleSlug}/community/${post.id}`}
+                      key={post.id}
+                    >
+                      <span className="l-bubble-head">
+                        <Avatar name={post.author.displayName || post.author.handle} size="sm" />
+                        <small>@{post.author.handle}</small>
+                        <span className={`v-chip tone-${post.type === "question" ? "blue" : post.type === "insight" ? "pink" : "green"}`}>
+                          {post.type}
+                        </span>
+                      </span>
+                      <strong>{post.title}</strong>
+                      <span className="l-bubble-meta">
+                        <span><Glyph name="heart" size={13} /> {post.helpfulCount} helpful</span>
+                        <span><Glyph name="chat" size={13} /> {post.answerCount} answers</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="l-community-empty">Questions and insights from members appear here as they are posted.</p>
+              )}
+            </div>
+            <div className="l-center-cta">
+              <ButtonLink href="/people" variant="glass">
+                Join the community <Icon name="arrow-right" size={16} />
+              </ButtonLink>
+            </div>
+          </div>
+        </section>
+
+        {/* 8 — Project value */}
+        <section className="l-section l-projects">
+          <div className="shell">
+            <div className={`l-projects-panel ${edgeClass("slow")}`}>
+              <EdgeLight />
+              <GlowField tones={["violet", "orange"]} />
+              <SectionHead eyebrow="For projects" line="One loop from attention to informed participation." title="Grow a community that understands you." />
+              <StepFlow
+                label="Project loop"
+                steps={[
+                  { icon: "home", label: "Host", line: "Your Space", tone: "violet" },
+                  { icon: "book", label: "Teach", line: "Lessons", tone: "blue" },
+                  { icon: "bolt", label: "Activate", line: "Real use", tone: "green" },
+                  { icon: "shield", label: "Verify", line: "Proof", tone: "pink" },
+                  { icon: "gift", label: "Reward", line: "XLM & points", tone: "white" },
+                  { icon: "trend", label: "Grow", line: "Community", tone: "orange" },
+                ]}
+              />
+              <div className="l-center-cta">
+                <ButtonLink href="/discover" variant="glass">
+                  Explore Vicus <Icon name="arrow-right" size={16} />
+                </ButtonLink>
+                <ButtonLink href="/host" variant="white">
                   Host on Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
-                <Link className="home-section-link" href="/spaces">
-                  Browse Spaces <Icon name="arrow-right" size={16} />
-                </Link>
               </div>
             </div>
           </div>
         </section>
-
-        <footer className="shell home-footer">
-          Vicus is a learning community for tokenized assets — not financial advice. Asset access
-          and reward eligibility vary by issuer and region.
-        </footer>
       </main>
+      <VicusFooter />
     </MarketingShell>
   );
 }

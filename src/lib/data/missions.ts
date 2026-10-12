@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
-import { assets, circles, missionSubmissions, missions, users } from "@/db/schema";
+import { assets, assetCapabilities, circles, missionSubmissions, missions, users } from "@/db/schema";
 import {
   getMissionAvailability,
   parseMissionConfig,
@@ -170,6 +170,20 @@ export async function getMissionById(
     }
     const config = parseMissionConfig(row.mission.missionConfig);
 
+    let activation: { capabilityType: string | null } | null = null;
+    if (row.mission.type === "onchain_action") {
+      let capabilityType: string | null = null;
+      if (row.mission.assetCapabilityId) {
+        const [capability] = await database
+          .select({ capabilityType: assetCapabilities.capabilityType })
+          .from(assetCapabilities)
+          .where(eq(assetCapabilities.id, row.mission.assetCapabilityId))
+          .limit(1);
+        capabilityType = capability?.capabilityType ?? null;
+      }
+      activation = { capabilityType };
+    }
+
     return {
       id: row.mission.id,
       circle: { name: row.circle.name, slug: row.circle.slug },
@@ -195,6 +209,7 @@ export async function getMissionById(
         row.mission.endsAt,
       ),
       config: publicMissionConfig(config),
+      activation,
       viewer: {
         authenticated: Boolean(participant),
         handle: participant?.handle ?? null,

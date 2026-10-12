@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  DataState,
-  Eyebrow,
-  Icon,
-  StatusPill,
-} from "@/components/vicus";
+import { DataState, Icon, StatusPill } from "@/components/vicus";
+import { Avatar, Chip, GlowField, MetricTile, Orb, StepFlow, EdgeLight, edgeClass, missionTypeMeta } from "@/components/vicus-ui";
+import { rewardNetworkLabel } from "@/lib/rewards/display";
 import { AppShell } from "@/components/app-shell";
 import { MissionExperience } from "@/components/mission-experience";
 import { isDatabaseUnavailableError } from "@/db";
@@ -79,81 +76,92 @@ export default async function MissionPage({ params }: MissionPageProps) {
     notFound();
   }
 
+  const typeMeta = missionTypeMeta(mission.type);
+  const isActivation = mission.type === "onchain_action";
+  const hasReward = !mission.rewardNote.startsWith("No reward");
+  // Stored amounts carry fixed precision ("0.0500000 XLM"); show them the way the rest of Vicus does.
+  const rewardDisplay = mission.rewardNote.replace(/^(\d+)\.(\d*?)0+(?=\s)/, (_, whole: string, fraction: string) =>
+    fraction ? `${whole}.${fraction}` : whole,
+  );
+  const rewardNetwork = rewardNetworkLabel();
+
   return (
     <AppShell active="missions">
       <main className="page-main">
-        <header className="mission-page-header">
+        <header className={`mission-page-header md-hero tone-${typeMeta.tone}`}>
+          <GlowField tones={[typeMeta.tone, "violet"]} />
           <div className="shell">
             <div className="breadcrumbs">
-              <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
+              <Link href="/missions">Missions</Link>
               <span>/</span>
-              <span>{mission.title}</span>
+              <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
             </div>
-            <div className="mission-page-header-grid">
+            <div className="md-identity">
+              <Orb icon={typeMeta.icon} size="lg" tone={typeMeta.tone} />
               <div>
-                <StatusPill tone={mission.availability === "open" ? "green" : "muted"}>
-                  {mission.availability === "open" ? "Open mission" : mission.availability}
-                </StatusPill>
+                <div className="c-chips">
+                  <Chip tone={typeMeta.tone}>{typeMeta.label}</Chip>
+                  <StatusPill tone={mission.availability === "open" ? "green" : "muted"}>
+                    {mission.availability === "open" ? "Open" : mission.availability}
+                  </StatusPill>
+                  {isActivation ? <Chip icon="globe">Proof · Stellar Mainnet</Chip> : null}
+                </div>
                 <h1>{mission.title}</h1>
                 <p>{mission.description}</p>
               </div>
-              <div className="mission-participation-identity">
-                <Eyebrow>Participation identity</Eyebrow>
-                {mission.viewer.authenticated ? (
-                  <>
-                    <strong>@{mission.viewer.handle}</strong>
-                    <span>Signed in with a verified Stellar mainnet wallet</span>
-                  </>
-                ) : (
-                  <>
-                    <strong>Connect to participate</strong>
-                    <span>No wallet is linked to this browser session</span>
-                  </>
-                )}
-                <span>Cannot authorize money movement</span>
+            </div>
+            <div className={`md-panel${isActivation ? ` ${edgeClass("live")} tone-green` : ""}`}>
+              {isActivation ? <EdgeLight /> : null}
+              {isActivation ? (
+                <StepFlow
+                  label="Activation steps"
+                  steps={[
+                    { icon: "bolt", label: "Use", line: "Do it onchain", tone: "green" },
+                    { icon: "shield", label: "Prove", line: "Paste the transaction", tone: "blue" },
+                    { icon: "gift", label: "Earn", line: `${mission.points} pts${hasReward ? ` + ${rewardDisplay}` : ""}`, tone: "white" },
+                  ]}
+                  variant="compact"
+                />
+              ) : null}
+              <div className="md-facts">
+                <MetricTile icon="star" label="Vicus points" tone="violet" value={String(mission.points)} />
+                <MetricTile
+                  icon="gift"
+                  label={hasReward ? `Reward · ${rewardNetwork ?? "Stellar"}` : "No XLM reward"}
+                  tone="white"
+                  value={hasReward ? rewardDisplay : "—"}
+                />
+                <MetricTile icon="check" label="Review" tone="blue" value={mission.reviewMode === "manual" ? "Manual" : "Automatic"} />
+                <MetricTile
+                  icon="target"
+                  label={missionWindowLabel(mission)}
+                  tone="green"
+                  value={mission.availability === "open" ? "Open" : mission.availability.charAt(0).toUpperCase() + mission.availability.slice(1)}
+                />
               </div>
             </div>
           </div>
         </header>
 
         <div className="shell mission-page-body">
-          <div className="mission-detail-grid">
-            <section className="content-panel">
-              <Eyebrow>Mission brief</Eyebrow>
-              <h2>Understand the reason before you respond.</h2>
-              <p>{mission.description}</p>
-              <dl className="mission-detail-meta">
-                <div>
-                  <dt>Circle</dt>
-                  <dd>{mission.circle.name}</dd>
-                </div>
-                <div>
-                  <dt>Type</dt>
-                  <dd>{mission.type}</dd>
-                </div>
-                <div>
-                  <dt>Points</dt>
-                  <dd>{mission.points} Vicus points</dd>
-                </div>
-                <div>
-                  <dt>Review</dt>
-                  <dd>{mission.reviewMode === "manual" ? "Manual review" : "Automatic grading"}</dd>
-                </div>
-                <div>
-                  <dt>Mission window</dt>
-                  <dd>{missionWindowLabel(mission)}</dd>
-                </div>
-              </dl>
-            </section>
-            <section className="content-panel mission-boundary-panel">
-              <Eyebrow>Eligibility and boundaries</Eyebrow>
-              <h2>Participation is offchain.</h2>
+          <div className="md-boundaries">
+            <div className="md-identity-chip">
+              <Avatar name={mission.viewer.handle ?? "Guest"} size="sm" />
+              <span>
+                <strong>{mission.viewer.authenticated ? `@${mission.viewer.handle}` : "Connect to participate"}</strong>
+                <small>
+                  {mission.viewer.authenticated ? "Verified Stellar mainnet wallet" : "No wallet linked to this session"} · cannot authorize money movement
+                </small>
+              </span>
+            </div>
+            <details className="md-more">
+              <summary>
+                Eligibility &amp; boundaries <Icon name="chevron-down" size={15} />
+              </summary>
               <p>{mission.eligibilityNote}</p>
               <p>{mission.rewardNote}</p>
-              <div className="section-note">
-                Approval creates no wallet state, claimable balance, transaction, or financial value.
-              </div>
-            </section>
+              <p>Points are offchain. Approval creates no wallet state, claimable balance, or financial value by itself.</p>
+            </details>
           </div>
 
           <MissionExperience mission={mission} />

@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
-import { circles, missionSubmissions, missions, organizationMemberships, organizations, users } from "@/db/schema";
+import { circles, assets, assetCapabilities, missionSubmissions, missions, organizationMemberships, organizations, users } from "@/db/schema";
 import { normalizeXlmAmount } from "@/lib/rewards/config-core";
+import { normalizeDecimal7, compareDecimal7 } from "@/lib/missions/config";
 import {
   assertOpenMission,
   getMissionSubmissionContext,
@@ -53,6 +54,7 @@ export async function submitMission(
   missionId: string,
   payload: unknown,
   userId?: string | null,
+  walletPublicKey?: string | null,
 ): Promise<SubmissionOutcome> {
   try {
     if (!userId) {
@@ -99,6 +101,19 @@ export async function submitMission(
 
     const database = getDatabase();
     const now = new Date();
+
+    if (config.kind === "onchain_action") {
+      if (context.mission.type !== "onchain_action" || !isRecord(payload)) {
+        throw new MissionActionError("invalid-request", "Submit a transaction hash to prove this activation.");
+      }
+      const { submitOnchainProof } = await import("@/lib/activation/service");
+      return submitOnchainProof({
+        missionId: context.mission.id,
+        userId: context.participant.id,
+        walletPublicKey: walletPublicKey ?? null,
+        transactionHash: payload.transactionHash,
+      });
+    }
 
     if (config.kind === "quiz") {
       if (context.mission.type !== "quiz" || !isRecord(payload.answers)) {
@@ -355,7 +370,7 @@ export async function applyReviewDecision(
   };
 }
 
-export type MissionCreateType = "quiz" | "text" | "research";
+export type MissionCreateType = "quiz" | "text" | "research" | "onchain_action";
 
 export type MissionCreateQuizQuestion = {
   prompt: unknown;
@@ -376,6 +391,7 @@ export type MissionCreateInput = {
   questions: MissionCreateQuizQuestion[] | unknown;
   evidenceRequired: unknown;
   evidencePrompt: unknown;
+  minimumAmount?: unknown;
 };
 
 export type MissionCreateOutcome = {
@@ -517,6 +533,81 @@ function buildTextConfig(
  * publicMissionConfig. Rewards reuse the existing XLM eligibility path:
  * creation only configures them, never settles anything.
  */
+/**
+ * Server-derived Stellar activation config. Asset identity comes from the
+ * Circle's own verified asset record — admins never supply issuer data.
+ * Only classic-asset Mainnet Circles with an active Send capability qualify.
+ */
+async function buildOnchainActionConfig(
+  circleId: string,
+  minimumAmountValue: unknown,
+): Promise<{ config: Record<string, unknown>; assetCapabilityId: string }> {
+  const minimumAmount = normalizeDecimal7(minimumAmountValue);
+  if (!minimumAmount || compareDecimal7(minimumAmount, "1000000.0000000") > 0) {
+    throw new MissionActionError(
+      "invalid-request",
+      "Set a positive activation minimum of at most 1,000,000 asset units.",
+      400,
+    );
+  }
+  const database = getDatabase();
+  const [row] = await database
+    .select({
+      assetId: circles.assetId,
+      verificationMode: assets.verificationMode,
+      stellarNetwork: assets.stellarNetwork,
+      stellarAssetCode: assets.stellarAssetCode,
+      stellarIssuerAccount: assets.stellarIssuerAccount,
+    })
+    .from(circles)
+    .leftJoin(assets, eq(circles.assetId, assets.id))
+    .where(eq(circles.id, circleId))
+    .limit(1);
+  if (
+    !row ||
+    row.verificationMode !== "classic-asset" ||
+    row.stellarNetwork !== "mainnet" ||
+    !row.stellarAssetCode ||
+    !row.stellarIssuerAccount
+  ) {
+    throw new MissionActionError(
+      "invalid-request",
+      "Activation missions require a Circle with a verified Stellar Mainnet asset.",
+      400,
+    );
+  }
+  const [capability] = await database
+    .select({ id: assetCapabilities.id })
+    .from(assetCapabilities)
+    .where(
+      and(
+        eq(assetCapabilities.circleId, circleId),
+        eq(assetCapabilities.capabilityType, "send"),
+        eq(assetCapabilities.active, true),
+      ),
+    )
+    .limit(1);
+  if (!capability) {
+    throw new MissionActionError(
+      "invalid-request",
+      "Activation missions require an active Send capability on the Circle.",
+      400,
+    );
+  }
+  return {
+    config: {
+      kind: "onchain_action",
+      network: "stellar_mainnet",
+      action: "payment",
+      assetCode: row.stellarAssetCode,
+      assetIssuer: row.stellarIssuerAccount,
+      minimumAmount,
+      proofNotBefore: new Date().toISOString(),
+    },
+    assetCapabilityId: capability.id,
+  };
+}
+
 export async function createMission(
   input: MissionCreateInput,
   creatorId: string,
@@ -552,8 +643,8 @@ export async function createMission(
       throw new MissionActionError("invalid-request", "Add mission instructions of 20 to 2,000 characters.", 400);
     }
 
-    if (input.type !== "quiz" && input.type !== "text" && input.type !== "research") {
-      throw new MissionActionError("invalid-request", "Choose a quiz, text, or research mission type.", 400);
+    if (input.type !== "quiz" && input.type !== "text" && input.type !== "research" && input.type !== "onchain_action") {
+      throw new MissionActionError("invalid-request", "Choose a quiz, text, research, or onchain activation mission type.", 400);
     }
 
     if (input.status !== "draft" && input.status !== "open") {
@@ -579,10 +670,16 @@ export async function createMission(
       }
     }
 
+    let assetCapabilityId: string | null = null;
     const missionConfig =
       input.type === "quiz"
         ? buildQuizConfig(input.questions)
-        : buildTextConfig(input.type, input.evidenceRequired, input.evidencePrompt);
+        : input.type === "onchain_action"
+          ? await buildOnchainActionConfig(circleId, input.minimumAmount).then((derived) => {
+              assetCapabilityId = derived.assetCapabilityId;
+              return derived.config;
+            })
+          : buildTextConfig(input.type, input.evidenceRequired, input.evidencePrompt);
 
     if (!parseMissionConfig(missionConfig)) {
       throw new MissionActionError("invalid-request", "The mission configuration is invalid.", 400);
@@ -633,8 +730,9 @@ export async function createMission(
         rewardAmount,
         eligibilityRule: { kind: "education-only", note: "Created in Campaign Studio; eligibility follows review state." },
         missionConfig,
+        assetCapabilityId,
         duplicatePolicy: "allow-revision",
-        reviewMode: input.type === "quiz" ? "automatic" : "manual",
+        reviewMode: input.type === "quiz" || input.type === "onchain_action" ? "automatic" : "manual",
         status: input.status,
         startsAt: null,
         endsAt: null,

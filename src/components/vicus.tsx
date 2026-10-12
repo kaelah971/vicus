@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Circle, MissionPreview } from "@/lib/vicus-data";
 import type { CircleVerificationSummary } from "@/lib/data/types";
 import type { SubmissionStatus } from "@/lib/missions/types";
+import { AssetToken, EcoChip, EdgeLight, Glyph, Orb, assetClassMeta, edgeClass, missionTypeMeta } from "@/components/vicus-ui";
 
 export type IconName =
   | "arrow-right"
@@ -109,7 +110,7 @@ export function ButtonLink({
 }: {
   children: ReactNode;
   href: string;
-  variant?: "white" | "outline" | "violet" | "text";
+  variant?: "white" | "outline" | "violet" | "text" | "glass" | "gradient";
   className?: string;
   external?: boolean;
 }) {
@@ -204,42 +205,58 @@ function circleStatusTone(circle: Circle) {
   return "muted" as const;
 }
 
-export function CircleCard({ circle }: { circle: CircleView }) {
+export function CircleCard({
+  circle,
+  useCount = 0,
+  variant = "default",
+}: {
+  circle: CircleView;
+  useCount?: number;
+  variant?: "default" | "feature" | "compact";
+}) {
   const roleAvailable = Boolean(circle.verification?.enabled);
+  const assetClass = assetClassMeta(circle.category);
 
   return (
     <Link
       aria-label={`Open ${circle.name} circle`}
-      className="circle-card"
+      className={cx(
+        "circle-card",
+        "asset-card",
+        `asset-card-${variant}`,
+        `tone-${assetClass.tone}`,
+        // Only the featured asset carries the edge light; regular asset cards stay calm.
+        variant === "feature" && edgeClass("live"),
+      )}
       href={`/circles/${circle.slug}`}
     >
-      <div className="circle-card-topline">
-        <span className="circle-code">{circle.code}</span>
+      {variant === "feature" ? <EdgeLight /> : null}
+      <span aria-hidden="true" className="asset-card-glow" />
+      <div className="asset-card-top">
+        <AssetToken
+          code={circle.code}
+          ecosystem={circle.ecosystem ?? circle.network}
+          ecosystemLabel={circle.ecosystemLabel}
+          size={variant === "feature" ? "xl" : variant === "compact" ? "sm" : "md"}
+        />
         <StatusPill tone={circleStatusTone(circle)}>{circle.stateLabel}</StatusPill>
       </div>
-      <div className="circle-card-heading">
+      <div className="asset-card-body">
         <h3>{circle.name}</h3>
-        <Icon name="arrow-up-right" size={18} />
+        <span className="asset-card-class">{circle.assetClassLabel ?? circle.category}</span>
+        {variant !== "compact" ? <p className="asset-card-line">{circle.summary}</p> : null}
       </div>
-      <p>{circle.summary}</p>
-      <div className="circle-card-meta">
-        <span>{circle.category}</span>
-        <span>{circle.ecosystemLabel ?? circle.ecosystem ?? circle.network}</span>
-      </div>
-      <div className="availability-list" aria-label="Circle availability">
-        <span className="availability-item availability-available">
-          <span className="availability-dot" /> {circle.watched ? "Watching" : "Watch"}
+      <div className="asset-card-foot">
+        <EcoChip ecosystem={circle.ecosystem ?? circle.network} label={circle.ecosystemLabel} />
+        <span aria-label="Available in this Circle" className="asset-card-acts">
+          <span>Learn</span>
+          {useCount > 0 ? <span>Use</span> : null}
+          <span>{circle.watched ? "Watching" : "Watch"}</span>
+          {roleAvailable ? <span>Role check</span> : null}
         </span>
-        <span className="availability-item availability-available">
-          <span className="availability-dot" /> Learn
+        <span className="asset-card-open">
+          Open <Icon name="arrow-right" size={15} />
         </span>
-        <span className={cx("availability-item", roleAvailable ? "availability-available" : "availability-preview")}>
-          <span className="availability-dot" /> {roleAvailable ? "Role check" : "Role later"}
-        </span>
-      </div>
-      <div className="circle-card-footer">
-        <span>Read the Passport</span>
-        <Icon name="arrow-right" size={16} />
       </div>
     </Link>
   );
@@ -257,8 +274,7 @@ export function AssetPassport({
       <div className="passport-header">
         <div>
           <Eyebrow>Asset Passport</Eyebrow>
-          <h2>{circle.name}</h2>
-          <p className="passport-summary">{circle.summary}</p>
+          <h2>Key facts</h2>
         </div>
         <StatusPill tone={circleStatusTone(circle)}>{circle.stateLabel}</StatusPill>
       </div>
@@ -277,8 +293,8 @@ export function AssetPassport({
           <dd>{circle.network}</dd>
         </div>
         <div>
-          <dt>Category</dt>
-          <dd>{circle.category}</dd>
+          <dt>Asset class</dt>
+          <dd>{circle.assetClassLabel ?? circle.category}</dd>
         </div>
         <div>
           <dt>Source / status</dt>
@@ -288,38 +304,46 @@ export function AssetPassport({
 
       <div className="passport-body">
         <div className="passport-copy-block">
-          <span className="field-label">What it is</span>
+          <span className="field-label"><Glyph name="book" size={14} /> What it is</span>
           <p>{circle.description}</p>
         </div>
         <div className="passport-copy-block">
-          <span className="field-label">Ecosystem</span>
-          <p>
-            {circle.ecosystemLabel ?? circle.ecosystem ?? circle.network} · {circle.network} · {circle.category}.
-            Vicus Circles stay compatible with future ecosystems, but role checks here remain Stellar-only.
-          </p>
-        </div>
-        <div className="passport-copy-block">
-          <span className="field-label">Asset identity</span>
-          <p>
-            {circle.code} · {circle.issuerSource}. Vicus shows only stored source-backed identity — no issuer,
-            price, market-cap, or availability claims beyond what is recorded.
-          </p>
-        </div>
-        <div className="passport-copy-block">
-          <span className="field-label">What it does not promise</span>
-          <p>
-            No prices, yields, market caps, availability, or returns are stated or implied here. {circle.intendedUse}
-          </p>
-        </div>
-        <div className="passport-copy-block">
-          <span className="field-label">Eligibility / access</span>
+          <span className="field-label"><Glyph name="shield" size={14} /> Eligibility / access</span>
           <p>{circle.eligibilityNote}</p>
         </div>
         <div className="passport-copy-block passport-risk">
-          <span className="field-label">Risk and disclosure</span>
+          <span className="field-label"><Glyph name="lock" size={14} /> Risk and disclosure</span>
           <p>{circle.riskNote}</p>
         </div>
       </div>
+
+      <details className="passport-more">
+        <summary>
+          Full passport details <Icon name="chevron-down" size={15} />
+        </summary>
+        <div className="passport-body">
+          <div className="passport-copy-block">
+            <span className="field-label">Ecosystem</span>
+            <p>
+              {circle.ecosystemLabel ?? circle.ecosystem ?? circle.network} · {circle.network} · {circle.assetClassLabel ?? circle.category}.
+              Vicus Circles stay compatible with future ecosystems, but role checks here remain Stellar-only.
+            </p>
+          </div>
+          <div className="passport-copy-block">
+            <span className="field-label">Asset identity</span>
+            <p>
+              {circle.code} · {circle.issuerSource}. Vicus shows only stored source-backed identity — no issuer,
+              price, market-cap, or availability claims beyond what is recorded.
+            </p>
+          </div>
+          <div className="passport-copy-block">
+            <span className="field-label">What it does not promise</span>
+            <p>
+              No prices, yields, market caps, availability, or returns are stated or implied here. {circle.intendedUse}
+            </p>
+          </div>
+        </div>
+      </details>
 
       <div className="passport-footer">
         <div className="passport-source">
@@ -389,31 +413,59 @@ function missionActionLabel(mission: MissionCardData) {
   return mission.status === "open" ? "Start mission" : "Read mission details";
 }
 
-export function MissionCard({ mission }: { mission: MissionCardData }) {
+/** Compact challenge tile: type colour, title, asset/network, points, reward, state, one CTA. */
+export function MissionCard({
+  mission,
+  circle,
+}: {
+  mission: MissionCardData;
+  circle?: { name: string; slug: string; ecosystemLabel?: string };
+}) {
   const href = mission.id ? `/missions/${mission.id}` : null;
+  const typeMeta = missionTypeMeta(mission.type);
+  const hasReward = Boolean(mission.reward) && mission.reward !== "No reward configured";
+  // Edge light follows real state: actionable → live, pending review → slow,
+  // approved → static success, anything else (closed, rejected, scheduled) → calm.
+  const actionable =
+    mission.status === "open" && (!mission.submissionStatus || mission.submissionStatus === "needs_revision");
+  const edge = actionable
+    ? edgeClass("live")
+    : mission.submissionStatus === "pending"
+      ? edgeClass("slow")
+      : null;
 
   return (
-    <article className="mission-card">
-      <div className="mission-card-header">
+    <article
+      className={cx(
+        "mission-card",
+        "mission-tile",
+        `tone-${typeMeta.tone}`,
+        edge,
+        mission.submissionStatus === "approved" && "is-approved",
+      )}
+    >
+      {edge ? <EdgeLight /> : null}
+      <div className="mission-tile-top">
+        <Orb icon={typeMeta.icon} size="md" tone={typeMeta.tone} />
+        <span className="mission-tile-type">{typeMeta.label}</span>
         <StatusPill tone={missionStatusTone(mission)}>{missionStatusLabel(mission)}</StatusPill>
-        <span className="mission-type">{mission.type}</span>
       </div>
       <h3>{href ? <Link href={href}>{mission.title}</Link> : mission.title}</h3>
-      <p>{mission.description}</p>
-      <dl className="mission-meta">
-        <div>
-          <dt>Review</dt>
-          <dd>{mission.review}</dd>
-        </div>
-        <div>
-          <dt>Points</dt>
-          <dd>{mission.points ?? "—"} Vicus points</dd>
-        </div>
-        <div>
-          <dt>Reward</dt>
-          <dd>{mission.reward}</dd>
-        </div>
-      </dl>
+      {circle ? (
+        <span className="mission-tile-context">
+          {circle.name}
+          {circle.ecosystemLabel ? ` · ${circle.ecosystemLabel}` : ""}
+        </span>
+      ) : null}
+      <div className="mission-tile-meta">
+        <span className="v-chip tone-violet">{mission.points ?? "—"} pts</span>
+        {hasReward ? (
+          <span className="v-chip tone-white">
+            <Glyph name="gift" size={13} /> {mission.reward}
+          </span>
+        ) : null}
+        <span className="v-chip">{mission.review}</span>
+      </div>
       <div className="mission-footer">
         {href ? (
           <Link className="mission-action-link" href={href}>
@@ -422,7 +474,6 @@ export function MissionCard({ mission }: { mission: MissionCardData }) {
         ) : (
           <span>Mission details are not connected</span>
         )}
-        {href ? <Icon name="arrow-up-right" size={15} /> : <Icon name="lock" size={15} />}
       </div>
     </article>
   );

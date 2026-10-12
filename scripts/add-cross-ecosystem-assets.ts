@@ -225,7 +225,7 @@ async function addCrossEcosystemAssets() {
         name: entry.name,
         tagline: entry.tagline,
         status: "pending",
-        category: "Stablecoin education",
+        category: "stablecoin",
         officialStatus: "pending",
         featuredRank: 5 + index,
         createdAt: now,

@@ -2,11 +2,13 @@
 
 :root {
   --background: #000000;
+  /* White typography; hierarchy through opacity: 100% / 72% / 48% / 30%. */
   --foreground: #ffffff;
-  --muted: #9a9aa5;
-  --subtle: #666671;
-  --hairline: rgba(255, 255, 255, 0.16);
-  --hairline-strong: rgba(255, 255, 255, 0.28);
+  --muted: rgba(255, 255, 255, 0.72);
+  --subtle: rgba(255, 255, 255, 0.48);
+  --faint: rgba(255, 255, 255, 0.3);
+  --hairline: rgba(255, 255, 255, 0.12);
+  --hairline-strong: rgba(255, 255, 255, 0.24);
   --surface: #0a0a0d;
   --surface-raised: #101015;
   --portal: #8b2bff;
@@ -21,7 +23,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jakarta);
+  --font-sans: var(--font-mono);
 }
 
 * {
@@ -38,7 +40,7 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 16px;
   line-height: 1.6;
   text-rendering: optimizeLegibility;
@@ -223,7 +225,7 @@ ul {
 
 .wordmark {
   display: inline-block;
-  font-family: var(--font-montserrat), Arial, sans-serif;
+  font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.35em;
@@ -630,7 +632,7 @@ button:focus-visible {
 .page-intro h1 {
   font-size: clamp(3rem, 7vw, 6rem);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.04em;
   line-height: 0.98;
   margin-top: 20px;
   max-width: 780px;
@@ -887,13 +889,13 @@ button:focus-visible {
 }
 
 .hero-eyebrow {
-  color: #c1b5d6;
+  color: var(--muted);
 }
 
 .hero-title {
-  font-size: clamp(3.15rem, 6.15vw, 5.5rem);
-  font-weight: 600;
-  letter-spacing: -0.065em;
+  font-size: clamp(2.6rem, 5.3vw, 4.7rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
   line-height: 0.98;
   margin-top: 24px;
   max-width: 720px;
@@ -924,8 +926,36 @@ button:focus-visible {
 }
 
 .hero-visual {
+  align-self: stretch;
   margin-right: min(-9vw, -80px);
   min-width: 0;
+  position: relative;
+}
+
+.hero-scene {
+  background: #000;
+  inset: 0 min(0px, calc((1240px - 100vw) / 2 + 9vw)) 0 -6vw;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 20%);
+  pointer-events: none;
+  position: absolute;
+}
+
+.hero-scene-canvas {
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+  transition: opacity 1.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.hero-scene[data-ready] .hero-scene-canvas {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-scene-canvas {
+    transition-duration: 0.3s;
+  }
 }
 
 .home-section {
@@ -948,7 +978,7 @@ button:focus-visible {
 .home-section-copy h2 {
   font-size: clamp(2rem, 4vw, 3.45rem);
   font-weight: 600;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.04;
   margin-top: 18px;
   max-width: 520px;
@@ -1139,7 +1169,7 @@ button:focus-visible {
 .issuer-band h3 {
   font-size: clamp(1.8rem, 3.2vw, 3rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 18px;
   max-width: 560px;
@@ -1300,7 +1330,7 @@ button:focus-visible {
 .passport-header h2 {
   font-size: clamp(1.7rem, 3.3vw, 2.8rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 16px;
 }
@@ -1436,7 +1466,7 @@ button:focus-visible {
 .explore-section-heading h2 {
   font-size: clamp(1.7rem, 3.5vw, 2.8rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 12px;
 }
@@ -1505,7 +1535,7 @@ button:focus-visible {
 .explore-continue-section h2 {
   font-size: clamp(1.7rem, 3.5vw, 2.8rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 12px;
 }
@@ -1688,7 +1718,7 @@ button:focus-visible {
 .missions-intro h2 {
   font-size: clamp(1.8rem, 3.8vw, 3rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 16px;
 }
@@ -1728,7 +1758,7 @@ button:focus-visible {
 .circle-page-header h1 {
   font-size: clamp(3rem, 7vw, 6rem);
   font-weight: 600;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.04em;
   line-height: 0.96;
   margin-top: 18px;
 }
@@ -1816,7 +1846,7 @@ button:focus-visible {
 .mission-page-header h1 {
   font-size: clamp(2.8rem, 6vw, 5.4rem);
   font-weight: 600;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.04em;
   line-height: 0.98;
   margin-top: 18px;
   max-width: 850px;
@@ -2097,7 +2127,7 @@ button:focus-visible {
 .section-heading h2 {
   font-size: clamp(1.45rem, 3vw, 2.35rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 13px;
 }
@@ -2309,7 +2339,7 @@ button:focus-visible {
 .circle-section-heading h2 {
   font-size: clamp(1.8rem, 3.5vw, 3rem);
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   margin-top: 15px;
 }
@@ -2524,7 +2554,7 @@ button:focus-visible {
 .reward-claim-header h3 {
   font-size: clamp(1.6rem, 4vw, 2.5rem);
   font-weight: 600;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1;
   margin-top: 10px;
 }
@@ -2638,7 +2668,7 @@ button:focus-visible {
 
 .reward-receipt-transaction code {
   color: var(--foreground);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.73rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -2720,7 +2750,7 @@ button:focus-visible {
   border: 1px solid rgba(139, 43, 255, 0.65);
   border-radius: 50%;
   display: flex;
-  font-family: var(--font-montserrat), Arial, sans-serif;
+  font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.72rem;
   height: 64px;
   justify-content: center;
@@ -2731,7 +2761,7 @@ button:focus-visible {
 .profile-identity h1 {
   font-size: clamp(2rem, 4vw, 3.2rem);
   font-weight: 600;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.04em;
   line-height: 1;
 }
 
@@ -2985,7 +3015,7 @@ button:focus-visible {
   display: block;
   font-size: 2rem;
   font-weight: 500;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
   line-height: 1;
   margin-top: 23px;
 }
@@ -3095,7 +3125,7 @@ button:focus-visible {
 .admin-header h1 {
   font-size: clamp(2.8rem, 6vw, 5.6rem);
   font-weight: 600;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.04em;
   line-height: 0.96;
 }
 
@@ -3627,20 +3657,48 @@ button:focus-visible {
     min-height: auto;
   }
 
+  /* Stacked hero: copy → scene → meta, so the portal lands right under the CTAs
+     instead of below the stats and disclaimer (off the first screen on phones). */
   .hero-grid {
+    gap: 0;
     min-height: auto;
+    padding-top: clamp(44px, 8vw, 72px);
   }
 
   .hero-copy {
-    padding-bottom: 36px;
+    display: contents;
+  }
+
+  .hero-actions {
+    position: relative;
+    z-index: 1;
   }
 
   .hero-visual {
-    margin-right: 0;
+    margin: clamp(-28px, -3vw, -12px) 0 0;
+    order: 1;
   }
 
-  .hero-visual .portal-stage {
-    min-height: 50vh;
+  .hero-mini,
+  .trust-line {
+    order: 2;
+  }
+
+  .hero-mini {
+    margin-top: 4px;
+  }
+
+  .trust-line {
+    margin-bottom: 44px;
+  }
+
+  .hero-scene {
+    height: clamp(440px, 118vw, 620px);
+    inset: auto;
+    margin-inline: calc(50% - 50vw);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 90%, transparent);
+    mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 90%, transparent);
+    position: relative;
   }
 
   .home-section-grid {
@@ -3737,10 +3795,6 @@ button:focus-visible {
 
   .portal-stage {
     min-height: 390px;
-  }
-
-  .hero-visual .portal-stage {
-    min-height: 60vw;
   }
 
   .explore-featured-grid,

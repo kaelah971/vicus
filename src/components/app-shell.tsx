@@ -4,9 +4,45 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { listEcosystems } from "@/lib/data/circles";
 import { VicusWordmark } from "@/components/vicus";
+import { Glyph, type GlyphName } from "@/components/vicus-ui";
 import { WalletAuthButton } from "@/components/wallet-auth";
 
-export type AppShellSection = "discover" | "missions" | "spaces" | "profile" | "admin" | "ecosystems" | "host";
+export type AppShellSection = "discover" | "missions" | "lab" | "spaces" | "profile" | "admin" | "ecosystems" | "host";
+
+type NavItem = { section: AppShellSection | "rewards"; href: string; label: string; icon: GlyphName };
+
+const PRIMARY_NAV: NavItem[] = [
+  { section: "discover", href: "/discover", label: "Explore", icon: "compass" },
+  { section: "missions", href: "/missions", label: "Missions", icon: "target" },
+  { section: "lab", href: "/lab", label: "Lab", icon: "spark" },
+  { section: "spaces", href: "/spaces", label: "Spaces", icon: "grid" },
+  // Rewards live on the profile (no dedicated claim route); the tab deep-links there.
+  { section: "rewards", href: "/profile/me#rewards", label: "Rewards", icon: "gift" },
+  { section: "profile", href: "/profile/me", label: "Profile", icon: "user" },
+];
+
+function BottomNav({ active }: { active?: AppShellSection }) {
+  return (
+    <nav aria-label="Primary" className="bottom-nav">
+      {PRIMARY_NAV.map((item) => {
+        const current = item.section === active;
+        return (
+          <Link
+            aria-current={current ? "page" : undefined}
+            className={`bottom-nav-item${current ? " is-active" : ""}`}
+            href={item.href}
+            key={item.section}
+          >
+            <span aria-hidden="true" className="bottom-nav-icon">
+              <Glyph name={item.icon} size={20} />
+            </span>
+            <span className="bottom-nav-label">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export async function AppShell({
   active,
@@ -24,7 +60,7 @@ export async function AppShell({
     ecosystems = [];
   }
 
-  const navLink = (section: AppShellSection) =>
+  const navLink = (section: AppShellSection | "rewards") =>
     `nav-link sidebar-link${active === section ? " nav-link-active" : ""}`;
 
   return (
@@ -32,18 +68,19 @@ export async function AppShell({
       <aside aria-label="Primary navigation" className="desktop-sidebar">
         <VicusWordmark />
         <nav className="sidebar-links">
-          <Link aria-current={active === "discover" ? "page" : undefined} className={navLink("discover")} href="/discover">
-            Discover
-          </Link>
-          <Link aria-current={active === "missions" ? "page" : undefined} className={navLink("missions")} href="/missions">
-            Missions
-          </Link>
-          <Link aria-current={active === "spaces" ? "page" : undefined} className={navLink("spaces")} href="/spaces">
-            Spaces
-          </Link>
-          <Link aria-current={active === "profile" ? "page" : undefined} className={navLink("profile")} href="/profile/me">
-            Profile
-          </Link>
+          {PRIMARY_NAV.map((item) => (
+            <Link
+              aria-current={active === item.section ? "page" : undefined}
+              className={navLink(item.section)}
+              href={item.href}
+              key={item.section}
+            >
+              <span aria-hidden="true" className="sidebar-link-icon">
+                <Glyph name={item.icon} size={18} />
+              </span>
+              {item.label}
+            </Link>
+          ))}
         </nav>
         {ecosystems.length > 0 ? (
           <div className="sidebar-ecosystems">
@@ -83,6 +120,7 @@ export async function AppShell({
         </div>
       </header>
       <div className="app-content">{children}</div>
+      <BottomNav active={active} />
     </>
   );
 }

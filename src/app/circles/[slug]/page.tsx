@@ -8,10 +8,26 @@ import {
   EmptyState,
   Eyebrow,
   Icon,
-  MetricCard,
   MissionCard,
   StatusPill,
 } from "@/components/vicus";
+import {
+  ActionTray,
+  AssetToken,
+  Chip,
+  EcoChip,
+  GlowField,
+  Glyph,
+  MetricTile,
+  MissionStrip,
+  Orb,
+  SectionHead,
+  TabBar,
+  assetClassMeta,
+  capabilityMeta,
+  type ActionItem,
+} from "@/components/vicus-ui";
+import { rewardNetworkLabel } from "@/lib/rewards/display";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -23,6 +39,7 @@ import { getCircleOrganization } from "@/lib/organizations/service";
 import { getCirclePeople } from "@/lib/social/service";
 import { listCirclePosts } from "@/lib/community/service";
 import { getCircleCapabilities, supportModeBadge } from "@/lib/utility/service";
+import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
 
@@ -116,10 +133,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
   }
 
   let capabilities: Awaited<ReturnType<typeof getCircleCapabilities>> = [];
+  let activationLinks: Awaited<ReturnType<typeof getActivationMissionLinks>> = new Map();
   try {
     capabilities = await getCircleCapabilities(circle.slug);
+    activationLinks = await getActivationMissionLinks(circle.id);
   } catch {
     capabilities = [];
+    activationLinks = new Map();
   }
 
   let people: Awaited<ReturnType<typeof getCirclePeople>> = [];
@@ -141,36 +161,125 @@ export default async function CirclePage({ params }: CirclePageProps) {
     source: communityPreview.filter((post) => post.type === "source").slice(0, 2),
   };
 
+  const assetClass = assetClassMeta(circle.category);
+  const [activationEntry] = [...activationLinks.entries()];
+  const activationMission = activationEntry
+    ? circle.missions.find((mission) => mission.id === activationEntry[1].id) ?? null
+    : null;
+  const rewardNetwork = rewardNetworkLabel();
+  const useActions: ActionItem[] = capabilities.map((capability) => {
+    const meta = capabilityMeta(capability.capabilityType);
+    const mission = activationLinks.get(capability.capabilityType);
+    return {
+      key: capability.id,
+      label: capability.title,
+      href: `/circles/${circle.slug}/use/${capability.capabilityType}`,
+      tone: meta.tone,
+      icon: meta.icon,
+      state: mission ? "Mission available" : supportModeBadge[capability.supportMode],
+      live: Boolean(mission),
+    };
+  });
+  // Access from Stellar: native USDC moves outward via Circle CCTP. Surfaced
+  // only on the USDC circle — never on assets that are not CCTP-compatible.
+  const accessActions: ActionItem[] =
+    circle.code === "USDC"
+      ? [
+          {
+            key: "access-stellar",
+            label: "Move across networks",
+            href: "/access",
+            tone: "green",
+            icon: "send",
+            state: "Native USDC via Circle CCTP",
+            live: true,
+          },
+        ]
+      : [];
+  const tabs = [
+    ...(capabilities.length > 0 ? [{ href: "#use", label: "Use" }] : []),
+    { href: "#passport", label: "Learn" },
+    { href: "#missions", label: "Missions", count: circle.missions.length },
+    { href: "#community", label: "Community", count: communityPreview.length },
+    { href: "#people", label: "People", count: people.length },
+    { href: "#sources", label: "Sources" },
+  ];
+
   return (
     <AppShell active="discover">
       <main className="page-main">
-        <div className="shell circle-page-body">
-          <nav className="breadcrumbs" aria-label="Breadcrumb">
-            <Link href="/discover">Discover</Link>
-            <span>/</span>
-            <span>{circle.name}</span>
-          </nav>
-
-          <header className="circle-identity">
-            <div>
-              <StatusPill tone={circle.state === "education" ? "blue" : "muted"}>
-                {circle.stateLabel}
-              </StatusPill>
-              <h1>{circle.name}</h1>
-              <p className="circle-identity-meta">
-                {circle.ecosystemLabel} · {circle.category} · {circle.sourceStatus}
-              </p>
-              {hostOrg ? (
-                <p className="circle-identity-meta">
-                  Hosted by <Link href={`/spaces/${hostOrg.slug}`}>{hostOrg.name}</Link>
+        <header className={`c-hero tone-${assetClass.tone}`} id="overview">
+          <GlowField tones={[assetClass.tone, "violet"]} />
+          <div className="shell">
+            <nav className="breadcrumbs" aria-label="Breadcrumb">
+              <Link href="/discover">Explore</Link>
+              <span>/</span>
+              <span>{circle.name}</span>
+            </nav>
+            <div className="c-identity">
+              <AssetToken code={circle.code} ecosystem={circle.ecosystem} ecosystemLabel={circle.ecosystemLabel} size="xl" />
+              <div className="c-identity-main">
+                <div className="c-chips">
+                  <Chip icon={assetClass.icon} tone={assetClass.tone}>{circle.assetClassLabel ?? circle.category}</Chip>
+                  <EcoChip ecosystem={circle.ecosystem} label={circle.ecosystemLabel} />
+                  <StatusPill tone={circle.state === "education" ? "blue" : "muted"}>{circle.stateLabel}</StatusPill>
+                  {circle.verification.enabled ? (
+                    <Chip icon="shield" tone="green">Role check available</Chip>
+                  ) : null}
+                </div>
+                <h1>{circle.name}</h1>
+                <p className="c-meta">
+                  {circle.issuerSource} · {circle.sourceStatus}
+                  {hostOrg ? (
+                    <>
+                      {" · "}Hosted by <Link href={`/spaces/${hostOrg.slug}`}>{hostOrg.name}</Link>
+                    </>
+                  ) : null}
                 </p>
-              ) : null}
-              <p>{circle.summary}</p>
+                <p className="c-summary">{circle.summary}</p>
+              </div>
+              <div className="c-hero-actions">
+                <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
+                {circle.sourceUrl ? (
+                  <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
+                    Official source <Icon name="external" size={14} />
+                  </a>
+                ) : null}
+              </div>
             </div>
-            <div className="circle-page-actions">
-              <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
+            <div className="c-stats">
+              <MetricTile hint="Watch relationships for this circle" icon="eye" label="Watchers" tone="violet" value={String(participation.watcherCount)} />
+              <MetricTile hint="Approved mission responses in this circle" icon="chat" label="Contributions" tone="pink" value={String(participation.approvedContributionCount)} />
+              <MetricTile hint="Stellar role checks in this circle" icon="shield" label="Verified roles" tone="green" value={String(participation.verificationCount)} />
             </div>
-          </header>
+          </div>
+        </header>
+
+        <TabBar items={tabs} label="Circle sections" />
+
+        <div className="shell c-body">
+          {capabilities.length > 0 ? (
+            <section aria-labelledby="circle-use-title" className="c-use" id="use">
+              <GlowField tones={["blue", "green", "violet"]} />
+              <div className="c-use-head">
+                <span className="v-eyebrow">Put it to work</span>
+                <h2 id="circle-use-title">What you can do with {circle.code}</h2>
+                <p>Opens the official flow or a guide — not investment advice. Vicus never moves funds.</p>
+              </div>
+              <ActionTray actions={[...useActions, ...accessActions]} />
+            </section>
+          ) : null}
+
+          {activationMission ? (
+            <MissionStrip
+              context={`${circle.name} · onchain proof`}
+              href={`/missions/${activationMission.id}`}
+              points={activationMission.points}
+              reward={activationMission.reward}
+              rewardNetwork={rewardNetwork}
+              title={activationMission.title}
+            />
+          ) : null}
 
           <AssetPassport circle={circle} />
 
@@ -187,127 +296,49 @@ export default async function CirclePage({ params }: CirclePageProps) {
           ) : (
             <section className="content-panel role-deferred-panel" aria-labelledby="role-deferred-title">
               <Eyebrow>Role verification</Eyebrow>
-              <h2 id="role-deferred-title">Watch and learn, without a live check.</h2>
+              <h2 id="role-deferred-title">Watch and learn — no live check here.</h2>
               <p>
                 {circle.ecosystem === "stellar"
-                  ? "This circle does not have an enabled classic Stellar asset check. No wallet, balance, or issuer approval is inferred here."
-                  : `Onchain holder verification for ${circle.ecosystemLabel} is not supported yet. Watch, Passport, missions, and Stellar-settled rewards remain available; no wallet, balance, or holder status is inferred here.`}
+                  ? "No enabled classic Stellar asset check. No wallet, balance, or issuer approval is inferred."
+                  : `Holder verification for ${circle.ecosystemLabel} isn't supported yet. No wallet, balance, or holder status is inferred.`}
               </p>
             </section>
           )}
 
-          {capabilities.length > 0 ? (
-            <section className="circle-section" id="use" aria-labelledby="circle-use-title">
-              <div className="circle-section-heading">
-                <div>
-                  <Eyebrow>Put it to work</Eyebrow>
-                  <h2 id="circle-use-title">What you can actually do with {circle.name}.</h2>
-                </div>
-                <p>
-                  Real, source-backed uses — not investment advice. Anything executed outside
-                  Vicus happens in your own wallet or the official flow.
-                </p>
-              </div>
+          <section className="circle-section" id="missions">
+            <SectionHead eyebrow="Missions" line="Approval creates offchain Vicus points." title="Participate with a record." />
+            {circle.missions.length > 0 ? (
               <div className="mission-grid">
-                {capabilities.map((capability) => (
-                  <article className="mission-card" key={capability.id}>
-                    <div className="mission-card-header">
-                      <span className="mission-type">{supportModeBadge[capability.supportMode]}</span>
-                    </div>
-                    <h3>
-                      <Link href={`/circles/${circle.slug}/use/${capability.capabilityType}`}>
-                        {capability.title}
-                      </Link>
-                    </h3>
-                    <p>{capability.shortDescription}</p>
-                    <div className="mission-footer">
-                      <Link
-                        className="mission-action-link"
-                        href={`/circles/${circle.slug}/use/${capability.capabilityType}`}
-                      >
-                        {capability.ctaLabel}
-                      </Link>
-                    </div>
-                  </article>
+                {circle.missions.map((mission) => (
+                  <MissionCard key={mission.id} mission={mission} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No missions yet">This circle has no mission records yet.</EmptyState>
+            )}
+          </section>
+
+          {circle.activity.length > 0 ? (
+            <section className="circle-section" id="activity">
+              <SectionHead eyebrow="Activity" title="Recent participation." />
+              <div className="v-list">
+                {circle.activity.map((activity) => (
+                  <ActivityItem key={activity.id} {...activity} />
                 ))}
               </div>
             </section>
           ) : null}
 
-          <section className="circle-section" id="missions">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Missions</Eyebrow>
-                <h2>Participate with a record.</h2>
-              </div>
-              <p>
-                Real missions for this circle, with your authenticated submission state. Approval creates
-                offchain Vicus points only.
-              </p>
-            </div>
-            <div className="mission-grid">
-              {circle.missions.length > 0 ? (
-                circle.missions.map((mission) => <MissionCard key={mission.id} mission={mission} />)
-              ) : (
-                <EmptyState title="No missions configured">
-                  This circle has no mission records yet. No fallback mission is being shown.
-                </EmptyState>
-              )}
-            </div>
-          </section>
-
-          <section className="circle-section" id="participation">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Participation</Eyebrow>
-                <h2>Live participation counts.</h2>
-              </div>
-              <p>Watchers, approved contributions, and verified roles — counted from real records.</p>
-            </div>
-            <div className="profile-metrics">
-              <MetricCard
-                detail="Watch relationships for this circle"
-                label="Watchers"
-                value={String(participation.watcherCount)}
-              />
-              <MetricCard
-                detail="Approved mission responses in this circle"
-                label="Contributions"
-                value={String(participation.approvedContributionCount)}
-              />
-              <MetricCard
-                detail="Stellar role checks in this circle"
-                label="Verified roles"
-                value={String(participation.verificationCount)}
-                accent
-              />
-            </div>
-            <div className="content-panel" style={{ marginTop: 16 }}>
-              {circle.activity.length > 0 ? (
-                <div className="activity-list">
-                  {circle.activity.map((activity) => (
-                    <ActivityItem key={activity.id} {...activity} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="No activity yet">
-                  Watch, contributions, and role checks will be counted here.
-                </EmptyState>
-              )}
-            </div>
-          </section>
-
           <section className="circle-section" id="community">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Community</Eyebrow>
-                <h2>Questions, insights, sources.</h2>
-              </div>
-              <p>
-                {communityPreview.length} contributions ·{" "}
-                <Link href={`/circles/${circle.slug}/community`}>View community</Link>
-              </p>
-            </div>
+            <SectionHead
+              action={
+                <Link className="v-text-link" href={`/circles/${circle.slug}/community`}>
+                  Open community <Icon name="arrow-right" size={15} />
+                </Link>
+              }
+              eyebrow="Community"
+              title="Questions, insights, sources."
+            />
             {communityPreview.length > 0 ? (
               <div className="mission-grid">
                 {[...communityByType.question, ...communityByType.insight, ...communityByType.source].map((post) => (
@@ -315,7 +346,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 ))}
               </div>
             ) : (
-              <EmptyState title="No community contributions yet">
+              <EmptyState title="No contributions yet">
                 Ask the first question for this Circle.{" "}
                 <Link href={`/circles/${circle.slug}/community`}>Open community</Link>
               </EmptyState>
@@ -323,53 +354,42 @@ export default async function CirclePage({ params }: CirclePageProps) {
           </section>
 
           <section className="circle-section" id="people">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>People in this Circle</Eyebrow>
-                <h2>Real members, real relationships.</h2>
-              </div>
-              <p>Watchers, approved contributors, and verified role holders. No wallet addresses shown.</p>
-            </div>
+            <SectionHead eyebrow="People" line="No wallet addresses shown." title="Who's here." />
             {people.length > 0 ? (
-              <div className="mission-grid">
-                {people.slice(0, 6).map((person) => (
+              <div className="x-rail">
+                {people.slice(0, 8).map((person) => (
                   <PersonCard key={person.user.id} person={person} />
                 ))}
               </div>
             ) : (
-              <EmptyState title="No people yet">
-                Watch this Circle or complete a mission to be the first person listed here.
-              </EmptyState>
+              <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
             )}
           </section>
 
           <section className="circle-section" id="sources">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Official sources & disclosures</Eyebrow>
-                <h2>Check, don&apos;t trust.</h2>
+            <SectionHead eyebrow="Sources & disclosures" title="Check, don't trust." />
+            <div className="c-sources">
+              <div className="c-source-main">
+                <Orb icon="globe" size="md" tone="blue" />
+                <span>
+                  <strong>{circle.sourceUrl ? circle.sourceLabel : "No source attached"}</strong>
+                  <small>{circle.issuerSource} · {circle.sourceStatus}</small>
+                </span>
+                {circle.sourceUrl ? (
+                  <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
+                    Open <Icon name="external" size={14} />
+                  </a>
+                ) : null}
               </div>
-              <p>{circle.riskNote}</p>
-            </div>
-            <div className="content-panel">
-              <Eyebrow>Sources</Eyebrow>
-              <p>
-                {circle.issuerSource}. {circle.sourceStatus}.{" "}
+              <p className="c-source-note">
                 {circle.verification.enabled
-                  ? "The role check uses the canonical asset identifiers stored for this circle and returns a role without exposing an exact balance."
-                  : "Role verification remains deferred here; this page is watch-and-learn only."}
+                  ? "The role check uses the canonical identifiers stored for this circle and never exposes an exact balance."
+                  : "Role verification is deferred here; this page is watch-and-learn only."}{" "}
+                Watch is never proof of ownership. Pasted-address checks are read-only and never stored.
               </p>
-              {circle.sourceUrl ? (
-                <a className="source-link" href={circle.sourceUrl} rel="noreferrer" target="_blank">
-                  {circle.sourceLabel} <Icon name="external" size={14} />
-                </a>
-              ) : (
-                <span className="source-status">No source is attached to this education-only circle.</span>
-              )}
-              <div className="section-note" style={{ marginTop: 12 }}>
-                Eligibility: {circle.eligibilityNote} Watch is never proof of ownership. Pasted-address
-                checks are read-only and never stored.
-              </div>
+              <p className="c-source-note c-source-risk">
+                <Glyph name="lock" size={14} /> {circle.riskNote}
+              </p>
             </div>
           </section>
         </div>

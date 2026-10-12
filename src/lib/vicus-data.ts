@@ -37,6 +37,7 @@ export type Circle = {
   ecosystemLabel?: string;
   watched?: boolean;
   category: string;
+  assetClassLabel?: string;
   state: CircleState;
   stateLabel: string;
   summary: string;
@@ -63,7 +64,8 @@ export const circles: Circle[] = [
     name: "USDC on Stellar",
     code: "USDC",
     network: "Stellar",
-    category: "Stablecoin education",
+    category: "stablecoin",
+    assetClassLabel: "Tokenized money / Stablecoin",
     state: "source-review",
     stateLabel: "Source review",
     summary: "A watch-first circle for learning how a dollar-denominated token is represented in Stellar asset ecosystems.",
@@ -103,7 +105,8 @@ export const circles: Circle[] = [
     name: "PYUSD on Stellar",
     code: "PYUSD",
     network: "Stellar",
-    category: "Stablecoin education",
+    category: "stablecoin",
+    assetClassLabel: "Tokenized money / Stablecoin",
     state: "source-review",
     stateLabel: "Source review",
     summary: "An education-first circle for exploring how PYUSD is described in a Stellar context.",
@@ -143,7 +146,8 @@ export const circles: Circle[] = [
     name: "USDY on Stellar",
     code: "USDY",
     network: "Stellar",
-    category: "Treasury education",
+    category: "treasury_fund",
+    assetClassLabel: "Tokenized Treasury / Fund",
     state: "source-review",
     stateLabel: "Source review",
     summary: "A focused learning circle for understanding a treasury-oriented tokenized asset on Stellar.",
@@ -183,6 +187,7 @@ export const circles: Circle[] = [
     code: "Education",
     network: "Stellar",
     category: "RWA education",
+    assetClassLabel: "Treasury education",
     state: "education",
     stateLabel: "Education only",
     summary: "A watch-only learning circle for the language, sources, and questions around tokenized treasuries.",

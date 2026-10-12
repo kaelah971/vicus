@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
-import { Montserrat, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./vicus-system.css";
 
-const montserrat = Montserrat({
+// One coherent editorial monospace family across the whole product.
+const geistMono = Geist_Mono({
   display: "swap",
   subsets: ["latin"],
-  variable: "--font-montserrat",
-  weight: ["500", "600"],
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  display: "swap",
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${jakarta.variable}`}>
+    <html lang="en" className={geistMono.variable}>
       <body>{children}</body>
     </html>
   );

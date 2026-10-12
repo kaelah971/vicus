@@ -272,6 +272,9 @@ export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] 
       <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
         Missions
       </Link>
+      <Link className="wallet-menu-link" href="/lab" onClick={() => setMobileMenuOpen(false)}>
+        Lab
+      </Link>
       <Link className="wallet-menu-link" href="/spaces" onClick={() => setMobileMenuOpen(false)}>
         Spaces
       </Link>

@@ -63,10 +63,12 @@ export function RewardClaimCard({ reward }: { reward: RewardStateView }) {
 
   return (
     <article className="reward-claim-card">
+      <span aria-hidden="true" className="reward-claim-glow" />
       <div className="reward-claim-header">
         <div>
-          <span className="eyebrow">Reward available</span>
+          <span className="eyebrow">{current.status === "confirmed" ? "Reward claimed" : "Reward unlocked"}</span>
           <h3>{current.amount} XLM</h3>
+          <span className="reward-claim-network">{networkLabel(current.network)}</span>
         </div>
         <span aria-live="polite" className={`status-pill status-${statusTone(current.status)}`}>
           {statusLabel(current.status)}
@@ -93,8 +95,8 @@ export function RewardClaimCard({ reward }: { reward: RewardStateView }) {
 
       <div className="reward-claim-actions">
         {canClaim ? (
-          <button aria-busy={busy} className="button button-violet button-small" disabled={busy} onClick={claimReward} type="button">
-            {busy ? "Claiming…" : current.status === "failed" ? "Try claim again" : "Claim reward"}
+          <button aria-busy={busy} className="button button-white button-small" disabled={busy} onClick={claimReward} type="button">
+            {busy ? "Claiming…" : current.status === "failed" ? "Try claim again" : "Claim reward →"}
           </button>
         ) : null}
         {current.id ? <a className="mission-action-link" href={`/rewards/${current.id}`}>View receipt</a> : null}

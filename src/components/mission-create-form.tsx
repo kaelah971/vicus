@@ -32,12 +32,13 @@ export function MissionCreateForm({ circles, endpoint = "/api/admin/missions" }:
   const [circleId, setCircleId] = useState(circles[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "text" | "research">("quiz");
+  const [type, setType] = useState<"quiz" | "text" | "research" | "onchain_action">("quiz");
   const [points, setPoints] = useState("100");
   const [status, setStatus] = useState<"draft" | "open">("draft");
   const [rewardEnabled, setRewardEnabled] = useState(false);
   const [rewardAmount, setRewardAmount] = useState("0.05");
   const [questions, setQuestions] = useState<DraftQuestion[]>([emptyQuestion()]);
+  const [minimumAmount, setMinimumAmount] = useState("1");
   const [evidenceRequired, setEvidenceRequired] = useState(true);
   const [evidencePrompt, setEvidencePrompt] = useState(
     "Link the official source that supports your response.",
@@ -67,6 +68,7 @@ export function MissionCreateForm({ circles, endpoint = "/api/admin/missions" }:
       rewardAmount,
       evidenceRequired,
       evidencePrompt,
+      minimumAmount,
     };
 
     if (type === "quiz") {
@@ -161,6 +163,7 @@ export function MissionCreateForm({ circles, endpoint = "/api/admin/missions" }:
             <option value="quiz">Quiz · automatic grading</option>
             <option value="text">Text · manual review</option>
             <option value="research">Research · manual review</option>
+            <option value="onchain_action">Stellar activation · automatic onchain check</option>
           </select>
         </div>
         <div className="field-group">
@@ -214,6 +217,25 @@ export function MissionCreateForm({ circles, endpoint = "/api/admin/missions" }:
           </>
         ) : null}
       </div>
+
+      {type === "onchain_action" ? (
+        <div className="field-group">
+          <label htmlFor="mission-minimum">Minimum payment · asset units</label>
+          <input
+            id="mission-minimum"
+            type="text"
+            inputMode="decimal"
+            value={minimumAmount}
+            onChange={(event) => setMinimumAmount(event.target.value)}
+            placeholder="1"
+            required
+          />
+          <p className="field-help">
+            Stellar Mainnet payment only. Asset and issuer are derived from the Circle — never typed
+            here. The Circle needs a verified Stellar asset and an active Send capability.
+          </p>
+        </div>
+      ) : null}
 
       {type === "quiz" ? (
         <div className="field-group">

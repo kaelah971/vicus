@@ -1,11 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DataState, Eyebrow } from "@/components/vicus";
+import { DataState, Icon } from "@/components/vicus";
+import {
+  ActionTray,
+  AssetToken,
+  Chip,
+  EcoChip,
+  GlowField,
+  Glyph,
+  MissionStrip,
+  Orb,
+  capabilityMeta,
+  type ActionItem,
+} from "@/components/vicus-ui";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCircleBySlug } from "@/lib/data/circles";
-import { getCapabilityDetail, supportModeBadge } from "@/lib/utility/service";
+import {
+  getCapabilityDetail,
+  getCircleCapabilities,
+  isSupportedCapabilityType,
+  supportModeBadge,
+} from "@/lib/utility/service";
+import { getActivationMissionLinks } from "@/lib/activation/service";
+import { rewardNetworkLabel } from "@/lib/rewards/display";
 
 type CapabilityPageProps = {
   params: Promise<{ slug: string; capability: string }>;
@@ -31,13 +50,13 @@ export default async function CapabilityPage({ params }: CapabilityPageProps) {
   const { slug, capability } = await params;
 
   let circle: Awaited<ReturnType<typeof getCircleBySlug>> | null = null;
-  let detail: Awaited<ReturnType<typeof getCapabilityDetail>> = null;
+  let capabilities: Awaited<ReturnType<typeof getCircleCapabilities>> = [];
   let databaseUnavailable = false;
 
   try {
-    [circle, detail] = await Promise.all([
+    [circle, capabilities] = await Promise.all([
       getCircleBySlug(slug),
-      getCapabilityDetail(slug, capability),
+      isSupportedCapabilityType(capability) ? getCircleCapabilities(slug) : Promise.resolve([]),
     ]);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
@@ -61,76 +80,107 @@ export default async function CapabilityPage({ params }: CapabilityPageProps) {
     );
   }
 
+  const detail = capabilities.find((entry) => entry.capabilityType === capability) ?? null;
   if (!circle || !detail) notFound();
 
-    const ctaHref = detail.destinationUrl ?? detail.sourceUrl;
-    const externalExecution = detail.supportMode !== "in_vicus";
+  const activationLinks = await getActivationMissionLinks(circle.id);
+  const missionLink = activationLinks.get(detail.capabilityType);
+  const mission = missionLink ? circle.missions.find((entry) => entry.id === missionLink.id) ?? null : null;
+  const ctaHref = detail.destinationUrl ?? detail.sourceUrl;
+  // Avoid repeating the boundary when the stored eligibility note already states it.
+  const externalExecution =
+    detail.supportMode !== "in_vicus" && !(detail.eligibilityNote ?? "").toLowerCase().includes("outside vicus");
+  const meta = capabilityMeta(detail.capabilityType);
+  const siblings: ActionItem[] = capabilities
+    .filter((entry) => entry.capabilityType !== detail.capabilityType)
+    .map((entry) => {
+      const entryMeta = capabilityMeta(entry.capabilityType);
+      return {
+        key: entry.id,
+        label: entry.title,
+        href: `/circles/${circle.slug}/use/${entry.capabilityType}`,
+        tone: entryMeta.tone,
+        icon: entryMeta.icon,
+        state: activationLinks.has(entry.capabilityType) ? "Mission available" : supportModeBadge[entry.supportMode],
+        live: activationLinks.has(entry.capabilityType),
+      };
+    });
 
-    return (
-      <AppShell active="discover">
-        <main className="page-main">
-          <header className="page-intro">
-            <div className="shell page-intro-grid">
+  return (
+    <AppShell active="discover">
+      <main className="page-main">
+        <div className="shell u-page">
+          <nav className="breadcrumbs" aria-label="Breadcrumb">
+            <Link href="/discover">Explore</Link>
+            <span>/</span>
+            <Link href={`/circles/${circle.slug}`}>{circle.name}</Link>
+            <span>/</span>
+            <span>{detail.title}</span>
+          </nav>
+
+          <section className={`u-sheet tone-${meta.tone}`} aria-labelledby="capability-title">
+            <GlowField tones={[meta.tone, "violet"]} />
+            <div className="u-sheet-head">
+              <span className="u-sheet-icons">
+                <Orb icon={meta.icon} size="lg" tone={meta.tone} />
+                <AssetToken code={circle.code} ecosystem={circle.ecosystem} ecosystemLabel={circle.ecosystemLabel} size="md" />
+              </span>
               <div>
-                <nav className="breadcrumbs" aria-label="Breadcrumb">
-                  <Link href="/discover">Discover</Link>
-                  <span>/</span>
-                  <Link href={`/circles/${circle.slug}`}>{circle.name}</Link>
-                  <span>/</span>
-                  <span>{detail.title}</span>
-                </nav>
-                <Eyebrow>{supportModeBadge[detail.supportMode]}</Eyebrow>
-                <h1>
-                  {detail.title} {detail.circleName}.
+                <div className="c-chips">
+                  <Chip tone={meta.tone}>{supportModeBadge[detail.supportMode]}</Chip>
+                  <EcoChip ecosystem={circle.ecosystem} label={circle.ecosystemLabel} />
+                </div>
+                <h1 id="capability-title">
+                  {detail.title} {detail.circleName}
                 </h1>
                 <p>{detail.shortDescription}</p>
               </div>
-              <div className="page-intro-note">
-                <strong>
-                  {detail.circleName} · {circle.ecosystemLabel}
-                </strong>
-                {externalExecution
-                  ? " This action executes outside Vicus — in your own wallet or the official flow. Vicus never moves funds."
-                  : null}
-              </div>
             </div>
-          </header>
 
-          <div className="shell circle-page-body">
-            <section className="circle-section" aria-labelledby="capability-how-title">
-              <div className="circle-section-heading">
-                <div>
-                  <Eyebrow>How it works</Eyebrow>
-                  <h2 id="capability-how-title">What this action means.</h2>
-                </div>
-              </div>
-              <div className="content-panel">
-                <p>{detail.shortDescription}</p>
-                {detail.eligibilityNote ? <p>{detail.eligibilityNote}</p> : null}
-                <p>
-                  Source:{" "}
-                  <a href={detail.sourceUrl} rel="noreferrer" target="_blank">
-                    {detail.sourceUrl}
-                  </a>
-                </p>
-                <p>
-                  <a
-                    className="mission-action-link"
-                    href={ctaHref}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {detail.ctaLabel}
-                  </a>
-                </p>
-              </div>
+            {detail.eligibilityNote ? (
+              <p className="u-note">
+                <Glyph name="shield" size={15} /> {detail.eligibilityNote}
+              </p>
+            ) : null}
+            {externalExecution ? (
+              <p className="u-note">
+                <Glyph name="lock" size={15} /> Runs outside Vicus — in your own wallet or the official flow. Vicus never moves funds.
+              </p>
+            ) : null}
+
+            <div className="v-button-row">
+              <a className="button button-white" href={ctaHref} rel="noreferrer" target="_blank">
+                {detail.ctaLabel} <Icon name="external" size={15} />
+              </a>
+              <a className="button button-glass" href={detail.sourceUrl} rel="noreferrer" target="_blank">
+                Source <Icon name="external" size={14} />
+              </a>
+            </div>
+          </section>
+
+          {mission ? (
+            <MissionStrip
+              context={`${circle.name} · prove it onchain`}
+              href={`/missions/${mission.id}`}
+              points={mission.points}
+              reward={mission.reward}
+              rewardNetwork={rewardNetworkLabel()}
+              title={mission.title}
+            />
+          ) : null}
+
+          {siblings.length > 0 ? (
+            <section className="u-more" aria-labelledby="capability-more-title">
+              <h2 id="capability-more-title">More with {circle.code}</h2>
+              <ActionTray actions={siblings} />
             </section>
+          ) : null}
 
-            <p className="control-note">
-              Educational context only — not financial advice. <Link href={`/circles/${circle.slug}`}>Back to {circle.name}</Link>
-            </p>
-          </div>
-        </main>
-      </AppShell>
-    );
+          <p className="control-note">
+            Educational context only — not financial advice. <Link href={`/circles/${circle.slug}`}>Back to {circle.name}</Link>
+          </p>
+        </div>
+      </main>
+    </AppShell>
+  );
 }

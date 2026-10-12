@@ -54,6 +54,7 @@ export function MissionExperience({ mission }: MissionExperienceProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [content, setContent] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [transactionHash, setTransactionHash] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +64,9 @@ export function MissionExperience({ mission }: MissionExperienceProps) {
     mission.availability === "open" &&
     (!submission || submission.status === "needs_revision");
   const isQuiz = mission.config?.kind === "quiz";
-  const isText = mission.config?.kind === "text" || mission.config?.kind === "research";
+  const isOnchain = mission.config?.kind === "onchain_action";
+  const isText =
+    mission.config?.kind === "text" || mission.config?.kind === "research";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,7 +76,9 @@ export function MissionExperience({ mission }: MissionExperienceProps) {
 
     const payload = isQuiz
       ? { answers }
-      : { content, evidenceUrl: evidenceUrl.trim() || undefined };
+      : isOnchain
+        ? { transactionHash: transactionHash.trim() }
+        : { content, evidenceUrl: evidenceUrl.trim() || undefined };
 
     try {
       const response = await fetch(`/api/missions/${mission.id}/submit`, {
@@ -94,6 +99,7 @@ export function MissionExperience({ mission }: MissionExperienceProps) {
           setContent("");
           setEvidenceUrl("");
           setAnswers({});
+          setTransactionHash("");
         }
       }
     } catch {
@@ -199,7 +205,65 @@ export function MissionExperience({ mission }: MissionExperienceProps) {
         </form>
       ) : null}
 
-      {canSubmit && isText && mission.config && mission.config.kind !== "quiz" ? (
+      {canSubmit && isOnchain && mission.config?.kind === "onchain_action" ? (
+        <form className="mission-response-form" onSubmit={handleSubmit}>
+          <div className="content-panel">
+            <p>
+              <strong>Activation</strong>
+            </p>
+            <p>
+              Use · Send {mission.config.assetCode} on {mission.circle.name}
+            </p>
+            <p>Network · {mission.config.network}</p>
+            <p>Proof · Onchain transaction</p>
+            <p>Reward · {mission.rewardNote}</p>
+          </div>
+          <p className="mission-form-instruction">How it works</p>
+          <ol>
+            <li>
+              Open the{" "}
+              <Link
+                href={
+                  mission.activation?.capabilityType
+                    ? `/circles/${mission.circle.slug}/use/${mission.activation.capabilityType}`
+                    : `/circles/${mission.circle.slug}#use`
+                }
+              >
+                Send capability
+              </Link>
+              .
+            </li>
+            <li>Make a payment of at least {mission.config.minimumAmount} {mission.config.assetCode} from the wallet connected here.</li>
+            <li>Copy the Stellar transaction hash.</li>
+            <li>Return to Vicus and submit it below.</li>
+            <li>Earn points and unlock the participation reward if the payment verifies.</li>
+          </ol>
+          <p className="field-help">
+            Vicus never asks for your secret key. Only the transaction hash leaves your wallet —
+            Vicus already knows which wallet is yours from your session.
+          </p>
+          <div className="field-group">
+            <label htmlFor="mission-tx-hash">Stellar transaction hash</label>
+            <input
+              id="mission-tx-hash"
+              value={transactionHash}
+              onChange={(event) => setTransactionHash(event.target.value)}
+              placeholder="64-character transaction hash"
+              minLength={64}
+              maxLength={64}
+              pattern="[0-9a-fA-F]{64}"
+              required
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <button className="button button-white" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Verifying…" : "Submit proof"}
+          </button>
+        </form>
+      ) : null}
+
+      {canSubmit && isText && mission.config && (mission.config.kind === "text" || mission.config.kind === "research") ? (
         <form className="mission-response-form" onSubmit={handleSubmit}>
           <p className="mission-form-instruction">
             Write between {mission.config.minLength} and {mission.config.maxLength} characters. Plain text

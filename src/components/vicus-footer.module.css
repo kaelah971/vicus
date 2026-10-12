@@ -1,0 +1,865 @@
+/* ============ The Tokenized Horizon — landing footer ============ */
+
+.footer {
+  background: #000;
+  border-top: 1px solid var(--hairline);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---------- Upper band ---------- */
+.upper {
+  display: grid;
+  gap: clamp(40px, 5vw, 72px);
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2.4fr);
+  padding: clamp(56px, 7vw, 96px) 0 clamp(48px, 6vw, 80px);
+  position: relative;
+  z-index: 2;
+}
+
+.brand {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.mark {
+  align-items: center;
+  display: inline-flex;
+  gap: 14px;
+  width: fit-content;
+}
+
+.mark span {
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  line-height: 1;
+}
+
+.statement {
+  font-size: clamp(1.3rem, 1.9vw, 1.62rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.22;
+  margin-top: 10px;
+  max-width: 17ch;
+}
+
+.support {
+  color: var(--subtle);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.social {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.socialButton {
+  align-items: center;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: var(--muted);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  transition: color 160ms ease-out, border-color 160ms ease-out, background-color 160ms ease-out;
+  width: 40px;
+}
+
+.socialButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.columns {
+  display: grid;
+  gap: 32px 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.group h3 {
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.group ul {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  align-items: center;
+  border-radius: 4px;
+  color: var(--subtle);
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 6px;
+  line-height: 1.35;
+  transition: color 160ms ease-out;
+}
+
+.link:hover {
+  color: #fff;
+}
+
+.ext {
+  flex: none;
+  opacity: 0.6;
+}
+
+.link:focus-visible,
+.socialButton:focus-visible,
+.mark:focus-visible,
+.node:focus-visible {
+  outline: 2px solid #c49bff;
+  outline-offset: 4px;
+}
+
+/* ---------- Scene ---------- */
+.scene {
+  --scene-h: clamp(380px, 37.5vw, 820px);
+  height: var(--scene-h);
+  margin-top: clamp(-120px, -6vw, -36px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sky dissolves into the black upper band. */
+.scene::before {
+  background: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.82) 12%, rgba(0, 0, 0, 0) 32%);
+  content: "";
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+/* Fixed 8:3 world matching the rendered plate, always covering the scene. */
+.stage {
+  --py: 46.1%;
+  --sun-y: 43.9%;
+  --pr: 9.35%;
+  aspect-ratio: 8 / 3;
+  bottom: 0;
+  container-type: inline-size;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: max(100%, calc(var(--scene-h) * 8 / 3));
+}
+
+.env {
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.envMobile {
+  display: none;
+}
+
+/* ---------- Layer 2: atmosphere ---------- */
+.atmosphere {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.glints {
+  animation: vf-twinkle 6s ease-in-out infinite alternate;
+  inset: 0;
+  position: absolute;
+}
+
+.glints span {
+  background: #f3eeff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(206, 186, 255, 0.9);
+  position: absolute;
+}
+
+.glints1 {
+  animation-delay: -2.2s;
+  animation-duration: 7.5s;
+}
+
+.glints2 {
+  animation-delay: -4.6s;
+  animation-duration: 9s;
+}
+
+.orbit {
+  animation: vf-orbit 38s ease-in-out infinite alternate;
+  aspect-ratio: 200 / 60;
+  left: 50%;
+  /* Only the far arc shows: the near half would sit on top of the terrain. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0 34%, transparent 52%);
+  mask-image: linear-gradient(180deg, #000 0 34%, transparent 52%);
+  opacity: 0.75;
+  position: absolute;
+  top: var(--py);
+  translate: -50% -50%;
+  width: calc(var(--pr) * 5.2);
+}
+
+.haze {
+  animation: vf-haze 44s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 42% 50% at 50% 50%, rgba(150, 100, 255, 0.22), rgba(150, 100, 255, 0) 70%),
+    radial-gradient(ellipse 50% 30% at 26% 60%, rgba(110, 70, 230, 0.12), rgba(110, 70, 230, 0) 70%),
+    radial-gradient(ellipse 50% 30% at 76% 58%, rgba(110, 70, 230, 0.12), rgba(110, 70, 230, 0) 70%);
+  height: 26%;
+  left: -6%;
+  mix-blend-mode: screen;
+  position: absolute;
+  right: -6%;
+  top: calc(var(--sun-y) - 11%);
+}
+
+.sunBreath {
+  animation: vf-breathe 7s ease-in-out infinite alternate;
+  aspect-ratio: 3 / 1;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 255, 255, 0.55),
+    rgba(214, 192, 255, 0.28) 24%,
+    rgba(130, 80, 255, 0.12) 52%,
+    rgba(130, 80, 255, 0) 72%
+  );
+  left: 50%;
+  mix-blend-mode: screen;
+  position: absolute;
+  top: var(--sun-y);
+  translate: -50% -50%;
+  width: calc(var(--pr) * 2.6);
+}
+
+.streak {
+  animation: vf-streak 9s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 50% 10% at 50% 50%, rgba(240, 232, 255, 0.6), rgba(240, 232, 255, 0) 100%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(170, 130, 255, 0.2), rgba(170, 130, 255, 0) 70%);
+  height: 14px;
+  left: 50%;
+  mix-blend-mode: screen;
+  position: absolute;
+  top: var(--sun-y);
+  translate: -50% -50%;
+  width: calc(var(--pr) * 3.4);
+}
+
+/* The rendered river, re-lit live: bands of light travel toward the horizon,
+   clipped to the river's own visible pixels so occluding hills stay in front. */
+.river {
+  animation: vf-river-breathe 6.5s ease-in-out infinite alternate;
+  inset: 0;
+  -webkit-mask-image: var(--river-mask);
+  mask-image: var(--river-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  mix-blend-mode: screen;
+  overflow: hidden;
+  position: absolute;
+}
+
+.riverFlow {
+  animation: vf-river-flow 5.5s linear infinite;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(196, 170, 255, 0.1) 0%,
+    rgba(196, 170, 255, 0.1) 13%,
+    rgba(255, 255, 255, 0.95) 18%,
+    rgba(196, 170, 255, 0.1) 22%
+  );
+  height: 200%;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.floorFade {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.92));
+  bottom: 0;
+  height: 24%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 1;
+}
+
+/* ---------- Layers 3–4: tokens + labels ---------- */
+.nodes {
+  inset: 0;
+  position: absolute;
+  z-index: 2;
+}
+
+.node {
+  --d: 5cqw;
+  bottom: var(--b);
+  color: #fff;
+  left: var(--x);
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.nodeDrift {
+  align-items: center;
+  animation: vf-slide var(--t, 9s) cubic-bezier(0.45, 0, 0.55, 1) var(--delay, 0s) infinite;
+  display: flex;
+  flex-direction: column;
+}
+
+.nodeLabel {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(0.56rem, 0.68cqw, 0.68rem);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  line-height: 1.5;
+  text-align: center;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  text-transform: uppercase;
+  transition: color 200ms ease-out;
+  white-space: nowrap;
+}
+
+.leader {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(var(--tone-rgb), 0.04));
+  height: clamp(14px, 1.9cqw, 30px);
+  margin: 8px 0 7px;
+  position: relative;
+  width: 1px;
+}
+
+.leader::before {
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(var(--tone-rgb), 0.9);
+  content: "";
+  height: 3px;
+  left: -1px;
+  position: absolute;
+  top: -1px;
+  width: 3px;
+}
+
+.nodeBody {
+  display: block;
+  height: var(--d);
+  position: relative;
+  transform-origin: 50% 100%;
+  width: var(--d);
+}
+
+/* Machined bezel: anisotropic metal tinted by the asset tone, with a visible coin edge. */
+.token {
+  background: conic-gradient(
+    from 215deg,
+    #fbf8ff,
+    rgba(var(--tone-rgb), 0.95) 9%,
+    #3b3650 20%,
+    #0d0c13 34%,
+    #1d1a29 46%,
+    rgba(var(--tone-rgb), 0.7) 58%,
+    #ece5ff 70%,
+    #4a4462 82%,
+    #15131d 92%,
+    #fbf8ff
+  );
+  border-radius: 50%;
+  box-shadow:
+    0 calc(var(--d) * 0.045) 0 calc(var(--d) * -0.004) #0a0910,
+    0 calc(var(--d) * 0.052) calc(var(--d) * 0.014) calc(var(--d) * -0.004) rgba(var(--tone-rgb), 0.5),
+    0 calc(var(--d) * 0.22) calc(var(--d) * 0.32) calc(var(--d) * -0.06) rgba(0, 0, 0, 0.85);
+  display: block;
+  inset: 0;
+  position: absolute;
+}
+
+/* Inner chamfer between bezel and glass. */
+.token::before {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.6),
+    rgba(255, 255, 255, 0.05) 38%,
+    rgba(0, 0, 0, 0.7) 66%,
+    rgba(var(--tone-rgb), 0.6)
+  );
+  border-radius: 50%;
+  content: "";
+  inset: 7.5%;
+  position: absolute;
+}
+
+.aura {
+  background: radial-gradient(
+    circle,
+    rgba(var(--tone-rgb), 0.34) 0%,
+    rgba(var(--tone-rgb), 0.12) 46%,
+    rgba(var(--tone-rgb), 0) 70%
+  );
+  border-radius: 50%;
+  inset: -26%;
+  opacity: 0.7;
+  position: absolute;
+  transition: opacity 240ms ease-out;
+  z-index: -1;
+}
+
+/* Dark translucent glass body: frosts the world behind it, picks up tone light from
+   below, recessed by an inner shadow, with a specular and a horizon reflection band. */
+.face {
+  align-items: center;
+  backdrop-filter: blur(6px) saturate(140%);
+  background:
+    radial-gradient(120% 70% at 50% 118%, rgba(var(--tone-rgb), 0.55), rgba(var(--tone-rgb), 0) 58%),
+    radial-gradient(90% 55% at 50% 0%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(circle at 50% 40%, rgba(22, 19, 36, 0.74), rgba(6, 5, 10, 0.92) 76%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 calc(var(--d) * 0.05) calc(var(--d) * 0.08) rgba(0, 0, 0, 0.88),
+    inset 0 calc(var(--d) * -0.025) calc(var(--d) * 0.05) rgba(var(--tone-rgb), 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  display: flex;
+  inset: 11%;
+  justify-content: center;
+  overflow: hidden;
+  position: absolute;
+}
+
+.face::after {
+  background:
+    radial-gradient(ellipse 46% 24% at 34% 15%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%),
+    linear-gradient(180deg, rgba(210, 190, 255, 0) 57%, rgba(210, 190, 255, 0.13) 63%, rgba(210, 190, 255, 0) 70%);
+  border-radius: 50%;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.symbol {
+  color: #fff;
+  filter: drop-shadow(0 0 calc(var(--d) * 0.045) rgba(var(--tone-rgb), 0.95)) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+  height: 54%;
+  position: relative;
+  width: 54%;
+}
+
+/* Contact shadow + tone light pooled on the terrain. */
+.ground {
+  background:
+    radial-gradient(ellipse 30% 34% at 50% 42%, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0) 100%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(var(--tone-rgb), 0.5), rgba(var(--tone-rgb), 0.12) 52%, rgba(var(--tone-rgb), 0) 100%);
+  bottom: calc(var(--d) * -0.15);
+  height: calc(var(--d) * 0.36);
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: calc(var(--d) * 2.1);
+}
+
+/* Soft glossy-ground reflection of the token's glow. */
+.reflection {
+  background: radial-gradient(ellipse 50% 50% at 50% 0%, rgba(var(--tone-rgb), 0.32), rgba(var(--tone-rgb), 0) 100%);
+  height: calc(var(--d) * 0.6);
+  left: 50%;
+  position: absolute;
+  top: calc(var(--d) * 1.02);
+  transform: translateX(-50%);
+  width: calc(var(--d) * 0.7);
+}
+
+/* Stellar: thin tilted orbit marks the home ecosystem. */
+.halo {
+  border: 1px solid rgba(220, 205, 255, 0.34);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(180, 150, 255, 0.18);
+  height: calc(var(--d) * 0.42);
+  left: 50%;
+  mask: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0 48%, #000 52%);
+  position: absolute;
+  top: 54%;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  width: calc(var(--d) * 1.62);
+  z-index: 1;
+}
+
+.node:hover .nodeLabel,
+.node:focus-visible .nodeLabel {
+  color: #fff;
+}
+
+.node:hover .aura,
+.node:focus-visible .aura {
+  opacity: 1;
+}
+
+.node_stellar { --x: 12%; --b: 37%; --d: 6.6cqw; --t: 11s; --delay: -2s; }
+.node_stable { --x: 27%; --b: 29%; --d: 4.4cqw; --t: 9.4s; --delay: -6s; }
+.node_rwa { --x: 64%; --b: 16%; --d: 5.4cqw; --t: 12.2s; --delay: -4s; }
+.node_treasury { --x: 78%; --b: 32%; --d: 4.6cqw; }
+.node_commodity { --x: 90%; --b: 43%; --d: 4cqw; --t: 10.2s; --delay: -8s; }
+
+/* The green node breathes toward the viewer instead of sliding. */
+.node_treasury .nodeDrift {
+  animation: none;
+}
+
+.node_treasury .nodeBody {
+  animation: vf-forward 8s cubic-bezier(0.45, 0, 0.55, 1) -1.5s infinite;
+}
+
+.node_treasury .aura {
+  animation: vf-forward-glow 8s cubic-bezier(0.45, 0, 0.55, 1) -1.5s infinite;
+}
+
+.node_treasury .ground {
+  animation: vf-forward-ground 8s cubic-bezier(0.45, 0, 0.55, 1) -1.5s infinite;
+}
+
+/* ---------- Journey ---------- */
+.journey {
+  align-items: center;
+  bottom: clamp(16px, 2.2vw, 30px);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.66rem;
+  justify-content: center;
+  left: 0;
+  letter-spacing: 0.24em;
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  position: absolute;
+  right: 0;
+  row-gap: 8px;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.journey::before,
+.journey::after {
+  background: linear-gradient(90deg, rgba(139, 92, 255, 0), rgba(190, 160, 255, 0.7));
+  content: "";
+  flex: 0 1 160px;
+  height: 1px;
+  margin-right: 30px;
+}
+
+.journey::after {
+  background: linear-gradient(90deg, rgba(190, 160, 255, 0.7), rgba(139, 92, 255, 0));
+  margin: 0 0 0 30px;
+}
+
+.journey li {
+  align-items: center;
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+.step {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 0 14px rgba(160, 120, 255, 0.55), 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.arrow {
+  color: rgba(196, 160, 255, 0.75);
+  letter-spacing: 0;
+  margin: 0 clamp(10px, 1.6vw, 24px);
+}
+
+/* ---------- Legal ---------- */
+.legal {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  color: var(--faint);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+  gap: 10px 28px;
+  justify-content: space-between;
+  padding: 22px 0 28px;
+  position: relative;
+  z-index: 2;
+}
+
+.legal p {
+  flex: 1 1 360px;
+  max-width: 64ch;
+}
+
+.micro {
+  color: var(--subtle);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Motion ---------- */
+@keyframes vf-slide {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(calc(var(--d) * -0.1), 0, 0);
+  }
+}
+
+@keyframes vf-forward {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, calc(var(--d) * 0.07), 0) scale(1.075);
+  }
+}
+
+@keyframes vf-forward-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes vf-forward-ground {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.14, 1.2);
+  }
+}
+
+@keyframes vf-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vf-orbit {
+  from {
+    rotate: -9deg;
+  }
+  to {
+    rotate: -6.5deg;
+  }
+}
+
+@keyframes vf-haze {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-3%, 0, 0);
+  }
+}
+
+@keyframes vf-breathe {
+  from {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes vf-streak {
+  from {
+    opacity: 0.45;
+    transform: scaleX(0.88);
+  }
+  to {
+    opacity: 0.9;
+    transform: scaleX(1.06);
+  }
+}
+
+@keyframes vf-river-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 0.95;
+  }
+}
+
+/* One full band period (22% of the 200%-tall strip) per loop, so it never jumps. */
+@keyframes vf-river-flow {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -22%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glints,
+  .orbit,
+  .haze,
+  .sunBreath,
+  .streak,
+  .river,
+  .riverFlow,
+  .nodeDrift,
+  .node_treasury .nodeBody,
+  .node_treasury .aura,
+  .node_treasury .ground {
+    animation: none;
+  }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1080px) {
+  .upper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .statement {
+    max-width: 24ch;
+  }
+}
+
+/* Tablet: the plate starts cropping at the sides — pull the nodes into frame. */
+@media (max-width: 1013px) {
+  .node_stellar { --x: 21%; --b: 36%; }
+  .node_stable { --x: 33%; --b: 27%; }
+  .node_rwa { --x: 62%; }
+  .node_treasury { --x: 72.5%; }
+  .node_commodity { --x: 81%; --b: 40%; }
+  .glints2 { display: none; }
+}
+
+@media (max-width: 900px) {
+  .node_commodity {
+    display: none;
+  }
+}
+
+/* Mobile: stacked content, then a dedicated portrait crop of the same world. */
+@media (max-width: 640px) {
+  .upper {
+    gap: 40px;
+    padding-top: 52px;
+  }
+
+  .columns {
+    gap: 34px 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scene {
+    --scene-h: 480px;
+    margin-top: -64px;
+  }
+
+  .stage {
+    --pr: 26.7%;
+    aspect-ratio: 1120 / 1200;
+    width: max(100%, calc(var(--scene-h) * 1120 / 1200));
+  }
+
+  .envWide {
+    display: none;
+  }
+
+  .envMobile {
+    display: block;
+  }
+
+  .river {
+    -webkit-mask-position: 50% 0;
+    mask-position: 50% 0;
+    -webkit-mask-size: 285.714% 100%;
+    mask-size: 285.714% 100%;
+  }
+
+  .orbit {
+    width: calc(var(--pr) * 4.4);
+  }
+
+  .haze {
+    left: -30%;
+    right: -30%;
+  }
+
+  .streak {
+    width: calc(var(--pr) * 3.6);
+  }
+
+  .glints1,
+  .glints2 {
+    display: none;
+  }
+
+  .node_stable,
+  .node_commodity {
+    display: none;
+  }
+
+  .node_stellar { --x: 22%; --b: 34%; --d: 74px; }
+  .node_rwa { --x: 74%; --b: 15%; --d: 58px; }
+  .node_treasury { --x: 83%; --b: 42%; --d: 50px; }
+
+  .nodeLabel {
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+  }
+
+  .journey {
+    font-size: 0.56rem;
+    letter-spacing: 0.14em;
+  }
+
+  .journey::before,
+  .journey::after {
+    display: none;
+  }
+
+  .arrow {
+    margin: 0 6px;
+  }
+
+  .legal {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .legal p {
+    flex: none;
+  }
+}

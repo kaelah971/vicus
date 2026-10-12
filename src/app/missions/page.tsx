@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DataState, EmptyState, Eyebrow, plural } from "@/components/vicus";
+import { DataState, EmptyState } from "@/components/vicus";
+import { GlowField, MetricTile, MissionStrip } from "@/components/vicus-ui";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { listMissions } from "@/lib/data/missions";
+import { rewardNetworkLabel } from "@/lib/rewards/display";
 import { MissionCenterBrowser } from "@/components/mission-center-browser";
 
 export const dynamic = "force-dynamic";
@@ -29,45 +31,71 @@ export default async function MissionsPage() {
     }
   }
 
+  const rewardNetwork = rewardNetworkLabel();
+  const activations = missions.filter((mission) => mission.type === "onchain_action" && !mission.submissionStatus);
+  const totalPoints = missions.reduce((sum, mission) => sum + mission.points, 0);
+  const rewarded = missions.filter((mission) => mission.reward !== "No reward configured").length;
+  const completed = missions.filter((mission) => mission.submissionStatus === "approved").length;
+
   return (
     <AppShell active="missions">
       <main className="page-main">
-        <header className="page-intro">
-          <div className="shell page-intro-grid">
-            <div>
-              <Eyebrow>Mission center</Eyebrow>
-              <h1>Make understanding useful.</h1>
-              <p>
-                Read the objective, complete a quiz or contribution, and leave a record that stays
-                explicit about review and approval. Filter by ecosystem or mission type to find a
-                useful next step.
-              </p>
-            </div>
-            <div className="page-intro-note">
-              <strong>{databaseUnavailable ? "Mission center unavailable" : `${plural(missions?.length ?? 0, "open mission")} in Vicus`}</strong>
-              Browse freely. A verified wallet session is required to submit a response.
-            </div>
+        <header className="v-page-head">
+          <GlowField tones={["green", "violet"]} />
+          <div className="shell">
+            <span className="v-eyebrow">Challenges</span>
+            <h1>Missions</h1>
+            <p>Learn, use, contribute — and earn for it.</p>
+            {!databaseUnavailable ? (
+              <div className="v-head-metrics">
+                <MetricTile icon="target" label="Open missions" tone="green" value={String(missions.length)} />
+                <MetricTile icon="star" label="Points available" tone="violet" value={String(totalPoints)} />
+                <MetricTile
+                  hint={rewardNetwork ? `XLM rewards settle on ${rewardNetwork}` : undefined}
+                  icon="gift"
+                  label={rewardNetwork ? `XLM rewards · ${rewardNetwork}` : "XLM rewards"}
+                  tone="white"
+                  value={String(rewarded)}
+                />
+                {completed > 0 ? <MetricTile icon="check" label="You completed" tone="blue" value={String(completed)} /> : null}
+              </div>
+            ) : null}
           </div>
         </header>
 
-        <div className="shell">
+        <div className="shell m-body">
+          {activations.map((mission) => (
+            <MissionStrip
+              context={`${mission.circle.name} · ${mission.circle.ecosystemLabel}`}
+              href={`/missions/${mission.id}`}
+              key={mission.id}
+              points={mission.points}
+              reward={mission.reward}
+              rewardNetwork={rewardNetwork}
+              title={mission.title}
+            />
+          ))}
+
           {databaseUnavailable ? (
             <section className="directory-section">
               <DataState title="Mission data is unavailable">
                 The database could not provide the Mission Center right now. Try again later.
               </DataState>
             </section>
-          ) : missions && missions.length > 0 ? (
+          ) : missions.length > 0 ? (
             <Suspense>
               <MissionCenterBrowser missions={missions} />
             </Suspense>
           ) : (
             <section className="directory-section">
-              <EmptyState title="No missions configured">
-                There are no open missions right now. New missions appear here once published.
-              </EmptyState>
+              <EmptyState title="No missions right now">New missions appear here once published.</EmptyState>
             </section>
           )}
+
+          <p className="control-note m-note">
+            Points are offchain Vicus records. XLM rewards settle on {rewardNetwork ?? "Stellar"} — the asset&apos;s
+            ecosystem and the reward network are separate. A verified wallet session is required to submit.
+          </p>
         </div>
       </main>
     </AppShell>

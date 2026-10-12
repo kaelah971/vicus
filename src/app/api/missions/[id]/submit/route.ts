@@ -79,7 +79,7 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const outcome = await submitMission(id, payload, session.user.id);
+    const outcome = await submitMission(id, payload, session.user.id, session.wallet.publicKey);
     return NextResponse.json({ ok: true, ...outcome }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error);

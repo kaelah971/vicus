@@ -29,7 +29,17 @@ export type StoredTextConfig = {
   evidencePrompt: string;
 };
 
-export type StoredMissionConfig = StoredQuizConfig | StoredTextConfig;
+export type StoredOnchainActionConfig = {
+  kind: "onchain_action";
+  network: "stellar_mainnet";
+  action: "payment";
+  assetCode: string;
+  assetIssuer: string;
+  minimumAmount: string;
+  proofNotBefore: string;
+};
+
+export type StoredMissionConfig = StoredQuizConfig | StoredTextConfig | StoredOnchainActionConfig;
 
 export type PublicQuizQuestion = Omit<StoredQuizQuestion, "correctAnswer">;
 
@@ -45,6 +55,13 @@ export type PublicMissionConfig =
       maxLength: number;
       evidenceRequired: boolean;
       evidencePrompt: string;
+    }
+  | {
+      kind: "onchain_action";
+      network: "Stellar Mainnet";
+      assetCode: string;
+      minimumAmount: string;
+      proofNotBefore: string;
     }
   | null;
 
@@ -77,6 +94,9 @@ export type MissionDetailRecord = {
   endsAt: string | null;
   availability: MissionAvailability;
   config: PublicMissionConfig;
+  activation: {
+    capabilityType: string | null;
+  } | null;
   viewer: {
     authenticated: boolean;
     handle: string | null;

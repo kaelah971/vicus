@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DataState, EmptyState, Eyebrow, Icon, MissionCard, plural } from "@/components/vicus";
+import { EmptyState, MissionCard, plural } from "@/components/vicus";
+import { Glyph, ecosystemMeta, missionTypeMeta } from "@/components/vicus-ui";
 import type { MissionRecord } from "@/lib/data/types";
 import type { MissionIndexCircle } from "@/lib/data/missions";
 
@@ -12,8 +12,9 @@ export type CenterMission = MissionRecord & { circle: MissionIndexCircle };
 const ALL = "all";
 
 const typeOptions = [
-  { value: "quiz", label: "Quiz" },
-  { value: "text", label: "Written contribution" },
+  { value: "quiz", label: "Learn" },
+  { value: "onchain_action", label: "Use" },
+  { value: "text", label: "Contribute" },
   { value: "research", label: "Research" },
 ];
 
@@ -39,6 +40,7 @@ export function MissionCenterBrowser({ missions }: { missions: CenterMission[] }
     () => new Set(ecosystemOptions.map((option) => option.value)),
     [ecosystemOptions],
   );
+  const presentTypes = useMemo(() => new Set(missions.map((mission) => mission.type)), [missions]);
   const requestedEcosystem = (searchParams.get("ecosystem") ?? "").trim().toLowerCase();
   const ecosystem = ecosystemValues.has(requestedEcosystem) ? requestedEcosystem : ALL;
   const requestedType = (searchParams.get("type") ?? "").trim().toLowerCase();
@@ -61,84 +63,64 @@ export function MissionCenterBrowser({ missions }: { missions: CenterMission[] }
       (missionType === ALL || mission.type === missionType),
   );
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, CenterMission[]>();
-    for (const mission of filtered) {
-      const list = groups.get(mission.type) ?? [];
-      list.push(mission);
-      groups.set(mission.type, list);
-    }
-    return [...groups.entries()];
-  }, [filtered]);
-
-  function typeLabel(type: string) {
-    return typeOptions.find((option) => option.value === type)?.label ?? type;
-  }
-
   return (
     <>
-      <div className="filter-bar" role="group" aria-label="Filter missions">
-        <label className="select-field">
-          <span className="sr-only">Filter by ecosystem</span>
-          <select aria-label="Filter by ecosystem" onChange={(event) => handleParamChange("ecosystem", event.target.value)} value={ecosystem}>
-            <option value={ALL}>All ecosystems</option>
-            {ecosystemOptions.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={15} />
-        </label>
-        <label className="select-field">
-          <span className="sr-only">Filter by mission type</span>
-          <select aria-label="Filter by mission type" onChange={(event) => handleParamChange("type", event.target.value)} value={missionType}>
-            <option value={ALL}>All mission types</option>
-            {typeOptions.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={15} />
-        </label>
-        <span className="directory-count">{plural(filtered.length, "mission")} of {missions.length} total</span>
+      <div className="m-filters" role="group" aria-label="Filter missions">
+        <div aria-label="Filter by mission type" className="x-pills" role="group">
+          <button aria-pressed={missionType === ALL} onClick={() => handleParamChange("type", ALL)} type="button">
+            All
+          </button>
+          {typeOptions
+            .filter((option) => presentTypes.has(option.value))
+            .map((option) => {
+              const meta = missionTypeMeta(option.value);
+              return (
+                <button
+                  aria-pressed={missionType === option.value}
+                  className={`tone-${meta.tone}`}
+                  key={option.value}
+                  onClick={() => handleParamChange("type", option.value)}
+                  type="button"
+                >
+                  <Glyph name={meta.icon} size={14} />
+                  {option.label}
+                </button>
+              );
+            })}
+        </div>
+        <div aria-label="Filter by ecosystem" className="x-pills" role="group">
+          <button aria-pressed={ecosystem === ALL} onClick={() => handleParamChange("ecosystem", ALL)} type="button">
+            All ecosystems
+          </button>
+          {ecosystemOptions.map((item) => (
+            <button
+              aria-pressed={ecosystem === item.value}
+              className={`tone-${ecosystemMeta(item.value).tone}`}
+              key={item.value}
+              onClick={() => handleParamChange("ecosystem", item.value)}
+              type="button"
+            >
+              <span aria-hidden="true" className="v-chip-dot" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <span className="directory-count">{plural(filtered.length, "mission")} of {missions.length}</span>
       </div>
 
       {filtered.length === 0 ? (
         <section className="directory-section">
           <EmptyState title="No missions match these filters">
-            Try a different ecosystem or mission type. Draft missions stay in Campaign Studio and are never listed here.
+            Try a different ecosystem or mission type.
           </EmptyState>
         </section>
       ) : (
-        grouped.map(([type, items]) => (
-          <section aria-labelledby={`mission-group-${type}`} className="mission-center-section" key={type}>
-            <div className="section-heading">
-              <div>
-                <Eyebrow>{typeLabel(type)}</Eyebrow>
-                <h2 id={`mission-group-${type}`}>
-                  {type === "quiz" ? "Learn with a quiz." : type === "research" ? "Research with sources." : "Contribute in writing."}
-                </h2>
-              </div>
-              <span className="directory-count">{plural(items.length, "database-backed mission")}</span>
-            </div>
-            <div className="mission-grid">
-              {items.map((mission) => (
-                <div className="mission-index-card" key={mission.id}>
-                  <div className="mission-index-context">
-                    <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
-                    <span>{mission.circle.ecosystemLabel} · {mission.reward}</span>
-                  </div>
-                  <MissionCard mission={mission} />
-                </div>
-              ))}
-            </div>
-          </section>
-        ))
+        <div className="mission-grid m-grid">
+          {filtered.map((mission) => (
+            <MissionCard circle={mission.circle} key={mission.id} mission={mission} />
+          ))}
+        </div>
       )}
-
-      {filtered.length > 0 ? (
-        <DataState title="About rewards">
-          Points are offchain Vicus records. Where a mission shows an XLM amount, settlement happens on Stellar — the asset ecosystem and the reward network are separate things.
-        </DataState>
-      ) : null}
     </>
   );
 }

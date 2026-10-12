@@ -239,6 +239,9 @@ export const missions = pgTable(
     rewardAmount: numeric("reward_amount", { precision: 24, scale: 7 }),
     eligibilityRule: jsonb("eligibility_rule").$type<Record<string, unknown>>(),
     missionConfig: jsonb("mission_config").$type<Record<string, unknown>>(),
+    assetCapabilityId: uuid("asset_capability_id").references(() => assetCapabilities.id, {
+      onDelete: "set null",
+    }),
     duplicatePolicy: varchar("duplicate_policy", { length: 40 }).notNull().default("one-per-user"),
     reviewMode: varchar("review_mode", { length: 60 }).notNull(),
     status: varchar("status", { length: 40 }).notNull(),
@@ -274,6 +277,42 @@ export const missionSubmissions = pgTable(
     index("mission_submissions_mission_status_idx").on(table.missionId, table.status),
     index("mission_submissions_user_submitted_idx").on(table.userId, table.submittedAt),
     index("mission_submissions_review_queue_idx").on(table.status, table.submittedAt),
+  ],
+);
+
+export const onchainActionProofs = pgTable(
+  "onchain_action_proofs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => missionSubmissions.id, { onDelete: "cascade" }),
+    missionId: uuid("mission_id")
+      .notNull()
+      .references(() => missions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    network: varchar("network", { length: 32 }).notNull(),
+    transactionHash: varchar("transaction_hash", { length: 128 }).notNull(),
+    operationIndex: integer("operation_index"),
+    sourceAccount: varchar("source_account", { length: 64 }).notNull(),
+    destinationAccount: varchar("destination_account", { length: 64 }).notNull(),
+    assetCode: varchar("asset_code", { length: 32 }).notNull(),
+    assetIssuer: varchar("asset_issuer", { length: 64 }).notNull(),
+    amount: numeric("amount", { precision: 24, scale: 7 }).notNull(),
+    ledger: integer("ledger"),
+    transactionCreatedAt: timestamp("transaction_created_at", { withTimezone: true }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).defaultNow().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("onchain_action_proofs_submission_unique").on(table.submissionId),
+    uniqueIndex("onchain_action_proofs_mission_hash_unique").on(
+      table.missionId,
+      table.transactionHash,
+    ),
+    index("onchain_action_proofs_mission_user_idx").on(table.missionId, table.userId),
   ],
 );
 
@@ -530,5 +569,64 @@ export const assetCapabilities = pgTable(
   (table) => [
     uniqueIndex("asset_capabilities_circle_type_unique").on(table.circleId, table.capabilityType),
     index("asset_capabilities_circle_active_idx").on(table.circleId, table.active),
+  ],
+);
+
+export const tokenizationLabRuns = pgTable(
+  "tokenization_lab_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assetName: varchar("asset_name", { length: 120 }).notNull(),
+    assetCode: varchar("asset_code", { length: 12 }).notNull(),
+    assetClass: varchar("asset_class", { length: 32 }).notNull(),
+    representation: text("representation").notNull(),
+    initialAmount: numeric("initial_amount", { precision: 24, scale: 7 }).notNull(),
+    issuerPublicKey: varchar("issuer_public_key", { length: 64 }).notNull(),
+    holderPublicKey: varchar("holder_public_key", { length: 64 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("draft"),
+    trustlineTxHash: varchar("trustline_tx_hash", { length: 128 }),
+    issuanceTxHash: varchar("issuance_tx_hash", { length: 128 }),
+    issuanceEnvelope: text("issuance_envelope"),
+    ledger: integer("ledger"),
+    issuedAt: timestamp("issued_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("lab_runs_issuer_code_unique").on(table.issuerPublicKey, table.assetCode),
+    index("lab_runs_user_idx").on(table.userId),
+    index("lab_runs_status_idx").on(table.status),
+  ],
+);
+
+export const crosschainTransfers = pgTable(
+  "crosschain_transfers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceNetwork: varchar("source_network", { length: 32 }).notNull(),
+    sourceWallet: varchar("source_wallet", { length: 64 }).notNull(),
+    destinationNetwork: varchar("destination_network", { length: 32 }).notNull(),
+    asset: varchar("asset", { length: 16 }).notNull().default("USDC"),
+    amount: numeric("amount", { precision: 24, scale: 6 }).notNull(),
+    destinationAddress: text("destination_address").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("draft"),
+    forwarding: boolean("forwarding").notNull().default(true),
+    sourceTxHash: varchar("source_tx_hash", { length: 128 }),
+    cctpMessage: text("cctp_message"),
+    destinationTxHash: varchar("destination_tx_hash", { length: 128 }),
+    feeSubunits6: varchar("fee_subunits_6", { length: 32 }),
+    retryable: boolean("retryable").notNull().default(false),
+    lastError: text("last_error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("access_transfers_user_idx").on(table.userId),
+    index("access_transfers_status_idx").on(table.status),
   ],
 );

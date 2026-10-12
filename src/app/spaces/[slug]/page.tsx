@@ -1,21 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CircleCard, DataState, EmptyState, Icon, MissionCard } from "@/components/vicus";
 import {
-  ActivityItem,
-  CircleCard,
-  DataState,
-  EmptyState,
-  Eyebrow,
-  MetricCard,
-  MissionCard,
-} from "@/components/vicus";
+  ActionTray,
+  Avatar,
+  Chip,
+  GlowField,
+  MetricTile,
+  Orb,
+  SectionHead,
+  TabBar,
+  capabilityMeta,
+} from "@/components/vicus-ui";
 import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getOrganizationBySlug } from "@/lib/organizations/service";
 import { getSpaceCommunityActivity } from "@/lib/community/service";
-import { getSpaceCapabilities } from "@/lib/utility/service";
+import { getSpaceCapabilities, supportModeBadge } from "@/lib/utility/service";
 import { getSpacePeople } from "@/lib/social/service";
 import { PersonCard } from "@/components/person-card";
 
@@ -87,233 +90,193 @@ export default async function SpacePage({ params }: SpacePageProps) {
   const memberRole = org.role && org.role !== "global-admin" ? org.role : null;
   const canManage = org.role === "global-admin" || memberRole === "owner" || memberRole === "admin";
 
+  const assetGroups = Array.from(
+    org.circles.reduce((groups, circle) => {
+      const label = circle.assetClassLabel ?? circle.category;
+      const group = groups.get(label) ?? [];
+      group.push(circle);
+      groups.set(label, group);
+      return groups;
+    }, new Map<string, typeof org.circles>()),
+  );
+  const tabs = [
+    { href: "#assets", label: "Assets", count: org.circles.length },
+    ...(utility.length > 0 ? [{ href: "#utility", label: "Use" }] : []),
+    { href: "#learn", label: "Learn", count: org.lessons.length },
+    { href: "#missions", label: "Missions", count: org.missions.length },
+    { href: "#community", label: "Community", count: community.length },
+    { href: "#people", label: "People", count: people.length },
+  ];
+
   return (
     <AppShell active="spaces">
       <main className="page-main">
-        <header className="page-intro">
-          <div className="shell page-intro-grid">
-            <div>
-              <nav className="breadcrumbs" aria-label="Breadcrumb">
-                <Link href="/spaces">Spaces</Link>
-                <span>/</span>
-                <span>{org.name}</span>
-              </nav>
-              <Eyebrow>Space</Eyebrow>
-              <h1>{org.name}</h1>
-              <p>{org.description}</p>
-              <p className="circle-identity-meta">
-                {org.ecosystemFocus ? `${org.ecosystemFocus} focus` : "Multi-ecosystem presence"}
+        <header className="sd-hero">
+          <div className="shell">
+            <nav className="breadcrumbs" aria-label="Breadcrumb">
+              <Link href="/spaces">Spaces</Link>
+              <span>/</span>
+              <span>{org.name}</span>
+            </nav>
+            <div className="sd-banner">
+              <GlowField tones={["violet", "pink", "blue"]} />
+              <span className="space-monogram space-monogram-lg">{org.name.slice(0, 1)}</span>
+              <div className="sd-identity">
+                <div className="c-chips">
+                  <Chip icon="grid" tone="violet">Space</Chip>
+                  <Chip>{org.ecosystemFocus ? `${org.ecosystemFocus} focus` : "Multi-ecosystem"}</Chip>
+                  {memberRole ? <Chip tone="green">Your role · {memberRole}</Chip> : null}
+                </div>
+                <h1>{org.name}</h1>
+                <p>{org.description}</p>
+              </div>
+              <div className="sd-actions">
                 {org.websiteUrl ? (
-                  <>
-                    {" · "}
-                    <a href={org.websiteUrl} rel="noreferrer" target="_blank">
-                      Official website
-                    </a>
-                  </>
+                  <a className="button button-glass button-small" href={org.websiteUrl} rel="noreferrer" target="_blank">
+                    Website <Icon name="external" size={14} />
+                  </a>
                 ) : null}
-              </p>
+                {canManage ? (
+                  <Link className="button button-outline button-small" href={`/admin/organizations/${org.slug}`}>
+                    Manage Space
+                  </Link>
+                ) : null}
+              </div>
             </div>
-            <div className="page-intro-note">
-              <strong>{`${org.circles.length} hosted Circles · ${org.missions.length} open missions`}</strong>
-              Spaces host learning communities. Authorship does not make a claim automatically trustworthy — check official sources.
-              {canManage ? (
-                <>
-                  {" "}
-                  <Link href={`/admin/organizations/${org.slug}`}>Manage Space →</Link>
-                </>
-              ) : null}
+            <div className="c-stats">
+              <MetricTile icon="coins" label="Assets" tone="blue" value={String(org.circles.length)} />
+              <MetricTile icon="book" label="Lessons" tone="violet" value={String(org.lessons.length)} />
+              <MetricTile icon="target" label="Open missions" tone="green" value={String(org.missions.length)} />
+              <MetricTile icon="chat" label="Contributions" tone="pink" value={String(org.metrics.contributions)} />
             </div>
+            <p className="sd-note">Authorship doesn&apos;t make a claim trustworthy — check official sources.</p>
           </div>
         </header>
 
-        <div className="shell circle-page-body">
-          <div className="profile-metrics">
-            <MetricCard detail="Asset communities hosted here" label="Circles" value={String(org.circles.length)} />
-            <MetricCard detail="Published lessons" label="Lessons" value={String(org.lessons.length)} accent />
-            <MetricCard detail="Participant-visible missions" label="Open missions" value={String(org.missions.length)} />
-            <MetricCard detail="Approved mission responses" label="Contributions" value={String(org.metrics.contributions)} />
-          </div>
+        <TabBar items={tabs} label="Space sections" />
 
+        <div className="shell c-body">
           <section className="circle-section" id="assets" aria-labelledby="space-assets-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Assets</Eyebrow>
-                <h2 id="space-assets-title">Circles hosted by {org.name}.</h2>
-              </div>
-              <p>
-                Every Circle here is backed by a real asset record. Open one to read its Passport,
-                watch it, and find its missions.
-              </p>
-            </div>
+            <SectionHead eyebrow="Assets" id="space-assets-title" title={`Hosted by ${org.name}`} />
             {org.circles.length > 0 ? (
-              <div className="circle-grid">
-                {org.circles.map((circle) => (
-                  <CircleCard circle={circle} key={circle.slug} />
-                ))}
-              </div>
+              assetGroups.map(([label, groupCircles]) => (
+                <div className="sd-asset-group" key={label}>
+                  <h3 className="hub-asset-class">{label}</h3>
+                  <div className="x-rail">
+                    {groupCircles.map((circle) => (
+                      <CircleCard circle={circle} key={circle.slug} />
+                    ))}
+                  </div>
+                </div>
+              ))
             ) : (
-              <EmptyState title="No hosted Circles yet">
-                This Space has not hosted any Asset Circles yet.
-              </EmptyState>
+              <EmptyState title="No hosted assets yet">This Space has not hosted any Asset Circles yet.</EmptyState>
             )}
           </section>
 
-          <section className="circle-section" id="learn" aria-labelledby="space-learn-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Learn</Eyebrow>
-                <h2 id="space-learn-title">Lessons from {org.name}.</h2>
+          {utility.length > 0 ? (
+            <section className="c-use" id="utility" aria-labelledby="space-utility-title">
+              <GlowField tones={["blue", "green", "violet"]} />
+              <div className="c-use-head">
+                <span className="v-eyebrow">Put assets to work</span>
+                <h2 id="space-utility-title">Real uses across {org.name}</h2>
+                <p>Guides and official flows — Vicus never executes them.</p>
               </div>
-              <p>
-                Reading material first — missions are where you prove understanding and contribute.
-              </p>
-            </div>
+              {utility.map((group) => (
+                <div className="sd-use-group" key={group.circleSlug}>
+                  <Link className="sd-use-label" href={`/circles/${group.circleSlug}#use`}>
+                    {group.circleName} <Icon name="arrow-right" size={14} />
+                  </Link>
+                  <ActionTray
+                    actions={group.capabilities.map((capability) => {
+                      const meta = capabilityMeta(capability.capabilityType);
+                      return {
+                        key: capability.id,
+                        label: capability.title,
+                        href: `/circles/${group.circleSlug}/use/${capability.capabilityType}`,
+                        tone: meta.tone,
+                        icon: meta.icon,
+                        state: supportModeBadge[capability.supportMode],
+                      };
+                    })}
+                  />
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          <section className="circle-section" id="learn" aria-labelledby="space-learn-title">
+            <SectionHead eyebrow="Learn" id="space-learn-title" title="Lessons" />
             {org.lessons.length > 0 ? (
-              <div className="mission-grid">
+              <div className="v-list">
                 {org.lessons.map((lesson) => (
-                  <article className="mission-card" key={lesson.id}>
-                    <div className="mission-card-header">
-                      <span className="mission-type">Lesson · {lesson.readingMinutes} min read</span>
-                    </div>
-                    <h3>
-                      <Link href={`/lessons/${lesson.slug}`}>{lesson.title}</Link>
-                    </h3>
-                    <p>{lesson.summary}</p>
-                    <dl className="mission-meta">
-                      <div>
-                        <dt>Sources</dt>
-                        <dd>{lesson.sources.length} official references</dd>
-                      </div>
-                      {lesson.circle ? (
-                        <div>
-                          <dt>Circle</dt>
-                          <dd>{lesson.circle.name}</dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                    <div className="mission-footer">
-                      <Link className="mission-action-link" href={`/lessons/${lesson.slug}`}>
-                        Read lesson
-                      </Link>
-                    </div>
-                  </article>
+                  <Link className="v-row" href={`/lessons/${lesson.slug}`} key={lesson.id}>
+                    <Orb icon="book" size="md" tone="violet" />
+                    <span className="v-row-main">
+                      <strong>{lesson.title}</strong>
+                      <small>
+                        {lesson.readingMinutes} min read · {lesson.sources.length} sources
+                        {lesson.circle ? ` · ${lesson.circle.name}` : ""}
+                      </small>
+                    </span>
+                    <Icon name="arrow-right" size={15} />
+                  </Link>
                 ))}
               </div>
             ) : (
-              <EmptyState title="No published lessons yet">
-                Published lessons from this Space will appear here.
-              </EmptyState>
+              <EmptyState title="No published lessons yet">Published lessons from this Space will appear here.</EmptyState>
             )}
           </section>
 
           <section className="circle-section" id="missions" aria-labelledby="space-missions-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Missions</Eyebrow>
-                <h2 id="space-missions-title">Open missions from {org.name}.</h2>
-              </div>
-              <p>
-                Real missions with your authenticated submission state. Drafts stay in the studio
-                and never appear here.
-              </p>
-            </div>
+            <SectionHead eyebrow="Missions" id="space-missions-title" title="Open missions" />
             {org.missions.length > 0 ? (
               <div className="mission-grid">
                 {org.missions.map((mission) => (
-                  <div className="mission-index-card" key={mission.id}>
-                    <div className="mission-index-context">
-                      <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
-                      <span>{mission.reward}</span>
-                    </div>
-                    <MissionCard mission={mission} />
-                  </div>
+                  <MissionCard circle={mission.circle} key={mission.id} mission={mission} />
                 ))}
               </div>
             ) : (
-              <EmptyState title="No open missions right now">
-                There are no participant-visible missions from this Space right now.
-              </EmptyState>
-            )}
-          </section>
-
-          <section className="circle-section" id="utility" aria-labelledby="space-utility-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Put assets to work</Eyebrow>
-                <h2 id="space-utility-title">Real uses across {org.name}.</h2>
-              </div>
-              <p>Source-backed capabilities from hosted Circles — guides and official flows, never execution inside Vicus.</p>
-            </div>
-            {utility.length > 0 ? (
-              <div className="mission-grid">
-                {utility.map((group) => (
-                  <article className="mission-card" key={group.circleSlug}>
-                    <h3>
-                      <Link href={`/circles/${group.circleSlug}#use`}>{group.circleName}</Link>
-                    </h3>
-                    <p>
-                      {group.capabilities.map((capability) => capability.title).join(" · ")}
-                    </p>
-                    <div className="mission-footer">
-                      <Link className="mission-action-link" href={`/circles/${group.circleSlug}#use`}>
-                        Explore uses
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No documented uses yet">
-                Source-backed capabilities for hosted assets will appear here.
-              </EmptyState>
+              <EmptyState title="No open missions right now">There are no participant-visible missions from this Space right now.</EmptyState>
             )}
           </section>
 
           <section className="circle-section" id="community" aria-labelledby="space-community-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>Community</Eyebrow>
-                <h2 id="space-community-title">Conversations across {org.name}.</h2>
-              </div>
-              <p>Questions, insights, and answers from hosted Circles — authored by members, never by the Space itself.</p>
-            </div>
+            <SectionHead eyebrow="Community" id="space-community-title" line="Authored by members, never by the Space itself." title="Conversations" />
             {community.length > 0 ? (
-              <div className="content-panel">
+              <div className="v-list">
                 {community.map((item) => (
-                  <ActivityItem
-                    detail={`${item.circleName} · @${item.authorHandle} · ${item.createdAt.slice(0, 10)}`}
+                  <Link
+                    className="v-row"
                     href={`/circles/${item.circleSlug}/community/${item.postId}`}
                     key={`${item.kind}-${item.id}`}
-                    label={item.kind === "post" ? (item.type ?? "post") : "answer"}
-                    title={item.title}
-                  />
+                  >
+                    <Avatar name={item.authorHandle} size="md" />
+                    <span className="v-row-main">
+                      <strong>{item.title}</strong>
+                      <small>
+                        {item.kind === "post" ? (item.type ?? "post") : "answer"} · {item.circleName} · @{item.authorHandle} · {item.createdAt.slice(0, 10)}
+                      </small>
+                    </span>
+                    <Icon name="arrow-right" size={15} />
+                  </Link>
                 ))}
               </div>
             ) : (
-              <EmptyState title="No community activity yet">
-                Questions and insights from hosted Circles will appear here.
-              </EmptyState>
+              <EmptyState title="No community activity yet">Questions and insights from hosted Circles will appear here.</EmptyState>
             )}
           </section>
 
           <section className="circle-section" id="people" aria-labelledby="space-people-title">
-            <div className="circle-section-heading">
-              <div>
-                <Eyebrow>People</Eyebrow>
-                <h2 id="space-people-title">Contributors in {org.name}.</h2>
-              </div>
-              <p>Watchers, approved contributors, and verified members across hosted Circles.</p>
-            </div>
+            <SectionHead eyebrow="People" id="space-people-title" title="Contributors" />
             {people.length > 0 ? (
-              <div className="mission-grid">
+              <div className="x-rail">
                 {people.map((person) => (
                   <PersonCard key={person.user.id} person={person} />
                 ))}
               </div>
             ) : (
-              <EmptyState title="No people yet">
-                Watch a hosted Circle or complete a mission to appear here.
-              </EmptyState>
+              <EmptyState title="No people yet">Watch a hosted Circle or complete a mission to appear here.</EmptyState>
             )}
           </section>
         </div>

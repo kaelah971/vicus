@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
-import { DataState, Eyebrow } from "@/components/vicus";
+import { DataState, Icon } from "@/components/vicus";
 import { ExploreBrowser } from "@/components/explore-browser";
+import { GlowField, Glyph } from "@/components/vicus-ui";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { listCircles } from "@/lib/data/circles";
+import { isAssetCircle } from "@/lib/data/circles";
+import { getCircleCapabilities } from "@/lib/utility/service";
+import { listSpaces } from "@/lib/organizations/service";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +25,10 @@ export default async function DiscoverPage() {
 
   try {
     const session = await getCurrentSession();
-    circleData = await listCircles(session?.user.id);
+    const allCircles = await listCircles(session?.user.id);
+    // Discover means real tokenized assets: education-only content without an
+    // underlying asset stays reachable directly but leaves the directory.
+    circleData = allCircles.filter(isAssetCircle);
   } catch (error) {
     if (isDatabaseUnavailableError(error) || isSessionUnavailableError(error)) {
       databaseUnavailable = true;
@@ -29,23 +37,39 @@ export default async function DiscoverPage() {
     }
   }
 
+  // Real "Use" signal per asset: count of active, source-backed capabilities.
+  const useCounts: Record<string, number> = {};
+  let spaces: Awaited<ReturnType<typeof listSpaces>> = [];
+  if (!databaseUnavailable) {
+    const [capabilityLists, spaceList] = await Promise.all([
+      Promise.all(circleData.map((circle) => getCircleCapabilities(circle.slug).catch(() => []))),
+      listSpaces().catch(() => []),
+    ]);
+    circleData.forEach((circle, index) => {
+      useCounts[circle.slug] = capabilityLists[index].length;
+    });
+    spaces = spaceList;
+  }
+  const ecosystemCount = new Set(circleData.map((circle) => circle.ecosystem)).size;
+
   return (
     <AppShell active="discover">
       <main className="page-main">
-        <header className="page-intro">
-          <div className="shell page-intro-grid">
-            <div>
-              <Eyebrow>Discover</Eyebrow>
-              <h1>Find the assets worth understanding.</h1>
-              <p>
-                Explore every source-backed Asset Circle in Vicus — what assets exist, across all
-                ecosystems. Then enter an ecosystem hub to learn, participate, and contribute.
-              </p>
-            </div>
-            <div className="page-intro-note">
-              <strong>{databaseUnavailable ? "Discover unavailable" : `${circleData.length} Asset Circles`}</strong>
-              Ecosystem labels describe where an asset exists. They are not wallet or holder verification.
-            </div>
+        <header className="v-page-head">
+          <GlowField tones={["violet", "blue"]} />
+          <div className="shell">
+            <span className="v-eyebrow">Discover</span>
+            <h1>Explore</h1>
+            <p>Tokenized assets across every ecosystem.</p>
+            {!databaseUnavailable ? (
+              <div className="v-head-stats">
+                <span><strong>{circleData.length}</strong> assets</span>
+                <span><strong>{ecosystemCount}</strong> ecosystems</span>
+                <span title="Ecosystem labels describe where an asset exists. They are not wallet or holder verification.">
+                  <Glyph name="shield" size={13} /> Source-backed
+                </span>
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -58,9 +82,47 @@ export default async function DiscoverPage() {
             </section>
           ) : (
             <Suspense>
-              <ExploreBrowser circles={circleData} />
+              <ExploreBrowser circles={circleData} useCounts={useCounts} />
             </Suspense>
           )}
+
+          {spaces.length > 0 ? (
+            <section aria-labelledby="explore-spaces-title" className="x-spaces">
+              <div className="x-block-head">
+                <h2 id="explore-spaces-title">Project Spaces</h2>
+                <Link href="/spaces">
+                  All Spaces <Icon name="arrow-right" size={15} />
+                </Link>
+              </div>
+              <div className="x-rail">
+                {spaces.map((space) => (
+                  <Link className="space-mini" href={`/spaces/${space.slug}`} key={space.id}>
+                    <span className="space-monogram space-monogram-sm">{space.name.slice(0, 1)}</span>
+                    <span>
+                      <strong>{space.name}</strong>
+                      <small>
+                        {space.hostedCircleCount} assets · {space.openMissionCount} missions · {space.publishedLessonCount} lessons
+                      </small>
+                    </span>
+                    <Icon name="arrow-right" size={15} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section aria-labelledby="explore-lab-title" className="x-spaces">
+            <div className="x-block-head">
+              <h2 id="explore-lab-title">Tokenization Lab</h2>
+              <Link href="/lab">
+                Open Lab <Icon name="arrow-right" size={15} />
+              </Link>
+            </div>
+            <p className="control-note">
+              A hands-on demo on Stellar Testnet — define, trust, issue, verify. Lab assets never
+              join the production directory above.
+            </p>
+          </section>
         </div>
       </main>
     </AppShell>

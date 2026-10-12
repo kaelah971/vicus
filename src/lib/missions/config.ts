@@ -1,10 +1,35 @@
 import type {
   PublicMissionConfig,
   StoredMissionConfig,
+  StoredOnchainActionConfig,
   StoredQuizConfig,
   StoredTextConfig,
 } from "@/lib/missions/types";
 import type { MissionAvailability } from "@/lib/missions/types";
+
+/** Normalize a decimal amount string to exactly 7 fractional digits without floats. */
+export function normalizeDecimal7(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const match = /^(\d+)(?:\.(\d{1,7}))?$/.exec(trimmed);
+  if (!match) return null;
+  const whole = match[1]!.replace(/^0+(?=\d)/, "");
+  const fraction = (match[2] ?? "").padEnd(7, "0");
+  if (/^0+$/.test(whole) && /^0+$/.test(fraction)) return null;
+  return `${whole}.${fraction}`;
+}
+
+/** Exact decimal-safe comparison of 7dp amount strings. Returns -1, 0, or 1. */
+export function compareDecimal7(left: string, right: string): number {
+  const [lw = "0", lf = "0000000"] = left.split(".");
+  const [rw = "0", rf = "0000000"] = right.split(".");
+  const lWhole = lw.replace(/^0+(?=\d)/, "") || "0";
+  const rWhole = rw.replace(/^0+(?=\d)/, "") || "0";
+  if (lWhole.length !== rWhole.length) return lWhole.length < rWhole.length ? -1 : 1;
+  if (lWhole !== rWhole) return lWhole < rWhole ? -1 : 1;
+  if (lf !== rf) return lf < rf ? -1 : 1;
+  return 0;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -101,6 +126,26 @@ function parseTextConfig(
   };
 }
 
+function parseOnchainActionConfig(value: Record<string, unknown>): StoredOnchainActionConfig | null {
+  if (value.network !== "stellar_mainnet" || value.action !== "payment") return null;
+  if (typeof value.assetCode !== "string" || !/^[A-Za-z0-9]{1,12}$/.test(value.assetCode)) return null;
+  if (typeof value.assetIssuer !== "string" || !/^G[A-Z2-7]{55}$/.test(value.assetIssuer)) return null;
+  const minimumAmount = normalizeDecimal7(value.minimumAmount);
+  if (!minimumAmount) return null;
+  if (typeof value.proofNotBefore !== "string" || Number.isNaN(Date.parse(value.proofNotBefore))) {
+    return null;
+  }
+  return {
+    kind: "onchain_action",
+    network: "stellar_mainnet",
+    action: "payment",
+    assetCode: value.assetCode,
+    assetIssuer: value.assetIssuer,
+    minimumAmount,
+    proofNotBefore: new Date(value.proofNotBefore).toISOString(),
+  };
+}
+
 export function parseMissionConfig(value: unknown): StoredMissionConfig | null {
   if (!isRecord(value) || !stringValue(value.kind)) {
     return null;
@@ -108,6 +153,10 @@ export function parseMissionConfig(value: unknown): StoredMissionConfig | null {
 
   if (value.kind === "quiz") {
     return parseQuizConfig(value);
+  }
+
+  if (value.kind === "onchain_action") {
+    return parseOnchainActionConfig(value);
   }
 
   if (value.kind === "text" || value.kind === "research") {
@@ -131,6 +180,16 @@ export function publicMissionConfig(config: StoredMissionConfig | null): PublicM
         prompt: question.prompt,
         choices: question.choices,
       })),
+    };
+  }
+
+  if (config.kind === "onchain_action") {
+    return {
+      kind: "onchain_action",
+      network: "Stellar Mainnet",
+      assetCode: config.assetCode,
+      minimumAmount: config.minimumAmount,
+      proofNotBefore: config.proofNotBefore,
     };
   }
 

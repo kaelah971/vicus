@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { plural, StatusPill } from "@/components/vicus";
+import { plural } from "@/components/vicus";
+import { Avatar } from "@/components/vicus-ui";
 import type { PersonCard as PersonCardData } from "@/lib/social/service";
 
 export function personInitials(name: string) {
@@ -15,36 +16,24 @@ export function personInitials(name: string) {
 
 export function PersonCard({ person }: { person: PersonCardData }) {
   return (
-    <article className="mission-card">
-      <div className="mission-card-header">
-        <div aria-hidden="true" className="avatar-orb">
-          {personInitials(person.user.displayName)}
-        </div>
-        <span className="mission-type">@{person.user.handle}</span>
-      </div>
-      <h3>
-        <Link href={`/u/${person.user.handle}`}>{person.user.displayName}</Link>
-      </h3>
-      <div className="mission-meta">
-        {person.relationships.map((relationship) => (
-          <StatusPill key={relationship} tone={relationship === "Contributor" ? "green" : "muted"}>
-            {relationship}
-          </StatusPill>
-        ))}
-      </div>
-      <dl className="mission-meta">
-        <div>
-          <dt>Approved</dt>
-          <dd>
-            {plural(person.approvedContributionCount, "contribution")} · {plural(person.approvedPoints, "point")}
-          </dd>
-        </div>
-      </dl>
-      <div className="mission-footer">
-        <Link className="mission-action-link" href={`/u/${person.user.handle}`}>
-          View profile
-        </Link>
-      </div>
-    </article>
+    <Link aria-label={`View ${person.user.displayName}'s profile`} className="person-tile" href={`/u/${person.user.handle}`}>
+      <Avatar name={person.user.displayName || person.user.handle} size="lg" />
+      <span className="person-tile-main">
+        <strong>{person.user.displayName}</strong>
+        <small>@{person.user.handle}</small>
+      </span>
+      {person.relationships.length > 0 ? (
+        <span className="person-tile-tags">
+          {person.relationships.map((relationship) => (
+            <span className={`v-chip${relationship === "Contributor" ? " tone-green" : ""}`} key={relationship}>
+              {relationship}
+            </span>
+          ))}
+        </span>
+      ) : null}
+      <span className="person-tile-stat">
+        {plural(person.approvedContributionCount, "contribution")} · {plural(person.approvedPoints, "pt")}
+      </span>
+    </Link>
   );
 }

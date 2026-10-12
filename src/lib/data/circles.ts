@@ -23,6 +23,64 @@ export function ecosystemLabel(ecosystem: string): string {
   return ecosystem.charAt(0).toUpperCase() + ecosystem.slice(1);
 }
 
+export const assetClassLabels: Record<string, string> = {
+  stablecoin: "Tokenized money / Stablecoin",
+  treasury_fund: "Tokenized Treasury / Fund",
+  commodity: "Tokenized Commodity",
+  private_credit: "Tokenized Private Credit",
+  real_estate: "Tokenized Real Estate",
+  other_financial: "Other Tokenized Financial Asset",
+};
+
+export const assetClassFilterLabels: Record<string, string> = {
+  stablecoin: "Stablecoins",
+  treasury_fund: "Treasuries & Funds",
+  commodity: "Commodities",
+  private_credit: "Private Credit",
+  real_estate: "Real Estate",
+  other_financial: "Other",
+};
+
+/** User-facing asset-class label; unknown values fall back to the stored category. */
+export function assetClassLabel(category: string): string {
+  return assetClassLabels[category] ?? category;
+}
+
+/** Discover means real tokenized assets — education-only entries are excluded. */
+export function isAssetCircle(circle: { state: string }): boolean {
+  return circle.state !== "education";
+}
+
+export type CircleFilterInput = {
+  category: string;
+  ecosystem?: string | null;
+  network: string;
+  stateLabel: string;
+  name: string;
+  code: string;
+  summary: string;
+  assetClassLabel?: string | null;
+};
+
+/** Pure Discover predicate shared by the browser UI and automated checks. */
+export function matchesCircleFilters(
+  circle: CircleFilterInput,
+  filters: { assetClass: string; ecosystem: string; query: string; state: string },
+): boolean {
+  const normalizedQuery = filters.query.trim().toLowerCase();
+  const matchesQuery = normalizedQuery
+    ? [circle.name, circle.code, circle.category, circle.assetClassLabel ?? "", circle.summary]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    : true;
+  const matchesEcosystem =
+    filters.ecosystem === "all" || (circle.ecosystem ?? circle.network) === filters.ecosystem;
+  const matchesClass = filters.assetClass === "all" || circle.category === filters.assetClass;
+  const matchesState = filters.state === "All statuses" || circle.stateLabel === filters.state;
+  return matchesQuery && matchesEcosystem && matchesClass && matchesState;
+}
+
 function stateFor(circle: CircleRow) {
   if (circle.status === "education-only") {
     return { state: "education" as const, stateLabel: "Education only" };
@@ -119,6 +177,7 @@ export function mapCircle({ circle, asset }: JoinedCircle): CircleRecord {
     ecosystemLabel: ecosystemLabel(asset?.ecosystem ?? "stellar"),
     watched: false,
     category: circle.category,
+    assetClassLabel: assetClassLabel(circle.category),
     state: state.state,
     stateLabel: state.stateLabel,
     summary: circle.tagline ?? "This circle does not have a summary yet.",

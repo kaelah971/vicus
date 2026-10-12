@@ -3,22 +3,48 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCard, EmptyState, Icon } from "@/components/vicus";
+import { Orb, assetClassMeta, ecosystemMeta } from "@/components/vicus-ui";
 import type { Circle } from "@/lib/vicus-data";
+import { matchesCircleFilters } from "@/lib/data/circles";
 
 const ALL_ECOSYSTEMS = "all";
+const ALL_CLASSES = "all";
+
+const ASSET_CLASS_ORDER = [
+  "stablecoin",
+  "treasury_fund",
+  "commodity",
+  "private_credit",
+  "real_estate",
+  "other_financial",
+] as const;
+
+const ASSET_CLASS_FILTER_LABELS: Record<string, string> = {
+  stablecoin: "Stablecoins",
+  treasury_fund: "Treasuries & Funds",
+  commodity: "Commodities",
+  private_credit: "Private Credit",
+  real_estate: "Real Estate",
+  other_financial: "Other",
+};
 
 /**
- * The URL (?ecosystem=) is the source of truth for the ecosystem dimension:
- * sidebar links, back/forward, and the dropdown all read and write it, so a
- * client-side navigation can never leave stale results from another chain on
- * screen. Search/category/status remain local field state.
+ * The URL (?ecosystem=, ?class=) is the source of truth for both filter
+ * dimensions: sidebar links, back/forward, and the dropdowns all read and
+ * write it, so a client-side navigation can never leave stale results from
+ * another chain or class on screen. Search/status remain local field state.
  */
-export function ExploreBrowser({ circles }: { circles: Circle[] }) {
+export function ExploreBrowser({
+  circles,
+  useCounts = {},
+}: {
+  circles: Circle[];
+  useCounts?: Record<string, number>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All categories");
   const [state, setState] = useState("All statuses");
 
   const ecosystemOptions = useMemo(
@@ -40,88 +66,121 @@ export function ExploreBrowser({ circles }: { circles: Circle[] }) {
   const requestedEcosystem = (searchParams.get("ecosystem") ?? "").trim().toLowerCase();
   const ecosystem = ecosystemValues.has(requestedEcosystem) ? requestedEcosystem : ALL_ECOSYSTEMS;
 
-  function handleEcosystemChange(value: string) {
+  function updateParams(key: string, value: string, allValue: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === ALL_ECOSYSTEMS) {
-      params.delete("ecosystem");
+    if (value === allValue) {
+      params.delete(key);
     } else {
-      params.set("ecosystem", value);
+      params.set(key, value);
     }
     const next = params.toString();
     router.push(next ? `${pathname}?${next}` : pathname);
   }
-  const categories = useMemo(
-    () => Array.from(new Set(circles.map((circle) => circle.category))),
-    [circles],
+
+  function handleEcosystemChange(value: string) {
+    updateParams("ecosystem", value, ALL_ECOSYSTEMS);
+  }
+
+  function handleAssetClassChange(value: string) {
+    updateParams("class", value, ALL_CLASSES);
+  }
+
+  const classCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const circle of circles) counts.set(circle.category, (counts.get(circle.category) ?? 0) + 1);
+    return counts;
+  }, [circles]);
+  const classOptions = useMemo(
+    () =>
+      ASSET_CLASS_ORDER.filter((value) => classCounts.has(value)).map((value: string) => ({
+        value,
+        label: ASSET_CLASS_FILTER_LABELS[value] ?? value,
+      })),
+    [classCounts],
   );
+  const classValues = useMemo(() => new Set(classOptions.map((option) => option.value)), [classOptions]);
+  const requestedClass = (searchParams.get("class") ?? "").trim().toLowerCase();
+  const assetClass = classValues.has(requestedClass) ? requestedClass : ALL_CLASSES;
+
   const states = useMemo(
     () => Array.from(new Set(circles.map((circle) => circle.stateLabel))),
     [circles],
   );
   const filteredCircles = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const filters = { assetClass, ecosystem, query, state };
+    return circles.filter((circle) => matchesCircleFilters(circle, filters));
+  }, [assetClass, circles, ecosystem, query, state]);
 
-    return circles.filter((circle) => {
-      const matchesQuery = normalizedQuery
-        ? [circle.name, circle.code, circle.category, circle.summary]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalizedQuery)
-        : true;
-      const matchesEcosystem =
-        ecosystem === ALL_ECOSYSTEMS || (circle.ecosystem ?? circle.network) === ecosystem;
-      const matchesCategory = category === "All categories" || circle.category === category;
-      const matchesState = state === "All statuses" || circle.stateLabel === state;
-
-      return matchesQuery && matchesEcosystem && matchesCategory && matchesState;
-    });
-  }, [category, circles, ecosystem, query, state]);
+  const [lead, ...others] = filteredCircles;
+  const side = others.slice(0, 2);
+  const rest = others.slice(2);
 
   return (
-    <section aria-labelledby="circle-directory-title" className="directory-section" id="circle-directory">
-      <div className="directory-toolbar">
-        <div>
-          <span className="field-label" id="circle-directory-title">
-            Circle directory
-          </span>
-          <p>Content is loaded from the Vicus database. Source review is still required before any entry can be treated as official.</p>
-        </div>
-        <span className="directory-count">{filteredCircles.length} of {circles.length} entries</span>
-      </div>
-
-      <div className="filter-bar">
+    <section aria-labelledby="circle-directory-title" className="x-browser" id="circle-directory">
+      <h2 className="sr-only" id="circle-directory-title">
+        Asset directory
+      </h2>
+      <div className="x-filters">
         <label className="search-field">
           <span className="sr-only">Search circles</span>
           <Icon name="search" size={17} />
           <input
             aria-label="Search circles"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search assets or circles"
+            placeholder="Search assets"
             type="search"
             value={query}
           />
         </label>
-        <label className="select-field">
-          <span className="sr-only">Filter by ecosystem</span>
-          <select aria-label="Filter by ecosystem" onChange={(event) => handleEcosystemChange(event.target.value)} value={ecosystem}>
-            <option value={ALL_ECOSYSTEMS}>All ecosystems</option>
-            {ecosystemOptions.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={15} />
-        </label>
-        <label className="select-field">
-          <span className="sr-only">Filter by category</span>
-          <select aria-label="Filter by category" onChange={(event) => setCategory(event.target.value)} value={category}>
-            <option>All categories</option>
-            {categories.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={15} />
-        </label>
-        <label className="select-field">
+        <div aria-label="Filter by ecosystem" className="x-pills" role="group">
+          <button aria-pressed={ecosystem === ALL_ECOSYSTEMS} onClick={() => handleEcosystemChange(ALL_ECOSYSTEMS)} type="button">
+            All
+          </button>
+          {ecosystemOptions.map((item) => (
+            <button
+              aria-pressed={ecosystem === item.value}
+              className={`tone-${ecosystemMeta(item.value).tone}`}
+              key={item.value}
+              onClick={() => handleEcosystemChange(item.value)}
+              type="button"
+            >
+              <span aria-hidden="true" className="v-chip-dot" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div aria-label="Filter by asset class" className="x-class-rail" role="group">
+        {ASSET_CLASS_ORDER.map((value) => {
+          const meta = assetClassMeta(value);
+          const count = classCounts.get(value) ?? 0;
+          const active = assetClass === value;
+          return (
+            <button
+              aria-pressed={active}
+              className={`x-class tone-${meta.tone}`}
+              disabled={count === 0 && !active}
+              key={value}
+              onClick={() => handleAssetClassChange(active ? ALL_CLASSES : value)}
+              type="button"
+            >
+              <Orb icon={meta.icon} size="sm" tone={meta.tone} />
+              <span>
+                <strong>{ASSET_CLASS_FILTER_LABELS[value]}</strong>
+                <small>{count > 0 ? count : "None yet"}</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="x-result-bar">
+        <span className="directory-count">
+          {filteredCircles.length} of {circles.length} assets
+          {assetClass !== ALL_CLASSES ? ` · ${classOptions.find((item) => item.value === assetClass)?.label ?? ""}` : ""}
+        </span>
+        <label className="select-field select-field-compact">
           <span className="sr-only">Filter by status</span>
           <select aria-label="Filter by status" onChange={(event) => setState(event.target.value)} value={state}>
             <option>All statuses</option>
@@ -133,15 +192,35 @@ export function ExploreBrowser({ circles }: { circles: Circle[] }) {
         </label>
       </div>
 
-      {filteredCircles.length > 0 ? (
-        <div className="circle-grid">
-          {filteredCircles.map((circle) => (
-            <CircleCard circle={circle} key={circle.slug} />
-          ))}
-        </div>
+      {lead ? (
+        <>
+          <div className={`x-featured${side.length === 0 ? " x-featured-solo" : ""}`}>
+            <CircleCard circle={lead} useCount={useCounts[lead.slug] ?? 0} variant="feature" />
+            {side.length > 0 ? (
+              <div className="x-featured-side">
+                {side.map((circle) => (
+                  <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {rest.length > 0 ? (
+            <div className="x-more">
+              <div className="x-block-head">
+                <h2>More assets</h2>
+                <span>{rest.length}</span>
+              </div>
+              <div className="x-rail">
+                {rest.map((circle) => (
+                  <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} variant="compact" />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : (
-        <EmptyState title="No matching circles">
-          Try a different search or clear one of the filters. The database returned no matching circle.
+        <EmptyState title="No matching assets">
+          Try a different search or clear one of the filters.
         </EmptyState>
       )}
     </section>

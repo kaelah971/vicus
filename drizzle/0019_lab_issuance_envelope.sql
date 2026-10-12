@@ -1,0 +1,1 @@
+ALTER TABLE "tokenization_lab_runs" ADD COLUMN "issuance_envelope" text;

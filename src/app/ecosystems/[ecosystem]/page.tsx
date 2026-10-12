@@ -128,9 +128,24 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
               </p>
             </div>
             {hub.circles.length > 0 ? (
-              <div className="circle-grid">
-                {hub.circles.map((circle) => (
-                  <CircleCard circle={circle} key={circle.slug} />
+              <div>
+                {Array.from(
+                  hub.circles.reduce((groups, circle) => {
+                    const label = circle.assetClassLabel ?? circle.category;
+                    const group = groups.get(label) ?? [];
+                    group.push(circle);
+                    groups.set(label, group);
+                    return groups;
+                  }, new Map<string, typeof hub.circles>()),
+                ).map(([label, groupCircles]) => (
+                  <div key={label}>
+                    <h3 className="hub-asset-class">{label}</h3>
+                    <div className="circle-grid">
+                      {groupCircles.map((circle) => (
+                        <CircleCard circle={circle} key={circle.slug} />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -154,13 +169,7 @@ export default async function EcosystemHubPage({ params }: HubPageProps) {
             {hub.missions.length > 0 ? (
               <div className="mission-grid">
                 {hub.missions.map((mission) => (
-                  <div className="mission-index-card" key={mission.id}>
-                    <div className="mission-index-context">
-                      <Link href={`/circles/${mission.circle.slug}`}>{mission.circle.name}</Link>
-                      <span>{mission.reward}</span>
-                    </div>
-                    <MissionCard mission={mission} />
-                  </div>
+                  <MissionCard circle={mission.circle} key={mission.id} mission={mission} />
                 ))}
               </div>
             ) : (

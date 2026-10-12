@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ButtonLink,
-  DataState,
-  EmptyState,
-  Eyebrow,
-  MetricCard,
-  StatusPill,
-} from "@/components/vicus";
+import { ButtonLink, DataState, EmptyState, Icon, StatusPill } from "@/components/vicus";
+import { AssetToken, Avatar, GlowField, MetricTile, Orb, SectionHead, StepFlow } from "@/components/vicus-ui";
 import { AppShell } from "@/components/app-shell";
 import { ProfileEditor } from "@/components/profile-editor";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
@@ -33,15 +27,6 @@ function contributionStatusLabel(status: string) {
   return status === "needs_revision"
     ? "Needs revision"
     : status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "VC";
 }
 
 type ProfileActivity = {
@@ -175,25 +160,55 @@ export default async function MyProfilePage() {
     return role;
   }
 
+  // Journey derived only from recorded activity — nothing is marked complete without a record.
+  const approvedTypes = new Set(
+    profile.contributions.filter((contribution) => contribution.status === "approved").map((contribution) => contribution.missionType),
+  );
+  const journeyDone = {
+    discover: profile.memberships.length > 0,
+    learn: approvedTypes.has("quiz"),
+    use: verifiedRoles.length > 0 || approvedTypes.has("onchain_action"),
+    contribute: approvedTypes.has("text") || approvedTypes.has("research"),
+    earn: confirmedRewards.length > 0 || profile.approvedPoints > 0,
+  };
+  const journeyOrder = ["discover", "learn", "use", "contribute", "earn"] as const;
+  const nextStep = journeyOrder.find((key) => !journeyDone[key]);
+  const journeyState = (key: (typeof journeyOrder)[number]) =>
+    journeyDone[key] ? ("done" as const) : key === nextStep ? ("active" as const) : ("todo" as const);
+  const preferences = [
+    ...profile.user.preferredEcosystems.map((value) => ecosystems.find((item) => item.value === value)?.label ?? value),
+    ...profile.user.assetInterests,
+  ];
+  const activityIcon = { WATCHED: "eye", MISSION: "target", REWARD: "gift", ROLE: "shield" } as const;
+  const activityTone = { WATCHED: "violet", MISSION: "blue", REWARD: "white", ROLE: "green" } as const;
+
   return (
     <AppShell active="profile">
       <main className="page-main">
-        <header className="profile-header">
+        <header className="profile-header p-hero">
+          <GlowField tones={["violet", "white"]} />
           <div className="shell">
-            <Eyebrow>Authenticated profile</Eyebrow>
-            <div className="profile-header-grid">
-              <div className="profile-identity">
-                <div aria-hidden="true" className="avatar-orb">{initials(displayName)}</div>
-                <div>
-                  <h1>{displayName}</h1>
-                  <div className="profile-identity-meta">
-                    {primaryWallet ? <span className="profile-wallet-address">{shortenAddress(primaryWallet)}</span> : null}
-                    <span className="profile-verified-status">
-                      <span aria-hidden="true" className="verified-indicator" />
-                      Stellar wallet verified
-                    </span>
+            <div className="p-identity">
+              <Avatar name={displayName} size="lg" tone="violet" />
+              <div className="p-identity-main">
+                <h1>{displayName}</h1>
+                <div className="profile-identity-meta">
+                  <span className="p-handle">@{profile.user.handle}</span>
+                  {primaryWallet ? <span className="profile-wallet-address">{shortenAddress(primaryWallet)}</span> : null}
+                  <span className="profile-verified-status">
+                    <span aria-hidden="true" className="verified-indicator" />
+                    Stellar wallet verified
+                  </span>
+                </div>
+                {profile.user.bio ? <p className="profile-bio">{profile.user.bio}</p> : null}
+                {preferences.length > 0 ? (
+                  <div className="profile-preference-chips" aria-label="Profile preferences">
+                    {preferences.map((preference) => (
+                      <span className="v-chip" key={preference}>{preference}</span>
+                    ))}
                   </div>
-                  {profile.user.bio ? <p className="profile-bio">{profile.user.bio}</p> : null}
+                ) : null}
+                <div className="p-identity-actions">
                   <ProfileEditor
                     initialAssetInterests={profile.user.assetInterests}
                     initialBio={profile.user.bio ?? ""}
@@ -201,189 +216,170 @@ export default async function MyProfilePage() {
                     initialPreferredEcosystems={profile.user.preferredEcosystems}
                     ecosystems={ecosystems}
                   />
-                  {[...profile.user.preferredEcosystems.map((value) => ecosystems.find((item) => item.value === value)?.label ?? value), ...profile.user.assetInterests].length > 0 ? (
-                    <div className="profile-preference-chips" aria-label="Profile preferences">
-                      {[...profile.user.preferredEcosystems.map((value) => ecosystems.find((item) => item.value === value)?.label ?? value), ...profile.user.assetInterests].map((preference) => (
-                        <span className="profile-preference-chip" key={preference}>{preference}</span>
-                      ))}
-                    </div>
-                  ) : null}
+                  <Link className="v-text-link" href={`/u/${profile.user.handle}`}>
+                    Public profile <Icon name="arrow-right" size={14} />
+                  </Link>
                 </div>
               </div>
+            </div>
+            <div className="p-metrics">
+              <MetricTile hint="Approved participation · offchain" icon="star" label="Points" tone="white" value={String(profile.approvedPoints)} />
+              <MetricTile icon="chat" label="Contributions" tone="pink" value={String(profile.contributions.length)} />
+              <MetricTile icon="users" label="Followers" tone="blue" value={String(followCounts.followers)} />
+              <MetricTile icon="gift" label="Rewards" tone="green" value={String(profile.rewards.length)} />
+              <MetricTile icon="eye" label="Watching" tone="violet" value={String(profile.memberships.length)} />
+              <MetricTile icon="user" label="Following" tone="orange" value={String(followCounts.following)} />
             </div>
           </div>
         </header>
 
         <div className="shell profile-body">
-          <div className="profile-metrics">
-            <MetricCard detail="Active watched-asset relationships" label="Watched assets" value={String(profile.memberships.length)} />
-            <MetricCard detail="Approved participation · offchain" label="Vicus points" value={String(profile.approvedPoints)} accent />
-            <MetricCard detail="Pending, approved, and reviewed records" label="Contributions" value={String(profile.contributions.length)} />
-            <MetricCard detail="Eligible and claimed reward states" label="Rewards" value={String(profile.rewards.length)} />
-            <MetricCard detail="People following this profile" label="Followers" value={String(followCounts.followers)} />
-            <MetricCard detail="People this profile follows" label="Following" value={String(followCounts.following)} />
-          </div>
-          <p className="control-note">
-            <Link href={`/u/${profile.user.handle}`}>View public profile</Link>
-          </p>
-
-          <section className="hairline-card profile-watched-panel">
-            <div className="profile-reward-heading">
-              <div>
-                <Eyebrow>Watched assets</Eyebrow>
-                <h2>Keep the Circles that matter close.</h2>
-              </div>
-              <ButtonLink href="/discover" variant="text">Discover assets</ButtonLink>
+          <section className="p-journey" aria-labelledby="journey-title">
+            <div className="p-journey-head">
+              <span className="v-eyebrow">Your journey</span>
+              <h2 id="journey-title">{nextStep ? "Keep going." : "Full loop complete."}</h2>
             </div>
-            {profile.memberships.length > 0 ? (
-              <div className="fixture-list">
-                {profile.memberships.map((membership) => (
-                  <div className="fixture-row" key={membership.id}>
-                    <span className="fixture-row-main">
-                      <Link href={`/circles/${membership.circle.slug}`}>
-                        <strong>{membership.circle.name}</strong>
-                      </Link>
-                      <span>{membership.circle.ecosystemLabel} · {membership.circle.category} · {membership.circle.stateLabel}</span>
-                    </span>
-                    <StatusPill tone="violet">Watching</StatusPill>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="You are not watching any assets yet">
-                Discover an Asset Circle to start following it in Vicus.
-                <ButtonLink href="/discover" variant="outline">Discover assets</ButtonLink>
-              </EmptyState>
-            )}
+            <StepFlow
+              label="Participation progress"
+              steps={[
+                { icon: "compass", label: "Discover", line: journeyDone.discover ? "Watching assets" : "Watch an asset", tone: "blue", state: journeyState("discover") },
+                { icon: "book", label: "Learn", line: journeyDone.learn ? "Quiz approved" : "Pass a quiz", tone: "violet", state: journeyState("learn") },
+                { icon: "bolt", label: "Use", line: journeyDone.use ? "Proven onchain" : "Verify or activate", tone: "green", state: journeyState("use") },
+                { icon: "chat", label: "Contribute", line: journeyDone.contribute ? "Contribution approved" : "Write or research", tone: "pink", state: journeyState("contribute") },
+                { icon: "gift", label: "Earn", line: journeyDone.earn ? "Points earned" : "Earn points", tone: "white", state: journeyState("earn") },
+              ]}
+            />
           </section>
 
-          <section className="hairline-card profile-panel profile-activity-panel">
-            <Eyebrow>Your activity</Eyebrow>
-            <h2>Watch, learn, contribute, repeat.</h2>
-            {activity.length > 0 ? (
-              <div className="profile-activity-list">
-                {activity.map((item, index) => (
-                  <div className="profile-activity-row" key={`${item.kind}-${item.title}-${item.date.toISOString()}-${index}`}>
-                    <span className="profile-activity-kind">{item.kind}</span>
-                    <span className="profile-activity-main">
-                      <strong>{item.title}</strong>
-                      <span>{item.detail}</span>
-                    </span>
-                    <time dateTime={item.date.toISOString()}>{item.date.toISOString().slice(0, 10)}</time>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No activity yet">Watch an asset or start a mission to build your Vicus history.</EmptyState>
-            )}
-          </section>
-
-          {attentionRewards.length > 0 ? (
-            <section className="hairline-card profile-reward-panel">
-              <div className="profile-reward-heading">
-                <div>
-                  <Eyebrow>Reward action</Eyebrow>
-                  <h2>A reward is ready for your next step.</h2>
-                </div>
-                <span className="field-help">Native XLM only · network shown on every reward</span>
-              </div>
+          <section className="p-section" id="rewards" aria-labelledby="rewards-title">
+            <SectionHead eyebrow="Rewards" id="rewards-title" line="Native XLM only · network shown on every reward." title="Your rewards" />
+            {attentionRewards.length > 0 ? (
               <div className="profile-reward-list">
                 {attentionRewards.map((reward) => <RewardClaimCard key={reward.submissionId} reward={reward} />)}
               </div>
-            </section>
-          ) : null}
-
-          <div className="profile-section-grid">
-            <section className="hairline-card profile-panel">
-              <Eyebrow>Verified roles</Eyebrow>
-              <h2>Proof when a role is supported.</h2>
-              {verifiedRoles.length > 0 ? (
-                <div className="fixture-list">
-                  {verifiedRoles.map((entry) => (
-                    <div className="fixture-row" key={entry.id}>
-                      <span className="fixture-row-main">
-                        <Link href={`/circles/${entry.circle.slug}`}>
-                          <strong>{verifiedRoleLabel(entry.role)} · {entry.circle.name}</strong>
-                        </Link>
-                        <span>{entry.ecosystem === "stellar" ? "Stellar" : entry.ecosystem} · {entry.network} · Last verified {entry.lastCheckedAt.toISOString().slice(0, 10)}</span>
-                      </span>
-                      <StatusPill tone="green">Verified</StatusPill>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="No onchain roles verified yet">
-                  Supported Stellar role checks will appear here when they are recorded for this account.
-                </EmptyState>
-              )}
-            </section>
-
-            <section className="hairline-card profile-panel">
-              <Eyebrow>Mission contributions</Eyebrow>
-              <h2>Understanding has a record.</h2>
-              {profile.contributions.length > 0 ? (
-                <div className="contribution-list">
-                  {profile.contributions.map((contribution) => (
-                    <Link className="contribution-row" href={`/missions/${contribution.missionId}`} key={contribution.id}>
-                      <span className="contribution-row-main">
-                        <strong>{contribution.missionTitle}</strong>
-                        <span>{contribution.circleName} · {contribution.submittedAt.toISOString().slice(0, 10)}</span>
-                      </span>
-                      <span className="contribution-row-state">
-                        <StatusPill tone={contribution.status === "approved" ? "green" : contribution.status === "pending" ? "blue" : contribution.status === "needs_revision" ? "violet" : "muted"}>
-                          {contributionStatusLabel(contribution.status)}
-                        </StatusPill>
-                        <small>{contribution.status === "approved" ? `${contribution.points} points` : "0 points until approval"}</small>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="No mission submissions yet">Start an open mission from a circle to create a contribution record.</EmptyState>
-              )}
-            </section>
-          </div>
-
-          <section className="hairline-card profile-panel reward-history-panel">
-            <Eyebrow>Reward history</Eyebrow>
-            <h2>Earned participation, clearly.</h2>
+            ) : null}
             {confirmedRewards.length > 0 ? (
-              <div className="fixture-list">
+              <div className="v-list">
                 {confirmedRewards.map((reward) => (
-                  <div className="fixture-row" key={reward.id}>
-                    <span className="fixture-row-main">
+                  <Link className="v-row" href={`/rewards/${reward.id}`} key={reward.id}>
+                    <Orb icon="gift" size="md" tone="white" />
+                    <span className="v-row-main">
                       <strong>{reward.amount} XLM</strong>
-                      <span>{reward.missionTitle} · {reward.network === "testnet" ? "Stellar Testnet" : "Stellar Public Network"}</span>
+                      <small>{reward.missionTitle} · {reward.network === "testnet" ? "Stellar Testnet" : "Stellar Public Network"}</small>
                     </span>
-                    <Link className="mission-action-link" href={`/rewards/${reward.id}`}>View receipt</Link>
-                  </div>
+                    <span className="v-text-link">Receipt</span>
+                  </Link>
+                ))}
+              </div>
+            ) : attentionRewards.length === 0 ? (
+              <EmptyState title="No rewards yet">Reward-enabled missions unlock XLM after approval.</EmptyState>
+            ) : null}
+          </section>
+
+          <section className="p-section" aria-labelledby="watched-title">
+            <SectionHead
+              action={<ButtonLink href="/discover" variant="glass">Explore assets</ButtonLink>}
+              eyebrow="Watching"
+              id="watched-title"
+              title="Your assets"
+            />
+            {profile.memberships.length > 0 ? (
+              <div className="x-rail">
+                {profile.memberships.map((membership) => (
+                  <Link className="p-asset" href={`/circles/${membership.circle.slug}`} key={membership.id}>
+                    <AssetToken code={membership.circle.code} ecosystem={membership.circle.ecosystem} size="md" />
+                    <span>
+                      <strong>{membership.circle.name}</strong>
+                      <small>{membership.circle.assetClassLabel ?? membership.circle.category} · {membership.circle.ecosystemLabel}</small>
+                    </span>
+                  </Link>
                 ))}
               </div>
             ) : (
-              <EmptyState title="No confirmed rewards yet">
-                Eligible rewards become history after a real settlement is confirmed.
-              </EmptyState>
+              <EmptyState title="Not watching any assets yet">Watch an asset to keep it close.</EmptyState>
             )}
           </section>
 
-          <section className="hairline-card profile-panel profile-wallet-security">
-            <Eyebrow>Wallet &amp; security</Eyebrow>
-            <h2>Proof without exposure.</h2>
-            <div className="fixture-row">
-              <span className="fixture-row-main">
-                <strong>{primaryWallet ? shortenAddress(primaryWallet) : "No wallet linked"}</strong>
-                <span>{primaryWallet ? "Stellar mainnet · verified wallet control" : "Connect a wallet to link identity"}</span>
-              </span>
-              {primaryWallet ? <StatusPill tone="green">Verified</StatusPill> : null}
-            </div>
-            <p className="profile-contribution-copy">
-              Vicus stores the linked public key, never a secret or balance. Role checks return only the minimum result needed for supported Circles.
-            </p>
-          </section>
+          <div className="p-split">
+            <section className="p-section" aria-labelledby="activity-title">
+              <SectionHead eyebrow="Activity" id="activity-title" title="Timeline" />
+              {activity.length > 0 ? (
+                <ol className="p-timeline">
+                  {activity.map((item, index) => (
+                    <li key={`${item.kind}-${item.title}-${item.date.toISOString()}-${index}`}>
+                      <Orb icon={activityIcon[item.kind]} size="sm" tone={activityTone[item.kind]} />
+                      <span className="v-row-main">
+                        <strong>{item.title}</strong>
+                        <small>{item.detail}</small>
+                      </span>
+                      <time dateTime={item.date.toISOString()}>{item.date.toISOString().slice(0, 10)}</time>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <EmptyState title="No activity yet">Watch an asset or start a mission.</EmptyState>
+              )}
+            </section>
 
-          <section className="profile-boundary-note">
-            Vicus points stay offchain. They are derived participation state, not money, a claimable balance, or a blockchain reward.
-          </section>
+            <div className="p-side">
+              <section className="p-section" aria-labelledby="contributions-title">
+                <SectionHead eyebrow="Missions" id="contributions-title" title="Contributions" />
+                {profile.contributions.length > 0 ? (
+                  <div className="v-list">
+                    {profile.contributions.map((contribution) => (
+                      <Link className="v-row" href={`/missions/${contribution.missionId}`} key={contribution.id}>
+                        <span className="v-row-main">
+                          <strong>{contribution.missionTitle}</strong>
+                          <small>{contribution.circleName} · {contribution.submittedAt.toISOString().slice(0, 10)}</small>
+                        </span>
+                        <span className="contribution-row-state">
+                          <StatusPill tone={contribution.status === "approved" ? "green" : contribution.status === "pending" ? "blue" : contribution.status === "needs_revision" ? "violet" : "muted"}>
+                            {contributionStatusLabel(contribution.status)}
+                          </StatusPill>
+                          <small>{contribution.status === "approved" ? `${contribution.points} pts` : "0 pts until approval"}</small>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No submissions yet">Start an open mission to create a record.</EmptyState>
+                )}
+              </section>
+
+              <section className="p-section" aria-labelledby="roles-title">
+                <SectionHead eyebrow="Verified roles" id="roles-title" title="Proof" />
+                {verifiedRoles.length > 0 ? (
+                  <div className="v-list">
+                    {verifiedRoles.map((entry) => (
+                      <Link className="v-row" href={`/circles/${entry.circle.slug}`} key={entry.id}>
+                        <Orb icon="shield" size="md" tone="green" />
+                        <span className="v-row-main">
+                          <strong>{verifiedRoleLabel(entry.role)} · {entry.circle.name}</strong>
+                          <small>{entry.ecosystem === "stellar" ? "Stellar" : entry.ecosystem} · {entry.network} · {entry.lastCheckedAt.toISOString().slice(0, 10)}</small>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No roles verified yet">Supported Stellar role checks appear here.</EmptyState>
+                )}
+              </section>
+
+              <section className="p-section p-security" aria-labelledby="security-title">
+                <div className="v-row">
+                  <Orb icon="lock" size="md" tone="blue" />
+                  <span className="v-row-main">
+                    <strong id="security-title">{primaryWallet ? shortenAddress(primaryWallet) : "No wallet linked"}</strong>
+                    <small>{primaryWallet ? "Stellar mainnet · verified wallet control" : "Connect a wallet to link identity"}</small>
+                  </span>
+                  {primaryWallet ? <StatusPill tone="green">Verified</StatusPill> : null}
+                </div>
+                <p className="profile-contribution-copy">
+                  Vicus stores your public key — never a secret or balance. Points stay offchain: participation state, not money.
+                </p>
+              </section>
+            </div>
+          </div>
         </div>
       </main>
     </AppShell>

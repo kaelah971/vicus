@@ -113,6 +113,41 @@
       "when": 1791738900027,
       "tag": "0015_asset_capabilities",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791740973901,
+      "tag": "0016_onchain_activation",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791743000000,
+      "tag": "0017_asset_classification",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791800605186,
+      "tag": "0018_tokenization_lab",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791802717843,
+      "tag": "0019_lab_issuance_envelope",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791802717844,
+      "tag": "0020_access_transfers",
+      "breakpoints": true
     }
   ]
 }

@@ -102,6 +102,7 @@ export async function POST(request: Request) {
         questions: payload.questions,
         evidenceRequired: payload.evidenceRequired,
         evidencePrompt: payload.evidencePrompt,
+        minimumAmount: payload.minimumAmount,
       },
       session.user.id,
     );
