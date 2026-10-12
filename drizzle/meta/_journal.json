@@ -148,6 +148,27 @@
       "when": 1791802717844,
       "tag": "0020_access_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791802717845,
+      "tag": "0021_asset_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791802717846,
+      "tag": "0022_user_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791802717847,
+      "tag": "0023_asset_transfers",
+      "breakpoints": true
     }
   ]
 }

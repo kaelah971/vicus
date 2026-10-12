@@ -28,6 +28,10 @@
     "lab:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-lab.ts",
     "access:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-access.ts",
     "classification:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-classification.ts",
+    "stellar-assets:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-stellar-assets.ts",
+    "send:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-send.ts",
+    "contacts:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-contacts.ts",
+    "lifecycle:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-lifecycle.ts",
     "org:seed": "tsx scripts/seed-circle-org.ts",
     "xeco:seed": "tsx scripts/add-cross-ecosystem-assets.ts"
   },

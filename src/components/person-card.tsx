@@ -26,7 +26,15 @@ export function PersonCard({ person }: { person: PersonCardData }) {
         <span className="person-tile-tags">
           {person.relationships.map((relationship) => (
             <span className={`v-chip${relationship === "Contributor" ? " tone-green" : ""}`} key={relationship}>
-              {relationship}
+              {relationship === "Watcher"
+                ? "WATCHING"
+                : relationship === "Contributor"
+                  ? "CONTRIBUTED"
+                  : relationship === "Verified Holder"
+                    ? "VERIFIED HOLDER"
+                    : relationship === "Verified Trustline"
+                      ? "VERIFIED"
+                      : relationship}
             </span>
           ))}
         </span>

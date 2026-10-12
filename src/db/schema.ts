@@ -630,3 +630,127 @@ export const crosschainTransfers = pgTable(
     index("access_transfers_status_idx").on(table.status),
   ],
 );
+
+export const assetLifecycleSteps = pgTable(
+  "asset_lifecycle_steps",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    stage: varchar("stage", { length: 16 }).notNull(),
+    title: varchar("title", { length: 120 }).notNull(),
+    shortDescription: text("short_description").notNull(),
+    supportMode: varchar("support_mode", { length: 16 }).notNull(),
+    accessMode: varchar("access_mode", { length: 16 }),
+    ctaLabel: varchar("cta_label", { length: 60 }),
+    destinationUrl: text("destination_url"),
+    sourceUrl: text("source_url").notNull(),
+    eligibilityNote: text("eligibility_note"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("lifecycle_circle_stage_unique").on(table.circleId, table.stage),
+    index("lifecycle_circle_active_idx").on(table.circleId, table.active),
+  ],
+);
+
+export const userContacts = pgTable(
+  "user_contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerUserId: uuid("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    linkedUserId: uuid("linked_user_id").references(() => users.id, { onDelete: "set null" }),
+    displayName: varchar("display_name", { length: 160 }).notNull(),
+    handleSnapshot: varchar("handle_snapshot", { length: 80 }),
+    note: text("note"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("user_contacts_owner_linked_unique").on(table.ownerUserId, table.linkedUserId),
+    index("user_contacts_owner_idx").on(table.ownerUserId),
+  ],
+);
+
+export const contactWalletEndpoints = pgTable(
+  "contact_wallet_endpoints",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => userContacts.id, { onDelete: "cascade" }),
+    network: varchar("network", { length: 16 }).notNull(),
+    address: text("address").notNull(),
+    label: varchar("label", { length: 80 }),
+    verifiedSource: varchar("verified_source", { length: 16 }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("contact_endpoints_contact_network_address_unique").on(
+      table.contactId,
+      table.network,
+      table.address,
+    ),
+  ],
+);
+
+export const userReceiveEndpoints = pgTable(
+  "user_receive_endpoints",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    network: varchar("network", { length: 16 }).notNull(),
+    address: text("address").notNull(),
+    label: varchar("label", { length: 80 }),
+    enabled: boolean("enabled").notNull().default(false),
+    visibility: varchar("visibility", { length: 16 }).notNull().default("contacts_only"),
+    ownershipStatus: varchar("ownership_status", { length: 16 }).notNull().default("unverified"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("receive_endpoints_user_network_address_unique").on(
+      table.userId,
+      table.network,
+      table.address,
+    ),
+    index("receive_endpoints_user_idx").on(table.userId),
+  ],
+);
+
+export const assetTransfers = pgTable(
+  "asset_transfers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    senderUserId: uuid("sender_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientUserId: uuid("recipient_user_id").references(() => users.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => userContacts.id, { onDelete: "set null" }),
+    network: varchar("network", { length: 16 }).notNull().default("stellar_mainnet"),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    assetCode: varchar("asset_code", { length: 32 }).notNull(),
+    assetIssuer: varchar("asset_issuer", { length: 64 }).notNull(),
+    amount: numeric("amount", { precision: 24, scale: 7 }).notNull(),
+    destinationAddress: text("destination_address").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("draft"),
+    transactionHash: varchar("transaction_hash", { length: 128 }),
+    ledger: integer("ledger"),
+    failureReason: varchar("failure_reason", { length: 64 }),
+    lastError: text("last_error"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("asset_transfers_tx_hash_unique").on(table.transactionHash),
+    index("asset_transfers_sender_idx").on(table.senderUserId),
+    index("asset_transfers_status_idx").on(table.status),
+  ],
+);

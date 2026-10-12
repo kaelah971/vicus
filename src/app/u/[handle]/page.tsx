@@ -15,6 +15,8 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { getPublicProfileByHandle } from "@/lib/social/service";
 import { getUserCommunityContributions } from "@/lib/community/service";
 import { FollowButton } from "@/components/follow-button";
+import { ContactButton } from "@/components/contact-button";
+import { isContactSaved } from "@/lib/contacts/service";
 import { personInitials } from "@/components/person-card";
 
 type PublicProfilePageProps = {
@@ -121,6 +123,12 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               <strong>{`${profile.followers} followers · ${profile.following} following`}</strong>
               {viewerId && !isSelf ? (
                 <FollowButton handle={profile.user.handle} initialFollowing={profile.viewerFollowing} />
+              ) : null}
+              {viewerId && !isSelf ? (
+                <ContactButton
+                  handle={profile.user.handle}
+                  initialSaved={await isContactSaved(viewerId, profile.user.handle).catch(() => false)}
+                />
               ) : null}
               {isSelf ? "This is your public profile." : "Approved contributions only. No wallet details are shown."}
             </div>

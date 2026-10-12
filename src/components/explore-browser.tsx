@@ -13,8 +13,11 @@ const ALL_CLASSES = "all";
 const ASSET_CLASS_ORDER = [
   "stablecoin",
   "treasury_fund",
+  "equity_fund",
+  "fixed_income",
   "commodity",
   "private_credit",
+  "alternative",
   "real_estate",
   "other_financial",
 ] as const;
@@ -22,8 +25,11 @@ const ASSET_CLASS_ORDER = [
 const ASSET_CLASS_FILTER_LABELS: Record<string, string> = {
   stablecoin: "Stablecoins",
   treasury_fund: "Treasuries & Funds",
+  equity_fund: "Equities",
+  fixed_income: "Fixed Income",
   commodity: "Commodities",
   private_credit: "Private Credit",
+  alternative: "Alternatives",
   real_estate: "Real Estate",
   other_financial: "Other",
 };

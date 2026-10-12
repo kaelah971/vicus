@@ -114,8 +114,11 @@ type Meta = { label: string; tone: Tone; icon: GlyphName };
 export const ASSET_CLASSES: Array<Meta & { value: string; short: string }> = [
   { value: "stablecoin", label: "Stablecoins", short: "Tokenized money", tone: "blue", icon: "coins" },
   { value: "treasury_fund", label: "Treasuries & Funds", short: "Tokenized treasuries", tone: "green", icon: "building" },
+  { value: "equity_fund", label: "Equities", short: "Tokenized equities", tone: "violet", icon: "trend" },
+  { value: "fixed_income", label: "Fixed Income", short: "Tokenized bonds", tone: "blue", icon: "lock" },
   { value: "commodity", label: "Commodities", short: "Tokenized commodities", tone: "orange", icon: "bar" },
   { value: "private_credit", label: "Private Credit", short: "Tokenized credit", tone: "pink", icon: "credit" },
+  { value: "alternative", label: "Alternatives", short: "Tokenized alternatives", tone: "pink", icon: "spark" },
   { value: "real_estate", label: "Real Estate", short: "Tokenized property", tone: "violet", icon: "home" },
   { value: "other_financial", label: "Other", short: "Other assets", tone: "white", icon: "layers" },
 ];

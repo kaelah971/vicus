@@ -22,6 +22,7 @@ import {
   MissionStrip,
   Orb,
   SectionHead,
+  StepFlow,
   TabBar,
   assetClassMeta,
   capabilityMeta,
@@ -32,6 +33,7 @@ import { AppShell } from "@/components/app-shell";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { WatchButton } from "@/components/watch-button";
+import { ShareButton } from "@/components/share-button";
 import { RoleVerification } from "@/components/role-verification";
 import { getCircleBySlug } from "@/lib/data/circles";
 import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data/roles";
@@ -39,6 +41,8 @@ import { getCircleOrganization } from "@/lib/organizations/service";
 import { getCirclePeople } from "@/lib/social/service";
 import { listCirclePosts } from "@/lib/community/service";
 import { getCircleCapabilities, supportModeBadge } from "@/lib/utility/service";
+import { getCircleLifecycle } from "@/lib/lifecycle/service";
+import { getSendableAsset } from "@/lib/send/service";
 import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
@@ -134,12 +138,15 @@ export default async function CirclePage({ params }: CirclePageProps) {
 
   let capabilities: Awaited<ReturnType<typeof getCircleCapabilities>> = [];
   let activationLinks: Awaited<ReturnType<typeof getActivationMissionLinks>> = new Map();
+  let lifecycle: Awaited<ReturnType<typeof getCircleLifecycle>> = [];
   try {
     capabilities = await getCircleCapabilities(circle.slug);
     activationLinks = await getActivationMissionLinks(circle.id);
+    lifecycle = await getCircleLifecycle(circle.slug);
   } catch {
     capabilities = [];
     activationLinks = new Map();
+    lifecycle = [];
   }
 
   let people: Awaited<ReturnType<typeof getCirclePeople>> = [];
@@ -180,6 +187,22 @@ export default async function CirclePage({ params }: CirclePageProps) {
       live: Boolean(mission),
     };
   });
+  // Send to @handle: only where the server-owned transfer policy confirms
+  // the Circle is a verified transferable Stellar asset. Never client-driven.
+  const sendPolicy = getSendableAsset(circle.slug);
+  const sendActions: ActionItem[] = sendPolicy
+    ? [
+        {
+          key: "send-to-handle",
+          label: "Send",
+          href: `/send?asset=${circle.slug}`,
+          tone: "blue",
+          icon: "send",
+          state: sendPolicy.permissioned ? "Permissioned transfer" : "Stellar Mainnet",
+          live: true,
+        },
+      ]
+    : [];
   // Access from Stellar: native USDC moves outward via Circle CCTP. Surfaced
   // only on the USDC circle — never on assets that are not CCTP-compatible.
   const accessActions: ActionItem[] =
@@ -240,6 +263,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
               </div>
               <div className="c-hero-actions">
                 <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
+                <ShareButton title={circle.name} path={`/circles/${circle.slug}`} />
                 {circle.sourceUrl ? (
                   <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
                     Official source <Icon name="external" size={14} />
@@ -266,7 +290,63 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 <h2 id="circle-use-title">What you can do with {circle.code}</h2>
                 <p>Opens the official flow or a guide — not investment advice. Vicus never moves funds.</p>
               </div>
-              <ActionTray actions={[...useActions, ...accessActions]} />
+              <ActionTray actions={[...useActions, ...sendActions, ...accessActions]} />
+            </section>
+          ) : null}
+
+          {lifecycle.length > 0 ? (
+            <section aria-labelledby="circle-lifecycle-title" className="c-use" id="lifecycle">
+              <div className="c-use-head">
+                <span className="v-eyebrow">Asset lifecycle</span>
+                <h2 id="circle-lifecycle-title">From access to exit</h2>
+                <p>Only stages with official evidence are shown — not investment advice.</p>
+              </div>
+              <StepFlow
+                label="Asset lifecycle"
+                steps={lifecycle.map((step) => ({
+                  icon:
+                    step.stage === "access"
+                      ? ("receive" as const)
+                      : step.stage === "hold"
+                        ? ("coins" as const)
+                        : step.stage === "use"
+                          ? ("send" as const)
+                          : step.stage === "earn"
+                            ? ("gift" as const)
+                            : ("redeem" as const),
+                  label: step.title,
+                  line: step.stage.toUpperCase(),
+                }))}
+              />
+              <dl className="mission-meta">
+                {lifecycle.map((step) => (
+                  <div key={step.id}>
+                    <dt>{step.stage.toUpperCase()}</dt>
+                    <dd>
+                      <strong>{step.title}</strong> — {step.shortDescription}{" "}
+                      <Chip tone="white">{step.supportModeLabel}</Chip>
+                      {step.ctaLabel && step.destinationUrl ? (
+                        step.destinationUrl.startsWith("/") ? (
+                          <Link href={step.destinationUrl}> {step.ctaLabel} →</Link>
+                        ) : (
+                          <a href={step.destinationUrl} rel="noreferrer" target="_blank">
+                            {" "}{step.ctaLabel} →
+                          </a>
+                        )
+                      ) : null}
+                      <details>
+                        <summary>Eligibility & source</summary>
+                        {step.eligibilityNote ? <p>{step.eligibilityNote}</p> : null}
+                        <p>
+                          <a href={step.sourceUrl} rel="noreferrer" target="_blank">
+                            Official source
+                          </a>
+                        </p>
+                      </details>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             </section>
           ) : null}
 
@@ -354,7 +434,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
           </section>
 
           <section className="circle-section" id="people">
-            <SectionHead eyebrow="People" line="No wallet addresses shown." title="Who's here." />
+            <SectionHead eyebrow="People" line="Watchers, contributors, and participants — never balances or holdings." title="People around this asset." />
             {people.length > 0 ? (
               <div className="x-rail">
                 {people.slice(0, 8).map((person) => (

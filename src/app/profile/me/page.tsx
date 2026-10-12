@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { ProfileEditor } from "@/components/profile-editor";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { RewardClaimCard } from "@/components/reward-claim-card";
+import { ReceiveSettings } from "@/components/receive-settings";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { getFollowCounts } from "@/lib/social/service";
@@ -298,6 +299,17 @@ export default async function MyProfilePage() {
             ) : (
               <EmptyState title="Not watching any assets yet">Watch an asset to keep it close.</EmptyState>
             )}
+          </section>
+
+          <section className="p-section" aria-labelledby="receive-title">
+            <SectionHead
+              action={<ButtonLink href="/contacts" variant="glass">Contacts</ButtonLink>}
+              eyebrow="Receive"
+              id="receive-title"
+              line="Private. Nothing here is public until you enable it."
+              title="Where you can receive"
+            />
+            <ReceiveSettings />
           </section>
 
           <div className="p-split">

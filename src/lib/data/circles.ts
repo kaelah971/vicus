@@ -26,8 +26,11 @@ export function ecosystemLabel(ecosystem: string): string {
 export const assetClassLabels: Record<string, string> = {
   stablecoin: "Tokenized money / Stablecoin",
   treasury_fund: "Tokenized Treasury / Fund",
+  equity_fund: "Tokenized Equity / Equity Fund",
+  fixed_income: "Tokenized Fixed Income",
   commodity: "Tokenized Commodity",
   private_credit: "Tokenized Private Credit",
+  alternative: "Tokenized Alternative",
   real_estate: "Tokenized Real Estate",
   other_financial: "Other Tokenized Financial Asset",
 };
@@ -35,8 +38,11 @@ export const assetClassLabels: Record<string, string> = {
 export const assetClassFilterLabels: Record<string, string> = {
   stablecoin: "Stablecoins",
   treasury_fund: "Treasuries & Funds",
+  equity_fund: "Equities",
+  fixed_income: "Fixed Income",
   commodity: "Commodities",
   private_credit: "Private Credit",
+  alternative: "Alternatives",
   real_estate: "Real Estate",
   other_financial: "Other",
 };

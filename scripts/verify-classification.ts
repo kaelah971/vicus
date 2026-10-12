@@ -23,11 +23,17 @@ const KNOWN_SLUGS = new Set([
   "pyusd-on-stellar",
   "usdy-on-stellar",
   "tokenized-treasury-education",
+  "benji-on-stellar",
+  "wtgxx-on-stellar",
+  "wtsyx-on-stellar",
+  "tipsx-on-stellar",
+  "spxux-on-stellar",
+  "techx-on-stellar",
 ]);
 
 async function verify() {
   const all = await listCircles(null);
-  assert.equal(all.length, 7, "No fake asset may be introduced; the directory stays at seven rows.");
+  assert.equal(all.length, 13, "The directory holds the seven legacy rows plus the six Stellar-universe rows.");
   for (const circle of all) {
     assert(KNOWN_SLUGS.has(circle.slug), `Unexpected circle ${circle.slug}.`);
   }
@@ -37,15 +43,25 @@ async function verify() {
     assert.equal(bySlug.get(slug)?.category, "stablecoin", `${slug} must classify as stablecoin.`);
     assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized money / Stablecoin");
   }
-  assert.equal(bySlug.get("usdy-on-stellar")?.category, "treasury_fund");
-  assert.equal(bySlug.get("usdy-on-stellar")?.assetClassLabel, "Tokenized Treasury / Fund");
+  for (const slug of ["usdy-on-stellar", "benji-on-stellar", "wtgxx-on-stellar"]) {
+    assert.equal(bySlug.get(slug)?.category, "treasury_fund", `${slug} must classify as treasury_fund.`);
+    assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized Treasury / Fund");
+  }
+  for (const slug of ["wtsyx-on-stellar", "tipsx-on-stellar"]) {
+    assert.equal(bySlug.get(slug)?.category, "fixed_income", `${slug} must classify as fixed_income.`);
+    assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized Fixed Income");
+  }
+  for (const slug of ["spxux-on-stellar", "techx-on-stellar"]) {
+    assert.equal(bySlug.get(slug)?.category, "equity_fund", `${slug} must classify as equity_fund.`);
+    assert.equal(bySlug.get(slug)?.assetClassLabel, "Tokenized Equity / Equity Fund");
+  }
 
   // Educational non-asset hidden from Discover, still directly resolvable.
   const education = bySlug.get("tokenized-treasury-education");
   assert(education, "Education content must keep existing.");
   assert(!isAssetCircle(education!), "Education-only content must leave Discover.");
   const discoverEntries = all.filter(isAssetCircle);
-  assert.equal(discoverEntries.length, 6);
+  assert.equal(discoverEntries.length, 12);
   assert(discoverEntries.every((circle) => circle.slug !== "tokenized-treasury-education"));
   const direct = await getCircleBySlug("tokenized-treasury-education");
   assert(direct, "Education circle must stay directly reachable.");
@@ -58,7 +74,24 @@ async function verify() {
   const treasuries = discoverEntries.filter((circle) =>
     matchesCircleFilters(circle, { assetClass: "treasury_fund", ecosystem: "all", query: "", state: "All statuses" }),
   );
-  assert.deepEqual(treasuries.map((circle) => circle.slug), ["usdy-on-stellar"]);
+  assert.deepEqual(
+    treasuries.map((circle) => circle.slug).sort(),
+    ["benji-on-stellar", "usdy-on-stellar", "wtgxx-on-stellar"],
+  );
+  const fixedIncome = discoverEntries.filter((circle) =>
+    matchesCircleFilters(circle, { assetClass: "fixed_income", ecosystem: "all", query: "", state: "All statuses" }),
+  );
+  assert.deepEqual(
+    fixedIncome.map((circle) => circle.slug).sort(),
+    ["tipsx-on-stellar", "wtsyx-on-stellar"],
+  );
+  const equities = discoverEntries.filter((circle) =>
+    matchesCircleFilters(circle, { assetClass: "equity_fund", ecosystem: "all", query: "", state: "All statuses" }),
+  );
+  assert.deepEqual(
+    equities.map((circle) => circle.slug).sort(),
+    ["spxux-on-stellar", "techx-on-stellar"],
+  );
 
   // Ecosystem filter works.
   const stellar = discoverEntries.filter((circle) =>
@@ -66,7 +99,17 @@ async function verify() {
   );
   assert.deepEqual(
     stellar.map((circle) => circle.slug).sort(),
-    ["pyusd-on-stellar", "usdc-on-stellar", "usdy-on-stellar"],
+    [
+      "benji-on-stellar",
+      "pyusd-on-stellar",
+      "spxux-on-stellar",
+      "techx-on-stellar",
+      "tipsx-on-stellar",
+      "usdc-on-stellar",
+      "usdy-on-stellar",
+      "wtgxx-on-stellar",
+      "wtsyx-on-stellar",
+    ],
   );
 
   // Combined filters compose.
@@ -77,7 +120,10 @@ async function verify() {
   const treasuryStellar = discoverEntries.filter((circle) =>
     matchesCircleFilters(circle, { assetClass: "treasury_fund", ecosystem: "stellar", query: "", state: "All statuses" }),
   );
-  assert.deepEqual(treasuryStellar.map((circle) => circle.slug), ["usdy-on-stellar"]);
+  assert.deepEqual(
+    treasuryStellar.map((circle) => circle.slug).sort(),
+    ["benji-on-stellar", "usdy-on-stellar", "wtgxx-on-stellar"],
+  );
   const empty = discoverEntries.filter((circle) =>
     matchesCircleFilters(circle, { assetClass: "treasury_fund", ecosystem: "base", query: "", state: "All statuses" }),
   );
