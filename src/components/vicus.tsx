@@ -314,18 +314,18 @@ export function AssetPassport({
       </dl>
 
       <div className="passport-body">
-        <div className="passport-copy-block">
-          <span className="field-label"><Glyph name="book" size={14} /> What it is</span>
+        <details className="passport-disclosure">
+          <summary><Glyph name="book" size={14} /> What it is</summary>
           <p>{circle.description}</p>
-        </div>
-        <div className="passport-copy-block">
-          <span className="field-label"><Glyph name="shield" size={14} /> Eligibility / access</span>
+        </details>
+        <details className="passport-disclosure">
+          <summary><Glyph name="shield" size={14} /> Eligibility / access</summary>
           <p>{circle.eligibilityNote}</p>
-        </div>
-        <div className="passport-copy-block passport-risk">
-          <span className="field-label"><Glyph name="lock" size={14} /> Risk and disclosure</span>
+        </details>
+        <details className="passport-disclosure passport-risk">
+          <summary><Glyph name="lock" size={14} /> Risk and disclosure</summary>
           <p>{circle.riskNote}</p>
-        </div>
+        </details>
       </div>
 
       <details className="passport-more">

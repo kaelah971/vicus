@@ -88,11 +88,12 @@ async function main() {
   const page = readFileSync(join(ROOT, "src/app/use/page.tsx"), "utf8");
   const browser = readFileSync(join(ROOT, "src/components/use-browser.tsx"), "utf8");
   const sheet = readFileSync(join(ROOT, "src/components/asset-sheet.tsx"), "utf8");
+  assert.ok(page.includes("u-page-head") && page.includes("Put tokenized assets to work"), "Use header keeps title");
   assert.ok(browser.includes("ActionIntentGrid") && browser.includes("u-intent-grid"), "Use primary is the action-intent grid");
   assert.ok(!browser.includes("AssetTile") && !browser.includes("v-tiles"), "Use shares no asset grid with Discover");
   assert.ok(browser.includes("Available now"), "honest default state from engine truth");
   assert.ok(browser.includes("u-result-row"), "intent results are compact rows, not image tiles");
-  assert.ok(page.includes("What do you want to do?"), "action-first header");
+  assert.ok(browser.includes("What do you want to do?"), "action-first header");
   assert.ok(!/<table/.test(browser), "stacked rows, mobile-safe");
   assert.ok(browser.includes("Open ${") || browser.includes("Open {"), "asset-named primary CTA");
   assert.ok(browser.includes("AssetSheet") && browser.includes('searchParams.get("asset")'), "route-aware preview sheet (?asset=)");

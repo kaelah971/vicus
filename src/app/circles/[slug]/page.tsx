@@ -19,7 +19,6 @@ import {
   Glyph,
   MetricTile,
   MissionStrip,
-  Orb,
   SectionHead,
   StepFlow,
   assetClassMeta,
@@ -217,6 +216,14 @@ export default async function CirclePage({ params }: CirclePageProps) {
   });
   const overviewSummary =
     circle.summary.length > 180 ? `${circle.summary.slice(0, 177).trimEnd()}…` : circle.summary;
+  // One short supporting line per lifecycle stage for mobile: strip the
+  // repeated educational disclaimer (shown once below the timeline) and
+  // truncate. Full source text stays intact inside each Details disclosure.
+  function stageLine(text: string): string {
+    const stripped = text.replace(/This is educational content[^.]*\.?/gi, "").replace(/\s+/g, " ").trim();
+    const source = stripped.length > 0 ? stripped : text.trim();
+    return source.length > 100 ? `${source.slice(0, 97).trimEnd()}…` : source;
+  }
 
   const lifecycleSteps = lifecycle.map((step) => ({
     icon:
@@ -279,10 +286,22 @@ export default async function CirclePage({ params }: CirclePageProps) {
                   <>
                     <section aria-labelledby="circle-about-title" className="c-use" id="about">
                       <div className="c-use-head">
-                        <span className="v-eyebrow">What it is</span>
+                        <span className="v-eyebrow">About</span>
                         <h2 id="circle-about-title">{circle.code}</h2>
                         <p>{overviewSummary}</p>
                       </div>
+                      <details className="a-disclosure">
+                        <summary>What is {circle.code}?</summary>
+                        <p>{circle.description}</p>
+                      </details>
+                      <details className="a-disclosure">
+                        <summary>Eligibility</summary>
+                        <p>{circle.eligibilityNote}</p>
+                      </details>
+                      <details className="a-disclosure">
+                        <summary>Risks &amp; disclosures</summary>
+                        <p>{circle.riskNote}</p>
+                      </details>
                       <dl className="a-facts">
                         <div>
                           <dt>Issuer</dt>
@@ -612,26 +631,30 @@ export default async function CirclePage({ params }: CirclePageProps) {
                         <div className="c-use-head">
                           <span className="v-eyebrow">Lifecycle detail</span>
                           <h2 id="circle-lifecycle-full-title">Stage by stage</h2>
-                          <p>Only stages with official evidence are shown — not investment advice.</p>
                         </div>
-                        <dl className="mission-meta">
+                        <ol className="a-timeline">
                           {lifecycle.map((step) => (
-                            <div key={step.id}>
-                              <dt>{step.stage.toUpperCase()}</dt>
-                              <dd>
-                                <strong>{step.title}</strong> — {step.shortDescription}{" "}
-                                <Chip tone="white">{step.supportModeLabel}</Chip>
-                                {step.ctaLabel && step.destinationUrl ? (
-                                  step.destinationUrl.startsWith("/") ? (
-                                    <Link href={step.destinationUrl}> {step.ctaLabel} →</Link>
-                                  ) : (
-                                    <a href={step.destinationUrl} rel="noreferrer" target="_blank">
-                                      {" "}{step.ctaLabel} →
-                                    </a>
-                                  )
-                                ) : null}
-                                <details>
-                                  <summary>Eligibility & source</summary>
+                            <li key={step.id}>
+                              <span aria-hidden="true" className="a-timeline-node" />
+                              <div className="a-timeline-body">
+                                <span className="a-timeline-stage">{step.stage.toUpperCase()}</span>
+                                <strong>{step.title}</strong>
+                                <p>{stageLine(step.shortDescription)}</p>
+                                <details className="a-timeline-details">
+                                  <summary>Details</summary>
+                                  <p>{step.shortDescription}</p>
+                                  <p><Chip tone="white">{step.supportModeLabel}</Chip></p>
+                                  {step.ctaLabel && step.destinationUrl ? (
+                                    step.destinationUrl.startsWith("/") ? (
+                                      <p><Link href={step.destinationUrl}>{step.ctaLabel} →</Link></p>
+                                    ) : (
+                                      <p>
+                                        <a href={step.destinationUrl} rel="noreferrer" target="_blank">
+                                          {step.ctaLabel} →
+                                        </a>
+                                      </p>
+                                    )
+                                  ) : null}
                                   {step.eligibilityNote ? <p>{step.eligibilityNote}</p> : null}
                                   <p>
                                     <a href={step.sourceUrl} rel="noreferrer" target="_blank">
@@ -639,10 +662,11 @@ export default async function CirclePage({ params }: CirclePageProps) {
                                     </a>
                                   </p>
                                 </details>
-                              </dd>
-                            </div>
+                              </div>
+                            </li>
                           ))}
-                        </dl>
+                        </ol>
+                        <p className="muted small">Educational content, not financial advice.</p>
                       </section>
                     ) : null}
 
@@ -650,7 +674,6 @@ export default async function CirclePage({ params }: CirclePageProps) {
                       <SectionHead eyebrow="Sources & disclosures" title="Check, don't trust." />
                       <div className="c-sources">
                         <div className="c-source-main">
-                          <Orb icon="globe" size="md" tone="blue" />
                           <span>
                             <strong>{circle.sourceUrl ? circle.sourceLabel : "No source attached"}</strong>
                             <small>{circle.issuerSource} · {circle.sourceStatus}</small>
@@ -665,11 +688,20 @@ export default async function CirclePage({ params }: CirclePageProps) {
                           {circle.verification.enabled
                             ? "The role check uses the canonical identifiers stored for this circle and never exposes an exact balance."
                             : "Role verification is deferred here; this page is watch-and-learn only."}{" "}
-                          Watch is never proof of ownership. Pasted-address checks are read-only and never stored.
+                          Watch is never proof of ownership.
                         </p>
-                        <p className="c-source-note c-source-risk">
-                          <Glyph name="lock" size={14} /> {circle.riskNote}
-                        </p>
+                        <details className="c-more">
+                          <summary>More details</summary>
+                          <p className="c-source-note">Pasted-address checks are read-only and never stored.</p>
+                          <p className="c-source-note c-source-risk">
+                            <Glyph name="lock" size={14} /> {circle.riskNote}
+                          </p>
+                          <p className="c-source-note">
+                            <a className="v-text-link" href="#passport">
+                              Full passport details →
+                            </a>
+                          </p>
+                        </details>
                       </div>
                     </section>
                   </>

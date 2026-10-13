@@ -138,6 +138,7 @@ export function UseBrowser({
 
   return (
     <>
+      <p className="u-question">What do you want to do?</p>
       <ActionIntentGrid counts={counts} active={intent} onPick={setIntent} />
 
       {!intent ? (
@@ -170,7 +171,7 @@ export function UseBrowser({
           )}
         </section>
       ) : (
-        <section className="card" aria-label={`${INTENT_LABEL[intent]} assets`}>
+        <section className="card u-results" aria-label={`${INTENT_LABEL[intent]} assets`}>
           <h2>
             {INTENT_LABEL[intent]} · {matchedGroups.length} {matchedGroups.length === 1 ? "asset" : "assets"}
           </h2>

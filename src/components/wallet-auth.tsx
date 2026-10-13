@@ -93,16 +93,13 @@ async function fetchSessionState(): Promise<SessionState> {
   };
 }
 
-export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNavigation?: boolean } = {}) {
+export function WalletAuthButton() {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const controlRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
-  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
-  const mobileCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -140,38 +137,20 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
   }
 
   useEffect(() => {
-    if (!mobileMenuOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    mobileCloseRef.current?.focus();
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    if (!accountOpen && !mobileMenuOpen) return;
+    if (!accountOpen) return;
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target;
       if (target instanceof Node && !controlRef.current?.contains(target)) {
         setAccountOpen(false);
-        setMobileMenuOpen(false);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
 
-      if (accountOpen) {
-        setAccountOpen(false);
-        accountTriggerRef.current?.focus();
-      }
-      if (mobileMenuOpen) {
-        setMobileMenuOpen(false);
-        mobileTriggerRef.current?.focus();
-      }
+      setAccountOpen(false);
+      accountTriggerRef.current?.focus();
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -180,7 +159,7 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [accountOpen, mobileMenuOpen]);
+  }, [accountOpen]);
 
   async function connect() {
     setBusy(true);
@@ -254,7 +233,6 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
       await fetch("/api/auth/logout", { method: "POST" });
       await ensureWalletKit().disconnect().catch(() => undefined);
       setAccountOpen(false);
-      setMobileMenuOpen(false);
       setSession({ status: "signed-out" });
     } catch {
       setMessage("The session could not be closed. Try again.");
@@ -264,48 +242,11 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
   }
 
   const isSignedIn = session.status === "signed-in";
-  const mobileNavigation = (
-    <nav aria-label="Mobile navigation" className="wallet-mobile-nav">
-      <Link className="wallet-menu-link" href="/discover" onClick={() => setMobileMenuOpen(false)}>
-        Discover
-      </Link>
-      <Link className="wallet-menu-link" href="/use" onClick={() => setMobileMenuOpen(false)}>
-        Use
-      </Link>
-      <Link className="wallet-menu-link" href="/circles" onClick={() => setMobileMenuOpen(false)}>
-        Circles
-      </Link>
-      <Link className="wallet-menu-link" href="/activity" onClick={() => setMobileMenuOpen(false)}>
-        Activity
-      </Link>
-      <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
-        You
-      </Link>
-      <span className="wallet-menu-label">More</span>
-      <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
-        Missions
-      </Link>
-      <Link className="wallet-menu-link" href="/lab" onClick={() => setMobileMenuOpen(false)}>
-        Lab
-      </Link>
-      <Link className="wallet-menu-link" href="/spaces" onClick={() => setMobileMenuOpen(false)}>
-        Spaces
-      </Link>
-      <Link className="wallet-menu-link" href="/rewards" onClick={() => setMobileMenuOpen(false)}>
-        Rewards
-      </Link>
-      <span className="wallet-menu-label">For projects</span>
-      <Link className="wallet-menu-link" href="/host" onClick={() => setMobileMenuOpen(false)}>
-        Host on Vicus
-      </Link>
-    </nav>
-  );
 
   return (
     <div
       className="wallet-auth-control"
       data-authenticated={isSignedIn ? "true" : "false"}
-      data-mobile-navigation={showMobileNavigation ? "true" : "false"}
       ref={controlRef}
     >
       <div className="wallet-desktop-control">
@@ -318,7 +259,6 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
               id="wallet-profile-trigger"
               onClick={() => {
                 setAccountOpen((open) => !open);
-                setMobileMenuOpen(false);
               }}
               ref={accountTriggerRef}
               type="button"
@@ -362,68 +302,6 @@ export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNa
         )}
       </div>
 
-      {showMobileNavigation ? (
-        <>
-          <button
-            aria-controls="wallet-mobile-menu"
-            aria-expanded={mobileMenuOpen}
-            aria-label={mobileMenuOpen ? "Close mobile navigation" : "Open mobile navigation"}
-            className="wallet-mobile-trigger"
-            id="wallet-mobile-trigger"
-            onClick={() => {
-              setMobileMenuOpen((open) => !open);
-              setAccountOpen(false);
-            }}
-            ref={mobileTriggerRef}
-            type="button"
-          >
-            Menu
-          </button>
-          {mobileMenuOpen ? (
-            <div aria-labelledby="wallet-mobile-trigger" className="wallet-mobile-menu" id="wallet-mobile-menu">
-              <button
-                aria-label="Close mobile navigation"
-                className="wallet-mobile-close"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  mobileTriggerRef.current?.focus();
-                }}
-                ref={mobileCloseRef}
-                type="button"
-              >
-                Close
-              </button>
-              {mobileNavigation}
-              {isSignedIn ? (
-                <>
-                  <div className="wallet-mobile-member">
-                    <strong>Vicus member</strong>
-                    <span className="wallet-account-address">{shortenAddress(session.publicKey)}</span>
-                    <span className="wallet-account-status">
-                      <span aria-hidden="true" className="verified-indicator" />
-                      Stellar wallet verified
-                    </span>
-                  </div>
-                  <div className="wallet-menu-actions">
-                    <button className="wallet-menu-action" disabled={busy} onClick={disconnect} type="button">
-                      {busy ? "Signing out…" : "Sign out"}
-                    </button>
-                  </div>
-                </>
-              ) : session.status === "unavailable" ? (
-                <button aria-busy={busy} className="wallet-menu-action wallet-menu-connect" disabled={busy} onClick={retrySession} type="button">
-                  {busy ? "Retrying session…" : "Session unavailable · Retry"}
-                </button>
-              ) : (
-                <button className="wallet-menu-action wallet-menu-connect" disabled={busy} onClick={connect} type="button">
-                  {busy ? "Connecting…" : "Connect Freighter"}
-                </button>
-              )}
-            </div>
-          ) : null}
-        </>
-      ) : null}
-
       {session.status === "error" ? <span className="wallet-auth-message" role="alert">{session.message}</span> : null}
       {message ? <span className="wallet-auth-message" role={isSignedIn ? "status" : "alert"}>{message}</span> : null}
     </div>
@@ -435,7 +313,7 @@ export function WalletConnectPrompt() {
     <div className="wallet-connect-prompt">
       <p>Connect Freighter to participate with a verified Stellar mainnet account.</p>
       <p className="field-help">Sign a message to verify this Stellar wallet. No transaction will be submitted and no XLM is required.</p>
-      <WalletAuthButton showMobileNavigation={false} />
+      <WalletAuthButton />
     </div>
   );
 }

@@ -3867,11 +3867,31 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 
 /* ---------- IA correction: Use action-first, Circles social, asset tabs ---------- */
 
+/* Use: page rhythm — eyebrow, title, question, grid, results. */
+.u-page-head .eyebrow { display: block; margin-bottom: 12px; }
+.u-page-head h1 { margin: 0; }
+.u-question {
+  color: var(--muted);
+  font-size: 1.02rem;
+  margin: 24px 0 22px;
+}
+
 /* Use: visual action-intent tiles, 2 columns on mobile. */
 .u-intent-grid {
   display: grid;
-  gap: 10px;
+  gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.u-available,
+.u-results {
+  margin-top: 36px;
+}
+
+.u-available h2,
+.u-results h2 {
+  margin-bottom: 18px;
 }
 
 .u-intent {
@@ -3893,7 +3913,11 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 }
 
 .u-intent strong { font-size: 1rem; letter-spacing: -0.01em; }
-.u-intent small { color: var(--subtle); font-size: 0.7rem; }
+/* Path counts stay available on desktop; mobile decides by icon + label. */
+.u-intent small { color: var(--subtle); display: none; font-size: 0.7rem; }
+@media (min-width: 768px) {
+  .u-intent small { display: block; }
+}
 .u-intent.is-active {
   border-color: var(--tone, #fff);
   box-shadow: inset 0 0 0 1px var(--tone, #fff);
@@ -4261,4 +4285,101 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 @media (max-width: 340px) {
   .m-menu-head strong { font-size: 1.15rem; }
   .m-menu-list a { font-size: 0.95rem; padding: 11px 12px; }
+}
+
+/* ---------- Cleanup: Use rhythm, asset density, timeline, overflow guards ---------- */
+
+/* Asset disclosures (About + passport): collapsed by default. */
+.a-disclosure,
+.passport-disclosure,
+.c-more,
+.a-timeline-details {
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  border-radius: 14px;
+  margin-top: 8px;
+  min-width: 0;
+  padding: 10px 14px;
+}
+
+.a-disclosure > summary,
+.passport-disclosure > summary,
+.c-more > summary,
+.a-timeline-details > summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.a-disclosure p,
+.passport-disclosure p,
+.c-more p,
+.a-timeline-details p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 8px 0 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Stage-by-stage: one vertical timeline, one column on mobile. */
+.a-timeline {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.a-timeline > li {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  min-width: 0;
+  padding-bottom: 4px;
+  position: relative;
+}
+
+.a-timeline > li:not(:last-child) { padding-bottom: 20px; }
+
+.a-timeline > li:not(:last-child)::before {
+  background: rgba(var(--fg-rgb), 0.16);
+  bottom: -4px;
+  content: "";
+  left: 10px;
+  position: absolute;
+  top: 26px;
+  width: 2px;
+}
+
+.a-timeline-node {
+  background: transparent;
+  border: 2px solid var(--foreground);
+  border-radius: 50%;
+  height: 22px;
+  margin-top: 2px;
+  width: 22px;
+}
+
+.a-timeline-body { display: grid; gap: 2px; min-width: 0; }
+.a-timeline-stage { color: var(--subtle); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; }
+.a-timeline-body > strong { font-size: 0.95rem; }
+.a-timeline-body > p { color: var(--muted); font-size: 0.82rem; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.a-timeline-details { margin-top: 8px; }
+
+/* Overflow guards: nothing crosses the viewport on the asset page. */
+.c-use, .c-use-head, .c-use-head p,
+.a-facts, .a-facts dd,
+.c-sources, .c-source-main, .c-source-note,
+.passport, .passport-copy-block, .passport-copy-block p,
+.a-stage, .a-stage p,
+.circle-section, .circle-section p,
+code, .t-id, .mono {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .a-timeline > li { gap: 16px; grid-template-columns: 26px minmax(0, 1fr); }
+  .a-timeline-node { height: 26px; width: 26px; }
 }

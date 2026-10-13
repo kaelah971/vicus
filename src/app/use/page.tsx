@@ -56,10 +56,9 @@ export default async function UsePage() {
       <main className="page-main">
         <div className="shell circle-page-body">
           <div className="stack">
-            <section className="card">
+            <section className="card u-page-head">
               <p className="eyebrow">Use</p>
               <h1>Put tokenized assets to work</h1>
-              <p className="muted">What do you want to do?</p>
             </section>
             <Suspense>
               <UseBrowser discovery={discovery} subjectMap={buildUseSubjectMap(discovery)} />

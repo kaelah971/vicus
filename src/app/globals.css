@@ -305,8 +305,7 @@ ul {
   display: flex;
 }
 
-.wallet-profile-trigger,
-.wallet-mobile-trigger {
+.wallet-profile-trigger {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -324,8 +323,7 @@ ul {
   white-space: nowrap;
 }
 
-.wallet-profile-trigger:hover,
-.wallet-mobile-trigger:hover {
+.wallet-profile-trigger:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--hairline-strong);
 }
@@ -340,8 +338,7 @@ ul {
   width: 7px;
 }
 
-.wallet-account-menu,
-.wallet-mobile-menu {
+.wallet-account-menu {
   background: #0a0a0d;
   border: 1px solid var(--hairline-strong);
   border-radius: 18px;
@@ -353,23 +350,14 @@ ul {
   z-index: 30;
 }
 
-.wallet-mobile-nav {
-  border-bottom: 1px solid var(--hairline);
-  display: grid;
-  gap: 2px;
-  padding-bottom: 6px;
-}
-
-.wallet-account-summary,
-.wallet-mobile-member {
+.wallet-account-summary {
   border-bottom: 1px solid var(--hairline);
   display: grid;
   gap: 6px;
   padding: 11px 12px 13px;
 }
 
-.wallet-account-summary strong,
-.wallet-mobile-member strong {
+.wallet-account-summary strong {
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -426,25 +414,6 @@ ul {
 
 .wallet-menu-connect {
   margin-top: 6px;
-}
-
-.wallet-mobile-close {
-  align-self: flex-start;
-  background: transparent;
-  border: 0;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.76rem;
-  padding: 8px 0;
-}
-
-.wallet-mobile-close:hover {
-  color: var(--foreground);
-}
-
-.wallet-mobile-trigger,
-.wallet-mobile-menu {
-  display: none;
 }
 
 .wallet-auth-message {
@@ -3788,35 +3757,8 @@ button:focus-visible {
     justify-content: space-between;
   }
 
-  .wallet-desktop-control {
-    display: none;
-  }
-
-  .wallet-auth-control[data-mobile-navigation="false"] .wallet-desktop-control {
-    display: flex;
-  }
-
-  .wallet-mobile-trigger {
-    display: inline-flex;
-  }
-
   .nav-issuer {
     display: none;
-  }
-
-  .wallet-mobile-menu {
-    border-left: 1px solid var(--hairline-strong);
-    border-radius: 0;
-    bottom: 0;
-    display: grid;
-    min-height: 100dvh;
-    overflow-y: auto;
-    padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: min(340px, 88vw);
-    z-index: 40;
   }
 
   .hero-grid,
@@ -3926,23 +3868,6 @@ button:focus-visible {
 
   .nav-actions {
     gap: 0;
-  }
-
-  .wallet-desktop-control {
-    display: none;
-  }
-
-  .wallet-auth-control[data-mobile-navigation="false"] .wallet-desktop-control {
-    display: flex;
-  }
-
-  .wallet-mobile-trigger {
-    display: inline-flex;
-  }
-
-  .wallet-mobile-menu {
-    display: grid;
-    width: min(280px, calc(100vw - 32px));
   }
 
   .button-small {

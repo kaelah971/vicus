@@ -113,7 +113,32 @@ async function main() {
   const menuCss = read("src/app/vicus-system.css");
   assert.ok(menuCss.includes(".m-menu-sheet") && menuCss.includes("92dvh") && menuCss.includes(".m-menu-seg"), "sheet styles present");
 
-  // 13. Asset page is tabbed: Overview / Actions / Circle / Details.
+  // 13. Exactly one mobile menu: the light sheet, no legacy drawer.
+  const walletAuth = read("src/components/wallet-auth.tsx");
+  assert.ok(!/wallet-mobile|mobileMenuOpen|mobileNavigation/.test(walletAuth), "legacy drawer code removed");
+  assert.ok(!/wallet-mobile/.test(globals) && !/wallet-mobile/.test(menuCss), "legacy drawer styles removed");
+  assert.ok((shellSrc.match(/>Menu</g) ?? []).length <= 1, "one mobile Menu trigger");
+  assert.ok(menu.includes("m-menu-sheet") && !menu.includes("wallet-"), "only the light menu remains");
+
+  // 14. Use rhythm + density: spaced sections, no mobile path counts.
+  const usePage = read("src/app/use/page.tsx");
+  assert.ok(usePage.includes("u-page-head") && useBrowser.includes("u-question"), "Use spacing structure present");
+  assert.ok(menuCss.includes(".u-question") && menuCss.includes(".u-results"), "Use rhythm styles present");
+  assert.ok(/\.u-intent small\s*\{[^}]*display:\s*none/.test(menuCss), "path counts hidden on mobile");
+
+  // 15. Asset density: disclosures, one-column timeline, wrap guards, no blue oval.
+  const assetPageSrc = read("src/app/circles/[slug]/page.tsx");
+  assert.ok(assetPageSrc.includes("a-disclosure") && assetPageSrc.includes("passport-disclosure") === false, "About disclosures live on the page");
+  const vicusSrc = read("src/components/vicus.tsx");
+  assert.ok(vicusSrc.includes("passport-disclosure"), "passport prose behind disclosure");
+  assert.ok(assetPageSrc.includes("a-timeline") && assetPageSrc.includes("a-timeline-details"), "stage-by-stage timeline with collapsed detail");
+  assert.ok(!/\.a-timeline[^}]*repeat\(2/.test(menuCss), "timeline stays single-column");
+  assert.ok(!assetPageSrc.includes('Orb icon="globe"'), "blue official-source oval absent");
+  assert.ok(assetPageSrc.includes("c-sources") && assetPageSrc.includes("c-more"), "source content present but collapsed");
+  assert.ok(menuCss.includes("overflow-wrap: anywhere"), "technical identifiers wrap safely");
+  assert.ok(assetPageSrc.includes("StepFlow") && assetPageSrc.includes("stageLine"), "lifecycle truth intact");
+
+  // 16. Asset page is tabbed: Overview / Actions / Circle / Details.
   const assetPage = read("src/app/circles/[slug]/page.tsx");
   assert.ok(assetPage.includes("AssetTabs"), "segmented asset sections");
   for (const tab of ['"overview"', '"actions"', '"circle"', '"details"']) {
