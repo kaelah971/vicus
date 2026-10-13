@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { CircleCard, DataState } from "@/components/vicus";
+import { DataState } from "@/components/vicus";
+import { AssetTile } from "@/components/asset-tile";
 import { isDatabaseUnavailableError } from "@/db";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
 
@@ -40,18 +41,45 @@ export default async function CirclesDirectoryPage() {
               <>
                 <section className="card">
                   <h2>Stellar · home ({stellar.length})</h2>
-                  <div className="watch-grid">
+                  <p className="muted small">Visual tiles — open a Circle for people and knowledge.</p>
+                  <div className="v-tiles">
                     {stellar.map((circle) => (
-                      <CircleCard circle={circle} key={circle.slug} variant="compact" />
+                      <AssetTile
+                        key={circle.slug}
+                        asset={{
+                          slug: circle.slug,
+                          code: circle.code,
+                          name: circle.name,
+                          issuer: circle.issuerSource ?? null,
+                          classLabel: circle.assetClassLabel ?? circle.category,
+                          ecosystem: circle.ecosystem ?? circle.network,
+                          ecosystemLabel: circle.ecosystemLabel,
+                          network: circle.network,
+                        }}
+                        href={`/circles/${circle.slug}`}
+                      />
                     ))}
                   </div>
                 </section>
                 {beyond.length > 0 ? (
                   <section className="card">
                     <h2>Beyond Stellar ({beyond.length})</h2>
-                    <div className="watch-grid">
+                    <div className="v-tiles">
                       {beyond.map((circle) => (
-                        <CircleCard circle={circle} key={circle.slug} variant="compact" />
+                        <AssetTile
+                          key={circle.slug}
+                          asset={{
+                            slug: circle.slug,
+                            code: circle.code,
+                            name: circle.name,
+                            issuer: circle.issuerSource ?? null,
+                            classLabel: circle.assetClassLabel ?? circle.category,
+                            ecosystem: circle.ecosystem ?? circle.network,
+                            ecosystemLabel: circle.ecosystemLabel,
+                            network: circle.network,
+                          }}
+                          href={`/circles/${circle.slug}`}
+                        />
                       ))}
                     </div>
                   </section>

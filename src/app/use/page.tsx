@@ -1,11 +1,26 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DataState } from "@/components/vicus";
 import { UseBrowser } from "@/components/use-browser";
+import { getSubjectForAsset } from "@/lib/subjects/config";
+import type { SheetSubject } from "@/components/asset-sheet";
 import { getCurrentSession } from "@/lib/auth/session";
 import { isDatabaseUnavailableError } from "@/db";
 import { getUtilityDiscovery } from "@/lib/utility-discovery/service";
 
 export const dynamic = "force-dynamic";
+
+function buildUseSubjectMap(discovery: { stellar: Array<{ assetSlug: string }>; beyond: Array<{ assetSlug: string }> }): Record<string, SheetSubject> {
+  const map: Record<string, SheetSubject> = {};
+  for (const item of [...discovery.stellar, ...discovery.beyond]) {
+    if (map[item.assetSlug] !== undefined) continue;
+    const subject = getSubjectForAsset(item.assetSlug);
+    map[item.assetSlug] = subject
+      ? { name: subject.name, slug: subject.slug, type: subject.type, siblingSlugs: [...subject.representations] }
+      : null;
+  }
+  return map;
+}
 
 export default async function UsePage() {
   let session;
@@ -48,7 +63,9 @@ export default async function UsePage() {
                 See what you can actually do with tokenized assets — starting on Stellar.
               </p>
             </section>
-            <UseBrowser discovery={discovery} />
+            <Suspense>
+              <UseBrowser discovery={discovery} subjectMap={buildUseSubjectMap(discovery)} />
+            </Suspense>
           </div>
         </div>
       </main>

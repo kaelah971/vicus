@@ -10,6 +10,8 @@ import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session
 import { listCircles } from "@/lib/data/circles";
 import { isAssetCircle } from "@/lib/data/circles";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
+import { getSubjectForAsset } from "@/lib/subjects/config";
+import type { SheetAction, SheetSubject } from "@/components/asset-sheet";
 import { listActiveCampaignCircles } from "@/lib/campaigns/service";
 import { listSpaces } from "@/lib/organizations/service";
 
@@ -39,9 +41,12 @@ export default async function DiscoverPage() {
   }
 
   // Engine truth per asset: which circles expose an available action now,
-  // plus their top action labels for discovery cards.
+  // plus their top action labels for discovery tiles and full action sets
+  // for the preview sheet. Subjects resolve from config (no new truth).
   const usableSlugs: string[] = [];
   const actionLabels: Record<string, string[]> = {};
+  const actionsBySlug: Record<string, SheetAction[]> = {};
+  const subjectMap: Record<string, SheetSubject> = {};
   let campaignSlugs: string[] = [];
   let spaces: Awaited<ReturnType<typeof listSpaces>> = [];
   if (!databaseUnavailable) {
@@ -55,9 +60,25 @@ export default async function DiscoverPage() {
       listActiveCampaignCircles().catch(() => [] as string[]),
     ]);
     circleData.forEach((circle, index) => {
-      const available = (engineLists[index] ?? []).filter((action) => action.state === "available");
+      const resolved = engineLists[index] ?? [];
+      const available = resolved.filter((action) => action.state === "available");
       if (available.length > 0) usableSlugs.push(circle.slug);
       actionLabels[circle.slug] = available.slice(0, 3).map((action) => action.title);
+      actionsBySlug[circle.slug] = resolved.map((action) => ({
+        kind: action.kind,
+        title: action.title,
+        description: action.description,
+        state: action.state,
+        stateLabel: action.stateLabel,
+        href: action.href,
+        external: action.external,
+        eligibilityNote: action.eligibilityNote,
+        sourceUrl: action.sourceUrl,
+      }));
+      const subject = getSubjectForAsset(circle.slug);
+      subjectMap[circle.slug] = subject
+        ? { name: subject.name, slug: subject.slug, type: subject.type, siblingSlugs: [...subject.representations] }
+        : null;
     });
     campaignSlugs = campaigned;
     spaces = spaceList;
@@ -71,8 +92,8 @@ export default async function DiscoverPage() {
           <GlowField tones={["violet", "blue"]} />
           <div className="shell">
             <span className="v-eyebrow">Discover · Stellar is home</span>
-            <h1>Explore</h1>
-            <p>Start with Stellar tokenized assets — extend outward where connected ecosystems add more.</p>
+            <h1>Discover</h1>
+            <p>Tokenized assets, starting on Stellar. Tap a tile for a fast preview — open the full asset for depth.</p>
             {!databaseUnavailable ? (
               <div className="v-head-stats">
                 <span><strong>{circleData.length}</strong> assets</span>
@@ -99,6 +120,8 @@ export default async function DiscoverPage() {
                 usableSlugs={usableSlugs}
                 campaignSlugs={campaignSlugs}
                 actionLabels={actionLabels}
+                actionsBySlug={actionsBySlug}
+                subjectMap={subjectMap}
               />
             </Suspense>
           )}

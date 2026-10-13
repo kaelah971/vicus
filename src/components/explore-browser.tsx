@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleCard, EmptyState, Icon } from "@/components/vicus";
+import { EmptyState, Icon } from "@/components/vicus";
 import { ecosystemMeta } from "@/components/vicus-ui";
+import { AssetTile } from "@/components/asset-tile";
+import { AssetSheet, type SheetAction, type SheetSubject } from "@/components/asset-sheet";
 import type { Circle } from "@/lib/vicus-data";
 import { buildDiscoveryGroups, matchesCircleFilters } from "@/lib/data/circles";
 
@@ -24,9 +26,9 @@ const ASSET_CLASS_ORDER = [
 const CATEGORY_SHORTCUTS = [
   { value: ALL_CLASSES, label: "All" },
   { value: "treasury_fund", label: "Funds" },
-  { value: "fixed_income", label: "Treasuries" },
-  { value: "equity_fund", label: "Equities" },
-  { value: "stablecoin", label: "Stablecoins" },
+  { value: "fixed_income", label: "Treasury" },
+  { value: "equity_fund", label: "Equity" },
+  { value: "stablecoin", label: "Stable" },
 ] as const;
 
 /**
@@ -34,17 +36,22 @@ const CATEGORY_SHORTCUTS = [
  * dimensions: sidebar links, back/forward, and the dropdowns all read and
  * write it, so a client-side navigation can never leave stale results from
  * another chain or class on screen. Search/status remain local field state.
+ * `?asset=` opens the preview sheet over the grid; Back closes it.
  */
 export function ExploreBrowser({
   circles,
   usableSlugs = [],
   campaignSlugs = [],
   actionLabels = {},
+  actionsBySlug = {},
+  subjectMap = {},
 }: {
   circles: Circle[];
   usableSlugs?: string[];
   campaignSlugs?: string[];
   actionLabels?: Record<string, string[]>;
+  actionsBySlug?: Record<string, SheetAction[]>;
+  subjectMap?: Record<string, SheetSubject>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,6 +99,19 @@ export function ExploreBrowser({
     updateParams("class", value, ALL_CLASSES);
   }
 
+  function openAsset(slug: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("asset", slug);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function closeAsset() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("asset");
+    const next = params.toString();
+    router.replace(next ? `${pathname}?${next}` : pathname);
+  }
+
   const requestedClass = (searchParams.get("class") ?? "").trim().toLowerCase();
   const knownClasses = useMemo(
     () => new Set<string>([...CATEGORY_SHORTCUTS.map((entry) => entry.value), ...ASSET_CLASS_ORDER]),
@@ -130,16 +150,38 @@ export function ExploreBrowser({
   const stellarCircles = groups.stellar.map((slug) => bySlug.get(slug)!).filter(Boolean);
   const beyondCircles = groups.beyond.map((slug) => bySlug.get(slug)!).filter(Boolean);
 
-  const [lead, ...others] = stellarCircles;
-  const side = others.slice(0, 2);
-  const rest = others.slice(2);
+  const selectedSlug = (searchParams.get("asset") ?? "").trim();
+  const selected = selectedSlug ? bySlug.get(selectedSlug) ?? circles.find((c) => c.slug === selectedSlug) ?? null : null;
+
+  const renderTiles = (items: Circle[]) => (
+    <div className="v-tiles">
+      {items.map((circle) => (
+        <AssetTile
+          key={circle.slug}
+          asset={{
+            slug: circle.slug,
+            code: circle.code,
+            name: circle.name,
+            issuer: (circle as { issuerSource?: string }).issuerSource ?? null,
+            classLabel: circle.assetClassLabel ?? circle.category,
+            ecosystem: circle.ecosystem ?? circle.network,
+            ecosystemLabel: circle.ecosystemLabel,
+            network: circle.network,
+            actionLabels: actionLabels[circle.slug] ?? [],
+          }}
+          href={`/circles/${circle.slug}`}
+          onSelect={openAsset}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <section aria-labelledby="circle-directory-title" className="x-browser" id="circle-directory">
       <h2 className="sr-only" id="circle-directory-title">
         Asset directory
       </h2>
-      <div className="x-filters">
+      <div className="x-filters v-filter-tabs">
         <label className="search-field">
           <span className="sr-only">Search circles</span>
           <Icon name="search" size={17} />
@@ -204,54 +246,14 @@ export function ExploreBrowser({
         </div>
       </div>
 
-      {lead ? (
+      {/* Stellar · home */}
+      {stellarCircles.length > 0 ? (
         <section aria-label="Stellar home assets">
           <div className="x-block-head">
             <h2>Stellar</h2>
-            <span>Your home for tokenized assets</span>
+            <span>Tokenized assets, starting at home</span>
           </div>
-          <div className={`x-featured${side.length === 0 ? " x-featured-solo" : ""}`}>
-            <CircleCard
-              circle={lead}
-
-              variant="feature"
-              issuer={(lead as { issuerSource?: string }).issuerSource}
-              actionLabels={actionLabels[lead.slug]}
-            />
-            {side.length > 0 ? (
-              <div className="x-featured-side">
-                {side.map((circle) => (
-                  <CircleCard
-                    circle={circle}
-                    key={circle.slug}
-
-                    issuer={(circle as { issuerSource?: string }).issuerSource}
-                    actionLabels={actionLabels[circle.slug]}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-          {rest.length > 0 ? (
-            <div className="x-more">
-              <div className="x-block-head">
-                <h2>More on Stellar</h2>
-                <span>{rest.length}</span>
-              </div>
-              <div className="x-rail">
-                {rest.map((circle) => (
-                  <CircleCard
-                    circle={circle}
-                    key={circle.slug}
-
-                    variant="compact"
-                    issuer={(circle as { issuerSource?: string }).issuerSource}
-                    actionLabels={actionLabels[circle.slug]}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null}
+          {renderTiles(stellarCircles)}
         </section>
       ) : null}
       {beyondCircles.length > 0 ? (
@@ -260,17 +262,37 @@ export function ExploreBrowser({
             <h2>Beyond Stellar</h2>
             <span>More across connected ecosystems</span>
           </div>
-          <div className="x-rail">
-            {beyondCircles.map((circle) => (
-              <CircleCard circle={circle} key={circle.slug} variant="compact" />
-            ))}
-          </div>
+          {renderTiles(beyondCircles)}
         </section>
       ) : null}
-      {!lead && beyondCircles.length === 0 ? (
+      {stellarCircles.length === 0 && beyondCircles.length === 0 ? (
         <EmptyState title="No matching assets">
           Try a different search or clear one of the filters.
         </EmptyState>
+      ) : null}
+
+      {selected ? (
+        <AssetSheet
+          asset={{
+            slug: selected.slug,
+            code: selected.code,
+            name: selected.name,
+            issuer: (selected as { issuerSource?: string }).issuerSource ?? null,
+            classLabel: selected.assetClassLabel ?? selected.category,
+            ecosystem: selected.ecosystem ?? selected.network,
+            ecosystemLabel: selected.ecosystemLabel,
+            network: selected.network,
+            summary: selected.summary,
+            sourceUrl: selected.sourceUrl,
+            sourceLabel: selected.sourceLabel,
+          }}
+          actions={actionsBySlug[selected.slug] ?? []}
+          subject={subjectMap[selected.slug] ?? null}
+          campaignActive={campaignedSet.has(selected.slug)}
+          onClose={closeAsset}
+          openHref={`/circles/${selected.slug}`}
+          openLabel="Open full asset"
+        />
       ) : null}
     </section>
   );

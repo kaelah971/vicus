@@ -84,13 +84,25 @@ async function main() {
     await database.delete(users).where(eq(users.id, id)).catch(() => {});
   }
 
-  // 8. UI structure: intent chips, stacked cards, no wide tables.
+  // 8. UI structure: compact intent tabs, visual tiles + preview sheet, no wide tables.
   const page = readFileSync(join(ROOT, "src/app/use/page.tsx"), "utf8");
   const browser = readFileSync(join(ROOT, "src/components/use-browser.tsx"), "utf8");
+  const sheet = readFileSync(join(ROOT, "src/components/asset-sheet.tsx"), "utf8");
+  const tile = readFileSync(join(ROOT, "src/components/asset-tile.tsx"), "utf8");
   assert.ok(browser.includes("Filter by intent") && page.includes("Put tokenized assets to work"), "intent-first surface");
   assert.ok(!/<table/.test(browser), "stacked cards, mobile-safe");
   assert.ok(!browser.includes(">Open</a>") && !browser.includes(">Asset</a>"), "ambiguous CTAs removed");
-  assert.ok(browser.includes("Open {group.code}"), "asset-named primary CTA");
+  assert.ok(browser.includes("Open ${") || browser.includes("Open {"), "asset-named primary CTA");
+  assert.ok(browser.includes("v-tiles") && browser.includes("AssetTile"), "visual asset grid exists");
+  assert.ok(browser.includes("AssetSheet") && browser.includes('searchParams.get("asset")'), "route-aware preview sheet (?asset=)");
+  assert.ok(browser.includes("v-filter-tabs"), "compact filter tabs");
+  assert.ok(!/Source review|Role check|Vicus never holds funds/i.test(browser + tile), "no source-review clutter on grid");
+  assert.ok(!/apy|%\d|\$\d|tvl|guaranteed/i.test(tile), "no fake market metrics on tiles");
+  assert.ok(sheet.includes("What you can do") && sheet.includes("openHref"), "sheet carries actions + full-detail entry");
+  assert.ok(sheet.includes("Continue to official flow"), "action disclosure has official continuation");
+  assert.ok(!/balance|wallet.*address|secret/i.test(sheet), "no private holding data in sheet");
+  assert.ok(sheet.includes("v-sheet-hero") && sheet.includes("v-sheet-logo"), "sheet top is visual");
+  assert.ok(sheet.includes("data-asset-sheet") && browser.includes('searchParams.get("asset")'), "sheet renders the exact selected asset");
 
   // 9. Asset grouping: each asset once, actions nested, campaigns embedded.
   const all = [...discovery.stellar, ...discovery.beyond];

@@ -68,6 +68,21 @@ async function main() {
   // 9. Navigation payloads carry no private position/contact data.
   assert.ok(!/\bwallet address\b|\bbalance\b|\bendpoint\b|\bsecret\b|\bseed phrase\b/i.test(shell), "nav shell carries no private data");
 
+  // 10. Preview sheet is route-aware and privacy-clean (additive, no IA change).
+  const tileSrc = read("src/components/asset-tile.tsx");
+  const sheetSrc = read("src/components/asset-sheet.tsx");
+  const visuals = read("src/lib/asset-visuals.ts");
+  assert.ok(tileSrc.includes("data-asset") && !/Watching|Role check|Source review/i.test(tileSrc), "tiles carry identity, no status pills");
+  assert.ok(sheetSrc.includes('role="dialog"') && sheetSrc.includes("Escape"), "sheet is a dismissible dialog");
+  assert.ok(!/\bapy\b|\$\d|\btvl\b|guaranteed returns/i.test(tileSrc + sheetSrc), "no fake market metrics in preview layer");
+  assert.ok(visuals.includes("localSrc") && visuals.includes("officialSource"), "imagery mapping prefers verified sources with fallback");
+  const css = read("src/app/vicus-system.css");
+  assert.ok(/\.v-sheet\s*\{[^}]*max-height:\s*66d?vh/.test(css), "sheet default ~two-thirds viewport");
+  assert.ok(css.includes(".v-sheet-actions") && css.includes(".v-sheet-backdrop"), "action grid + backdrop present");
+  const navZ = (css.match(/\.bottom-nav\s*\{[\s\S]*?z-index:\s*(\d+)/) ?? [])[1];
+  const sheetZ = (css.match(/\.v-sheet-root\s*\{[\s\S]*?z-index:\s*(\d+)/) ?? [])[1];
+  assert.ok(Number(sheetZ) > Number(navZ), `sheet (${sheetZ}) covers nav (${navZ}) intentionally`);
+
   console.log("wave3-ia:verified");
 }
 

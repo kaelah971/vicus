@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "dotenv";
 import {
@@ -84,10 +84,51 @@ async function main() {
 
   // 6. Source structure: home/beyond headings, category shortcuts, one Filters control.
   const browser = readFileSync(join(ROOT, "src/components/explore-browser.tsx"), "utf8");
+  const sheetSrc = readFileSync(join(ROOT, "src/components/asset-sheet.tsx"), "utf8");
+  const tileSrc = readFileSync(join(ROOT, "src/components/asset-tile.tsx"), "utf8");
   assert.ok(browser.includes(">Stellar</h2>") && browser.includes("Beyond Stellar"), "hierarchy headings present");
+  assert.ok(browser.indexOf("Stellar") < browser.indexOf("Beyond Stellar"), "Stellar before Beyond Stellar");
   assert.ok(browser.includes("CATEGORY_SHORTCUTS") && browser.includes("x-filters-more"), "shortcuts plus one Filters control");
   assert.ok(!browser.includes("x-collections") && !browser.includes("directory-count"), "clutter controls removed");
   assert.ok(!/w-\[|min-w-\[|whitespace-nowrap|<table/.test(browser), "no overflow-prone constructs");
+  assert.ok(browser.includes("v-tiles") && browser.includes("AssetTile"), "visual asset grid exists");
+  assert.ok(browser.includes('get("asset")') && browser.includes("AssetSheet"), "route-aware sheet (?asset=)");
+  assert.ok(browser.includes("v-filter-tabs"), "compact filter tabs");
+  assert.ok(!/Source review|Role check|Vicus never holds funds|source-review pills/i.test(browser + tileSrc), "no source-review clutter on tiles");
+  assert.ok(!/apy|\$\d|tvl|guaranteed/i.test(tileSrc), "no fake metrics on tiles");
+  assert.ok(sheetSrc.includes("What you can do") && sheetSrc.includes("About") && sheetSrc.includes("Issuer") && sheetSrc.includes("Representation"), "sheet hierarchy: actions, about, issuer, representation");
+  assert.ok(sheetSrc.includes("Continue to official flow") && sheetSrc.includes("v-sheet-backdrop"), "action disclosure + backdrop close");
+
+  // 7. Official brand imagery renders from local files with provenance.
+  const visuals = readFileSync(join(ROOT, "src/lib/asset-visuals.ts"), "utf8");
+  for (const file of ["apple.svg", "nvidia.png", "wisdomtree.png", "circle-usdc.svg", "paypal-pyusd.svg", "ondo-usdy.svg"]) {
+    assert.ok(existsSync(join(ROOT, "public/assets/brands", file)), `brand file exists: ${file}`);
+  }
+  for (const slug of ["aaplx-on-solana", "aaplc-on-base", "nvdac-on-base", "wtgxx-on-stellar", "usdc-on-stellar", "pyusd-on-stellar", "usdy-on-stellar"]) {
+    assert.ok(visuals.includes(`"${slug}"`) && visuals.includes("/assets/brands/"), `${slug}: mapped to a local brand file`);
+  }
+  assert.ok(visuals.includes("officialSource") && visuals.includes("sourcePage"), "provenance retained per file");
+  assert.ok(visuals.includes("https://www.apple.com") && visuals.includes("https://www.nvidia.com") && visuals.includes("https://www.paypalobjects.com"), "official-domain sources only");
+  // Only the Akamai-blocked issuers may fall back (Tesla, Franklin/BENJI).
+  const fallbackSlugs = [...visuals.matchAll(/"([a-z0-9-]+)":\s*\{[^}]*?localSrc:\s*null/g)].map((m) => m[1]);
+  assert.ok(fallbackSlugs.every((s) => s === "tslax-on-solana" || s === "benji-on-stellar"), `fallback-only: ${fallbackSlugs.join(",")}`);
+  // Every mapped localSrc resolves to a real file (tiles never 404).
+  for (const match of visuals.matchAll(/localSrc:\s*"([^"]+)"/g)) {
+    const rel = match[1].replace(/^\//, "");
+    assert.ok(existsSync(join(ROOT, "public", rel)), `mapped file renders: ${match[1]}`);
+  }
+
+  // 8. Mobile grid is two columns at 390/430 with no single-col collapse.
+  const css = readFileSync(join(ROOT, "src/app/vicus-system.css"), "utf8");
+  assert.ok(css.includes(".v-tiles") && css.includes("repeat(2, minmax(0, 1fr))"), "two-column tile grid");
+  assert.ok(css.includes("@media (max-width: 340px)"), "single-column only at tiny viewports");
+  assert.ok(css.includes("@media (min-width: 768px)"), "tablet/desktop widens columns");
+  assert.ok(tileSrc.includes("v-tile-logo") && tileSrc.includes("v-tile-visual"), "imagery is the strongest tile element");
+  assert.ok(!/summary|description|eligibilityNote|sourceStatus/i.test(tileSrc), "tile carries no long descriptions");
+
+  // 9. Sheet defaults to ~two-thirds viewport with a 2-column action grid.
+  assert.ok(/\.v-sheet\s*\{[^}]*max-height:\s*66d?vh/.test(css), "sheet default ~2/3 viewport");
+  assert.ok(css.includes(".v-sheet-actions") && css.includes(".v-sheet-action.is-open"), "compact action grid with full-width disclosure");
 
   console.log("stellar-home:verified");
 }

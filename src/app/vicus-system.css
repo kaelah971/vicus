@@ -3545,3 +3545,322 @@ a.v-row:hover {
     width: 2px;
   }
 }
+
+/* ---------- Visual asset tiles (mobile-first catalogue) ---------- */
+.v-tiles {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 8px;
+}
+
+.v-tile {
+  background:
+    radial-gradient(70% 60% at 50% 0%, rgba(var(--tone-rgb, 139 43 255), 0.16), transparent 70%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(16, 15, 22, 0.98) 46%, #0b0b0e);
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  border-radius: 22px;
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px 14px 14px;
+  text-align: center;
+  text-decoration: none;
+  transition: border-color 160ms ease-out, transform 160ms ease-out;
+}
+
+button.v-tile { cursor: pointer; font: inherit; width: 100%; }
+
+.v-tile:hover {
+  border-color: rgba(var(--fg-rgb), 0.22);
+  transform: translateY(-2px);
+}
+
+.v-tile-visual {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 92px;
+}
+
+.v-tile-mark {
+  align-items: center;
+  background: radial-gradient(circle at 34% 26%, #4a4956 0%, #232228 52%, #0e0d12 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 30px -16px rgba(0, 0, 0, 0.8);
+  color: #f4f4f8;
+  display: inline-flex;
+  font-size: 1.35rem;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: -0.02em;
+  min-height: 76px;
+  min-width: 76px;
+  padding: 12px 16px;
+}
+
+.v-tile-mark-lg { font-size: 1.6rem; min-height: 88px; min-width: 88px; }
+
+.v-tile-logo { border-radius: 18px; max-height: 88px; max-width: 100%; object-fit: contain; }
+
+.v-tile-body { display: grid; gap: 2px; min-width: 0; }
+.v-tile-body strong { font-size: 1.02rem; letter-spacing: -0.02em; }
+.v-tile-name { color: var(--foreground); font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-tile-sub { color: var(--muted); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-tile-chain { color: var(--subtle); font-size: 0.7rem; }
+
+.v-tile-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.v-tile-acts span {
+  background: rgba(var(--fg-rgb), 0.07);
+  border-radius: 999px;
+  color: var(--subtle);
+  font-size: 0.62rem;
+  font-weight: 500;
+  padding: 4px 8px;
+}
+
+/* ---------- Compact filter tabs ---------- */
+.v-filter-tabs .x-pills button,
+.x-pills.v-filter-tabs button {
+  font-size: 0.74rem;
+  min-height: 32px;
+  padding: 0 11px;
+}
+
+.v-filter-tabs {
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* ---------- Preview sheet (bottom sheet mobile, dialog desktop) ---------- */
+.v-sheet-root { inset: 0; position: fixed; z-index: 80; }
+.v-sheet-backdrop {
+  background: rgba(4, 4, 8, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+.v-sheet {
+  background: #121218;
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  max-height: 80vh;
+  min-height: 0;
+  position: absolute;
+  right: 0;
+}
+.v-sheet-grab {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  height: 4px;
+  margin: 10px auto 2px;
+  width: 40px;
+}
+.v-sheet-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 20px calc(20px + env(safe-area-inset-bottom));
+}
+.v-sheet-head { align-items: center; display: flex; gap: 14px; padding: 10px 0 4px; }
+.v-sheet-visual { align-items: center; display: flex; flex: none; justify-content: center; min-width: 88px; }
+.v-sheet-title { display: grid; flex: 1; gap: 1px; min-width: 0; text-align: left; }
+.v-sheet-title strong { font-size: 1.25rem; letter-spacing: -0.02em; }
+.v-sheet-title span { font-size: 0.9rem; }
+.v-sheet-title small { color: var(--muted); font-size: 0.74rem; }
+.v-sheet-close {
+  background: rgba(var(--fg-rgb), 0.07);
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  border-radius: 50%;
+  color: var(--foreground);
+  flex: none;
+  font-size: 0.85rem;
+  height: 32px;
+  width: 32px;
+}
+.v-sheet-subject { color: var(--muted); font-size: 0.8rem; margin: 6px 0 0; }
+.v-sheet-h { font-size: 0.72rem; letter-spacing: 0.08em; margin: 18px 0 8px; text-transform: uppercase; color: var(--subtle); }
+.v-sheet-actions { display: grid; gap: 8px; }
+.v-sheet-action { border: 1px solid rgba(var(--fg-rgb), 0.09); border-radius: 16px; overflow: hidden; }
+.v-sheet-action > button {
+  align-items: center;
+  background: rgba(var(--fg-rgb), 0.03);
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  padding: 12px;
+  text-align: left;
+  width: 100%;
+}
+.v-sheet-action > button span { display: grid; flex: 1; gap: 1px; min-width: 0; }
+.v-sheet-action strong { font-size: 0.9rem; }
+.v-sheet-action small { color: var(--muted); font-size: 0.74rem; }
+.v-sheet-chev { color: var(--subtle); }
+.v-sheet-action-detail { border-top: 1px solid rgba(var(--fg-rgb), 0.08); display: grid; gap: 8px; padding: 12px; }
+.v-sheet-action-detail p { color: var(--muted); font-size: 0.82rem; margin: 0; }
+.v-sheet-state { color: var(--foreground); font-size: 0.78rem; }
+.v-sheet-cta {
+  align-items: center;
+  border: 1px solid rgba(var(--fg-rgb), 0.16);
+  border-radius: 12px;
+  color: var(--foreground);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 500;
+  justify-content: center;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+.v-sheet-copy { color: var(--muted); font-size: 0.86rem; line-height: 1.55; margin: 0; }
+.v-sheet-copy.small { font-size: 0.78rem; }
+.v-sheet-rep { border: 1px solid rgba(var(--fg-rgb), 0.09); border-radius: 14px; padding: 10px 12px; }
+.v-sheet-rep summary { cursor: pointer; font-size: 0.84rem; }
+.v-sheet-foot { padding: 20px 0 6px; }
+.v-sheet-open {
+  align-items: center;
+  background: #fff;
+  border-radius: 14px;
+  color: #0b0b0e;
+  display: flex;
+  font-weight: 600;
+  justify-content: center;
+  padding: 13px;
+  text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .v-sheet {
+    border: 1px solid rgba(var(--fg-rgb), 0.12);
+    border-radius: 24px;
+    bottom: auto;
+    left: 50%;
+    max-height: 82vh;
+    max-width: 560px;
+    right: auto;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 48px);
+  }
+  .v-sheet-grab { display: none; }
+}
+
+@media (max-width: 760px) {
+  .v-tiles { gap: 10px; }
+  .v-tile { padding: 16px 10px 12px; }
+  .v-tile-visual { min-height: 84px; }
+  .x-browser { padding-bottom: 96px; }
+  .circle-page-body { padding-bottom: 96px; }
+}
+
+/* ---------- Correction pass: real brand stages, 2-col mobile grid, 2/3 sheet ---------- */
+.v-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Logo stage is the strongest element in the tile. Light marks sit on a
+   soft white panel; the white Apple mark keeps a dark stage. */
+.v-tile-visual {
+  border-radius: 16px;
+  min-height: 104px;
+  padding: 14px 10px;
+}
+
+.v-tile-stage-light {
+  background: linear-gradient(170deg, #ffffff, #e9e7f2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 24px -14px rgba(0, 0, 0, 0.7);
+}
+
+.v-tile-stage-dark {
+  background: radial-gradient(80% 90% at 50% 10%, rgba(255, 255, 255, 0.08), rgba(10, 10, 14, 0.6));
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+}
+
+.v-tile-logo {
+  max-height: 72px;
+  width: 100%;
+}
+
+/* Sheet hero: large official visual above the title. */
+.v-sheet-hero {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  padding: 10px 0 4px;
+}
+
+.v-sheet-stage {
+  align-items: center;
+  border-radius: 18px;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  min-height: 104px;
+  padding: 14px;
+  width: 132px;
+}
+
+.v-sheet-logo {
+  max-height: 76px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Default presentation is about two-thirds of the viewport so the grid
+   stays visibly present above the sheet. Content scrolls internally. */
+.v-sheet {
+  max-height: 66vh;
+  max-height: 66dvh;
+}
+
+/* Compact 2-column action grid; an opened action spans the full width. */
+.v-sheet-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.v-sheet-action.is-open {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .v-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .v-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 340px) {
+  .v-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .v-sheet-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Desktop dialog keeps its taller presentation (mobile 2/3 rule above must not win). */
+@media (min-width: 900px) {
+  .v-sheet {
+    max-height: 82vh;
+  }
+}

@@ -113,21 +113,6 @@ export default async function Home() {
                   Put assets to work
                 </ButtonLink>
               </div>
-              <div className="hero-values">
-                {[
-                  { icon: "compass", title: "Discover", line: "Stellar-first asset universe.", href: "/discover" },
-                  { icon: "layers", title: "Compare", line: "Exact representations, side by side.", href: "/compare?assets=aaplx-on-solana,aaplc-on-base" },
-                  { icon: "bolt", title: "Use", line: "Real actions on what you hold.", href: "/use" },
-                ].map((item) => (
-                  <Link className="hero-value" href={item.href} key={item.title}>
-                    <Orb icon={item.icon as "compass"} size="sm" tone="white" />
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>{item.line}</small>
-                    </span>
-                  </Link>
-                ))}
-              </div>
               <p className="trust-line">
                 Educational product. Not financial advice.
               </p>
