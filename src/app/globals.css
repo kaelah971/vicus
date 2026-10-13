@@ -878,7 +878,7 @@ button:focus-visible {
   align-items: center;
   display: grid;
   gap: clamp(24px, 4vw, 96px);
-  grid-template-columns: minmax(0, 0.92fr) minmax(380px, 1.08fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: calc(100svh - 77px);
 }
 
@@ -915,6 +915,91 @@ button:focus-visible {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 36px;
+}
+
+.hero-values {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 36px;
+  max-width: 640px;
+}
+
+.hero-value {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.hero-value span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hero-value strong {
+  font-size: 0.95rem;
+}
+
+.hero-value small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* ---------- Watch primitives (positions, watch, use, subjects) ---------- */
+.watch-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.watch-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.watch-card p {
+  margin: 0;
+}
+
+.watch-row {
+  align-items: start;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.watch-row > div:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.watch-row-side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .watch-grid {
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .watch-card {
+    padding: 24px 20px;
+  }
 }
 
 .trust-line {
@@ -3690,6 +3775,11 @@ button:focus-visible {
 
   .trust-line {
     margin-bottom: 44px;
+  }
+
+  .hero-values {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 28px;
   }
 
   .hero-scene {

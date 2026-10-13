@@ -373,12 +373,7 @@ export function ActionTray({ actions, layout = "grid" }: { actions: ActionItem[]
             <Orb icon={action.icon} size="lg" tone={action.tone} />
             <span className="v-action-text">
               <strong>{action.label}</strong>
-              {action.state ? (
-                <small>
-                  <span aria-hidden="true" className={cx("v-state-dot", action.live && "is-live")} />
-                  {action.state}
-                </small>
-              ) : null}
+              {action.state ? <small>{action.state}</small> : null}
             </span>
           </>
         );
@@ -457,7 +452,7 @@ export function MissionStrip({
     <Link className={cx("v-mission-strip", edgeClass("live"), "tone-green")} href={href}>
       <EdgeLight />
       <span className="v-mission-strip-tag">
-        <span aria-hidden="true" className="v-state-dot is-live" /> Mission available
+        Mission available
       </span>
       <span className="v-mission-strip-main">
         <strong>{title}</strong>

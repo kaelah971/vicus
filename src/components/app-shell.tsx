@@ -133,7 +133,7 @@ export async function AppShell({
         <div className="shell nav-inner">
           <div className="mobile-wordmark"><VicusWordmark /></div>
           <div className="nav-actions">
-            <WalletAuthButton ecosystems={ecosystems} />
+            <WalletAuthButton />
             <Link className="nav-issuer" href="/admin">
               Issuer access
             </Link>

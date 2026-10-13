@@ -11,16 +11,13 @@ import {
   GlowField,
   MetricTile,
   Orb,
-  PhoneFrame,
   SectionHead,
   StepFlow,
   capabilityMeta,
   EdgeLight,
   edgeClass,
-  missionTypeMeta,
   type ActionItem,
 } from "@/components/vicus-ui";
-import { VicusHeroVisual } from "@/components/vicus-hero-visual";
 import { VicusFooter } from "@/components/vicus-footer";
 import { isDatabaseUnavailableError } from "@/db";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
@@ -61,7 +58,6 @@ export default async function Home() {
 
   const assets = circles.filter(isAssetCircle);
   const featured = assets.find((circle) => circle.slug === "usdc-on-stellar") ?? assets[0] ?? null;
-  const ecosystems = Array.from(new Map(assets.map((circle) => [circle.ecosystem, circle.ecosystemLabel])));
   const sameAsset = featured
     ? assets.filter((circle) => circle.code === featured.code && circle.slug !== featured.slug)
     : [];
@@ -107,29 +103,33 @@ export default async function Home() {
             <div className="hero-copy">
               <span className="eyebrow hero-eyebrow">STELLAR IS HOME FOR TOKENIZED ASSETS</span>
               <h1 className="hero-title">Tokenized assets need a place to belong.</h1>
-              <p className="hero-support">Start on Stellar — discover its tokenized funds and assets, put them to work, and extend outward where connected ecosystems add more.</p>
+              <p className="hero-support">Start on Stellar. Discover real tokenized assets, compare representations, use what you hold.</p>
               <div className="hero-actions">
                 <ButtonLink href="/discover" variant="white">
                   Explore Vicus <Icon name="arrow-right" size={16} />
                 </ButtonLink>
-                <ButtonLink href="#how-it-works" variant="glass">
-                  How it works
+                <ButtonLink href="/use" variant="glass">
+                  Put assets to work
                 </ButtonLink>
               </div>
-              {!databaseUnavailable ? (
-                <div className="hero-mini" aria-label="Live on Vicus">
-                  <span><strong>{assets.length}</strong> assets</span>
-                  <span><strong>{ecosystems.length}</strong> ecosystems</span>
-                  <span><strong>{missions.length}</strong> open missions</span>
-                </div>
-              ) : null}
+              <div className="hero-values">
+                {[
+                  { icon: "compass", title: "Discover", line: "Stellar-first asset universe.", href: "/discover" },
+                  { icon: "layers", title: "Compare", line: "Exact representations, side by side.", href: "/compare?assets=aaplx-on-solana,aaplc-on-base" },
+                  { icon: "bolt", title: "Use", line: "Real actions on what you hold.", href: "/use" },
+                ].map((item) => (
+                  <Link className="hero-value" href={item.href} key={item.title}>
+                    <Orb icon={item.icon as "compass"} size="sm" tone="white" />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.line}</small>
+                    </span>
+                  </Link>
+                ))}
+              </div>
               <p className="trust-line">
-                Educational and community product. Not financial advice. Asset access and reward
-                eligibility vary by issuer and region.
+                Educational product. Not financial advice.
               </p>
-            </div>
-            <div className="hero-visual">
-              <VicusHeroVisual />
             </div>
           </div>
         </section>
@@ -355,44 +355,16 @@ export default async function Home() {
               </div>
               <div className="l-activate-visual">
                 <GlowField tones={["green", "violet"]} />
-                <PhoneFrame edgeTone="green" label="Mission preview">
-                  <div className="phone-ui">
-                    <span className="phone-ui-top">
-                      <span>Mission</span>
-                      <span className="v-chip tone-green">{missionTypeMeta(spotlightMission.type).label}</span>
-                    </span>
-                    <span className="phone-ui-title">{spotlightMission.title}</span>
-                    <span className="phone-ui-sub">{spotlightMission.circle.name}</span>
-                    <span className="phone-ui-steps">
-                      {[
-                        ["bolt", "Use", "green"],
-                        ["shield", "Prove", "blue"],
-                        ["gift", "Earn", "white"],
-                      ].map(([icon, label, tone], index) => (
-                        <span className={`phone-ui-step tone-${tone}`} key={label}>
-                          <Orb icon={icon as "bolt"} size="sm" tone={tone as "green"} />
-                          <span>{label}</span>
-                          {index < 2 ? <i /> : null}
-                        </span>
-                      ))}
-                    </span>
-                    <span className="phone-ui-tiles">
-                      <span><strong>{spotlightMission.points}</strong><small>points</small></span>
-                      <span>
-                        <strong>{spotlightMission.reward !== NO_REWARD ? spotlightMission.reward : "—"}</strong>
-                        <small>{spotlightMission.reward !== NO_REWARD ? (rewardNetwork ?? "reward") : "no reward"}</small>
-                      </span>
-                    </span>
-                    {activation ? (
-                      <span className="phone-ui-proof">
-                        <Glyph name="shield" size={14} /> Transaction proof · Stellar Mainnet
-                      </span>
-                    ) : null}
-                    <span className="phone-ui-cta">
-                      {activation ? "Start activation" : "Start mission"} <Glyph name="arrow" size={15} />
-                    </span>
-                  </div>
-                </PhoneFrame>
+                <div className="l-activate-proof">
+                  <Orb icon="shield" size="lg" tone="green" />
+                  <p><strong>{activation ? "Prove it onchain" : "Build a verifiable record"}</strong></p>
+                  <p className="muted small">
+                    {activation
+                      ? "Your transaction is the proof. Vicus verifies it on Stellar Mainnet."
+                      : "Approved missions build your contributor record."}
+                  </p>
+                  <p className="muted small">{spotlightMission.points} points{spotlightMission.reward !== NO_REWARD ? ` · ${spotlightMission.reward}` : ""}</p>
+                </div>
               </div>
             </div>
           </section>

@@ -25,7 +25,8 @@
 - [x] 5. Personalized Activity — DONE
 - [x] 6. Earn / Use Discovery — DONE
 - [x] 6b. /use Asset-First UX Fix — DONE
-- [x] 6c. Rewards Nav Fix — DONE (this invocation)
+- [x] 6c. Rewards Nav Fix — DONE
+- [x] 6d. Mobile-First UI Simplification — DONE (this invocation)
 - [x] 7. IA + Mobile Polish — DONE
 
 ## Completed (Wave 3 Slice 7)

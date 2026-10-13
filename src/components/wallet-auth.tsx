@@ -93,7 +93,7 @@ async function fetchSessionState(): Promise<SessionState> {
   };
 }
 
-export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] }: { showMobileNavigation?: boolean; ecosystems?: Array<{ value: string; label: string }> } = {}) {
+export function WalletAuthButton({ showMobileNavigation = true }: { showMobileNavigation?: boolean } = {}) {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -269,6 +269,19 @@ export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] 
       <Link className="wallet-menu-link" href="/discover" onClick={() => setMobileMenuOpen(false)}>
         Discover
       </Link>
+      <Link className="wallet-menu-link" href="/use" onClick={() => setMobileMenuOpen(false)}>
+        Use
+      </Link>
+      <Link className="wallet-menu-link" href="/circles" onClick={() => setMobileMenuOpen(false)}>
+        Circles
+      </Link>
+      <Link className="wallet-menu-link" href="/activity" onClick={() => setMobileMenuOpen(false)}>
+        Activity
+      </Link>
+      <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
+        You
+      </Link>
+      <span className="wallet-menu-label">More</span>
       <Link className="wallet-menu-link" href="/missions" onClick={() => setMobileMenuOpen(false)}>
         Missions
       </Link>
@@ -278,25 +291,12 @@ export function WalletAuthButton({ showMobileNavigation = true, ecosystems = [] 
       <Link className="wallet-menu-link" href="/spaces" onClick={() => setMobileMenuOpen(false)}>
         Spaces
       </Link>
-      <Link className="wallet-menu-link" href="/profile/me" onClick={() => setMobileMenuOpen(false)}>
-        Profile
+      <Link className="wallet-menu-link" href="/rewards" onClick={() => setMobileMenuOpen(false)}>
+        Rewards
       </Link>
-      {ecosystems.length > 0 ? (
-        <>
-          <span className="wallet-menu-label">Ecosystems</span>
-          {ecosystems.map((ecosystem) => (
-            <Link className="wallet-menu-link" href={`/ecosystems/${encodeURIComponent(ecosystem.value)}`} key={ecosystem.value} onClick={() => setMobileMenuOpen(false)}>
-              {ecosystem.label}
-            </Link>
-          ))}
-        </>
-      ) : null}
       <span className="wallet-menu-label">For projects</span>
       <Link className="wallet-menu-link" href="/host" onClick={() => setMobileMenuOpen(false)}>
         Host on Vicus
-      </Link>
-      <Link className="wallet-menu-link" href="/admin" onClick={() => setMobileMenuOpen(false)}>
-        Issuer access
       </Link>
     </nav>
   );

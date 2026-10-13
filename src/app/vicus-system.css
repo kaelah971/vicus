@@ -1454,6 +1454,35 @@ a.v-row:hover {
   scrollbar-width: thin;
 }
 
+.x-beyond {
+  margin-top: 8px;
+}
+
+.x-beyond .x-block-head h2 {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+@media (max-width: 760px) {
+  .x-rail {
+    gap: 20px;
+    grid-auto-columns: minmax(240px, 82vw);
+  }
+
+  .circle-card.asset-card {
+    gap: 18px;
+    padding: 24px 20px;
+  }
+
+  .x-block-head {
+    margin-bottom: 16px;
+  }
+
+  .x-browser section + section {
+    margin-top: 12px;
+  }
+}
+
 .x-block-head {
   align-items: baseline;
   display: flex;
@@ -1917,6 +1946,20 @@ a.v-row:hover {
   min-height: 600px;
   place-items: center;
   position: relative;
+}
+
+.l-activate-proof {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 300px;
+  position: relative;
+  text-align: center;
+}
+
+.l-activate-proof p {
+  margin: 0;
 }
 
 .l-community-stage {

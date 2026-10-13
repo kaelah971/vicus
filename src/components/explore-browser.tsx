@@ -312,7 +312,7 @@ export function ExploreBrowser({
         </section>
       ) : null}
       {beyondCircles.length > 0 ? (
-        <section aria-label="Assets beyond Stellar">
+        <section aria-label="Assets beyond Stellar" className="x-beyond">
           <div className="x-block-head">
             <h2>Beyond Stellar</h2>
             <span>Additional assets through connected ecosystems</span>
