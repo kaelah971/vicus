@@ -5,6 +5,7 @@ import { seedAssetActions } from "./seed-asset-actions";
 import { getCircleCapabilities } from "../src/lib/utility/service";
 import { getSendableAsset } from "../src/lib/send/service";
 import { getExecutionGate } from "../src/lib/asset-access/service";
+import { LENDING_MARKET_URL } from "../src/lib/lending/config";
 import { getCircleLifecycle } from "../src/lib/lifecycle/service";
 import {
   ACTION_ADAPTERS,
@@ -94,8 +95,15 @@ async function main() {
   assert.ok(!aaplc.some((action) => action.kind === "send" || action.kind === "move"), "no fake AAPLc execution");
 
   // 5. Unsupported actions are absent everywhere — never coming_soon bait.
+  // Lending V1: AAPLc alone carries a verified Morpho borrow route; every
+  // other sampled asset must stay borrow/collateral-free.
   for (const [slug, actions] of Object.entries(sample)) {
-    assert.ok(!actions.some((action) => action.kind === "borrow" || action.kind === "collateral"), `${slug}: no unverified lending`);
+    if (slug === "aaplc-on-base") {
+      assert.ok(actions.some((action) => action.kind === "borrow"), "AAPLc verified borrow present");
+      assert.ok(!actions.some((action) => action.kind === "collateral"), "AAPLc: no collateralize action");
+    } else {
+      assert.ok(!actions.some((action) => action.kind === "borrow" || action.kind === "collateral"), `${slug}: no unverified lending`);
+    }
     assert.ok(!actions.some((action) => action.kind === "swap"), `${slug}: no unverified swaps`);
     assert.ok(!actions.some((action) => action.state === "coming_soon" || action.state === "unavailable"), `${slug}: no placeholder states`);
   }
@@ -130,9 +138,11 @@ async function main() {
   assert.ok(aaplc.every((action) => action.network === "Base"), "AAPLc actions carry Base network");
 
   // 10. Public payload leaks no private data: no user/order/wallet material,
-  // and no raw onchain addresses inside action copy.
+  // and no raw onchain addresses inside action copy. The verified Morpho
+  // market route (an app URL carrying the pinned market id) is exempt — it
+  // is a route, not a wallet or contract a user could confuse for one.
   for (const [slug, actions] of Object.entries(sample)) {
-    const payload = JSON.stringify(actions);
+    const payload = JSON.stringify(actions).split(LENDING_MARKET_URL).join("");
     assert.ok(!payload.includes("userId") && !payload.includes("orderId"), `${slug}: no user/order keys`);
     assert.ok(!/privateKey|seed phrase/i.test(payload), `${slug}: no secret-shaped fields`);
     assert.ok(!/0x[0-9a-fA-F]{40}/.test(payload), `${slug}: no raw addresses in actions`);

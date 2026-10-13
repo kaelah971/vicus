@@ -661,10 +661,88 @@ function txHash(): string {
     "completed campaign pays nothing",
   );
 
-  // 15. No Mainnet path: settlement builds Testnet envelopes only.
+  // 15. Exit campaigns: confirmed exits pay; swap/exit kinds never masquerade.
+  const exitFund = "e2".repeat(32);
+  const exitCampaign = await trackCampaign(createCampaign(
+    admin.id,
+    { circleSlug: "aaplx-on-solana", objective: "Exit AAPLx to USDC", targetAction: "exit", rewardPerCompletion: "1" },
+    TEST_ENV,
+  ));
+  horizon.transactions.set(exitFund, { ...fundingTx(TREASURY, "5.0000000"), hash: exitFund });
+  await verifyCampaignFunding(exitCampaign.id, admin.id, exitFund, horizon);
+  await activateCampaign(exitCampaign.id, admin.id);
+  await database.insert(externalUtilityOrders).values({
+    userId: alice.id,
+    targetCircleId: aaplx,
+    actionKind: "exit",
+    sourceMint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+    sourceAmountSubunits: "5000000",
+    targetMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    executionWallet: "7vL4zK9mQp2xRn8wYt5uHj3sDf6aGbVcXz1qWe4rT7",
+    venue: "jupiter",
+    eligibilityAcknowledged: true,
+    status: "confirmed",
+    swapSignature: "sig-exit",
+    completedAt: new Date(),
+  });
+  const [exitOrder] = await database
+    .select({ id: externalUtilityOrders.id })
+    .from(externalUtilityOrders)
+    .where(eq(externalUtilityOrders.swapSignature, "sig-exit"))
+    .limit(1);
+  const exitPaid = await claimCampaignReward(
+    exitCampaign.id,
+    alice.id,
+    DEST,
+    { kind: "exit", id: exitOrder!.id },
+    horizon,
+    TEST_ENV,
+  );
+  assert.equal(exitPaid.status, "paid", "confirmed exit rewarded");
+  const exitEligible = await listEligibleProofs(exitCampaign.id, alice.id);
+  assert.ok(!exitEligible.some((proof) => proof.id === exitOrder!.id), "used exit proof no longer eligible");
+  // Exit receipt cannot fund a swap campaign, and vice versa.
+  await expectCode(
+    claimCampaignReward(swapCampaign.id, alice.id, DEST, { kind: "swap", id: exitOrder!.id }, horizon, TEST_ENV),
+    "proof-invalid",
+    "exit receipt rejected by swap campaign",
+  );
+  await expectCode(
+    claimCampaignReward(exitCampaign.id, alice.id, DEST, { kind: "exit", id: swapOrder!.id }, horizon, TEST_ENV),
+    "proof-invalid",
+    "swap receipt rejected by exit campaign",
+  );
+  // Eligibility window: proofs completing after endsAt are rejected.
+  await database.update(campaigns).set({ endsAt: new Date(Date.now() - 1000) }).where(eq(campaigns.id, exitCampaign.id));
+  await database.insert(externalUtilityOrders).values({
+    userId: bob.id,
+    targetCircleId: aaplx,
+    actionKind: "exit",
+    sourceMint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+    sourceAmountSubunits: "5000000",
+    targetMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    executionWallet: "7vL4zK9mQp2xRn8wYt5uHj3sDf6aGbVcXz1qWe4rT7",
+    venue: "jupiter",
+    eligibilityAcknowledged: true,
+    status: "confirmed",
+    swapSignature: "sig-exit-late",
+    completedAt: new Date(),
+  });
+  const [lateOrder] = await database
+    .select({ id: externalUtilityOrders.id })
+    .from(externalUtilityOrders)
+    .where(eq(externalUtilityOrders.swapSignature, "sig-exit-late"))
+    .limit(1);
+  await expectCode(
+    claimCampaignReward(exitCampaign.id, bob.id, DEST, { kind: "exit", id: lateOrder!.id }, horizon, TEST_ENV),
+    "proof-invalid",
+    "post-window proof rejected",
+  );
+
+  // 16. No Mainnet path: settlement builds Testnet envelopes only.
   assert.ok(defaultCampaignHorizon, "horizon transport present");
 
-  console.log("campaign-funding:verify ok — 15 groups, all assertions passed.");
+  console.log("campaign-funding:verify ok — 16 groups, all assertions passed.");
 }
 
 main()

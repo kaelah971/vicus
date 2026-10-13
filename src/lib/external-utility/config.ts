@@ -53,6 +53,21 @@ export const SWAP_ELIGIBILITY_COPY =
   "xStocks are not available in the United States, to US persons, or in other restricted jurisdictions. By continuing you confirm you are eligible under the issuer and venue terms. Vicus does not verify eligibility.";
 
 /**
+ * Broader Access V1 — TSLAx (Tesla xStock by Backed) on Solana.
+ * Source-verified (October 2026): mint XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB
+ * via Jupiter's curated token search (exact symbol TSLAx, "Tesla xStock",
+ * 8 decimals, Backed metadata domain, Token-2022 program, ~229k supply)
+ * with pump/meme look-alikes excluded; live 25-USDC quote verified
+ * (0.066 TSLAx, ~0% impact) the same day. Same issuer, venue, slippage,
+ * and eligibility policy as AAPLx — one shared adapter, config-driven.
+ */
+export const TSLAX_SLUG = "tslax-on-solana" as const;
+export const TSLAX_MINT = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
+export const TSLAX_CODE = "TSLAx";
+export const TSLAX_DECIMALS = 8;
+export const TSLAX_ISSUER = "Backed (xStocks)";
+
+/**
  * Exit V1 — reverse executable route: AAPLx → Jupiter → Solana USDC.
  * Same verified mints, venue, slippage, and TTL as the entry swap;
  * only the direction flips. Server owns mints; wallet signs; server
@@ -100,3 +115,43 @@ export const SWAP_TARGET_ASSET: SwapTargetAsset = {
   eligibilityNote:
     "Not available in the United States, to US persons, or in other restricted jurisdictions. Vicus performs no eligibility verification.",
 };
+
+export const TSLAX_TARGET_ASSET: SwapTargetAsset = {
+  slug: TSLAX_SLUG,
+  code: TSLAX_CODE,
+  label: "TSLAx",
+  assetClass: "equity_fund",
+  issuer: TSLAX_ISSUER,
+  network: "Solana",
+  ecosystem: "solana",
+  mint: TSLAX_MINT,
+  decimals: TSLAX_DECIMALS,
+  officialUrl: SWAP_OFFICIAL_URL,
+  verificationSourceUrl: SWAP_DOCS_URL,
+  representation:
+    "A Tesla xStock by Backed tracking Tesla: 1:1 backed by the underlying share, permissionless onchain transfers, self-custody, fractional by design.",
+  eligibilityNote:
+    "Not available in the United States, to US persons, or in other restricted jurisdictions. Vicus performs no eligibility verification.",
+};
+
+/**
+ * Executable Jupiter acquisition targets. One shared adapter serves every
+ * entry; each pins its exact mint, decimals, and identity server-side.
+ * Clients choose only the slug + amount — never mints, venues, or policy.
+ */
+export const SWAP_TARGETS: Record<string, SwapTargetAsset> = {
+  [SWAP_TARGET_SLUG]: SWAP_TARGET_ASSET,
+  [TSLAX_SLUG]: TSLAX_TARGET_ASSET,
+};
+
+export function isSwapTargetSlug(value: unknown): boolean {
+  return typeof value === "string" && value in SWAP_TARGETS;
+}
+
+export function getSwapTarget(slug: string): SwapTargetAsset | null {
+  return SWAP_TARGETS[slug] ?? null;
+}
+
+export function getSwapTargetByMint(mint: string): SwapTargetAsset | null {
+  return Object.values(SWAP_TARGETS).find((target) => target.mint === mint) ?? null;
+}

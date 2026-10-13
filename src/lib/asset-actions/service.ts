@@ -3,7 +3,8 @@ import { getCircleCapabilities, supportModeBadge, type AssetCapability } from "@
 import { getSendableAsset } from "@/lib/send/service";
 import { getExecutionGate } from "@/lib/asset-access/service";
 import { ROUTER_TARGET_ASSET } from "@/lib/asset-access/config";
-import { SWAP_TARGET_ASSET, SWAP_TARGET_SLUG } from "@/lib/external-utility/config";
+import { LENDING_COLLATERAL_SLUG, LENDING_LOAN_CODE, LENDING_MARKET_URL, LENDING_PROTOCOL } from "@/lib/lending/config";
+import { SWAP_TARGET_ASSET, SWAP_TARGET_SLUG, getSwapTarget, isSwapTargetSlug } from "@/lib/external-utility/config";
 import {
   ACTION_DISPLAY_ORDER,
   isKnownActionKind,
@@ -47,15 +48,15 @@ const moveAdapter: AssetActionAdapter = {
 
 const acquireAdapter: AssetActionAdapter = {
   kind: "access",
-  supports: (circleSlug) => circleSlug === ROUTER_TARGET_ASSET.slug || circleSlug === SWAP_TARGET_SLUG,
+  supports: (circleSlug) => circleSlug === ROUTER_TARGET_ASSET.slug || isSwapTargetSlug(circleSlug),
   href: (circleSlug) => `/acquire/${circleSlug}`,
   permissioned: () => true,
 };
 
 const swapUtilityAdapter: AssetActionAdapter = {
   kind: "swap",
-  supports: (circleSlug) => circleSlug === SWAP_TARGET_SLUG,
-  href: () => `/swap/${SWAP_TARGET_SLUG}`,
+  supports: (circleSlug) => isSwapTargetSlug(circleSlug),
+  href: (circleSlug) => `/swap/${circleSlug}`,
   permissioned: () => true,
 };
 
@@ -66,7 +67,16 @@ const exitAdapter: AssetActionAdapter = {
   permissioned: () => true,
 };
 
-export const ACTION_ADAPTERS: readonly AssetActionAdapter[] = [sendAdapter, moveAdapter, acquireAdapter, swapUtilityAdapter, exitAdapter];
+const borrowAdapter: AssetActionAdapter = {
+  kind: "borrow",
+  // Lending V1: exactly one verified market (AAPLc collateral on Morpho).
+  // Siblings never inherit this — support is pinned to the winning slug.
+  supports: (circleSlug) => circleSlug === LENDING_COLLATERAL_SLUG,
+  href: () => LENDING_MARKET_URL,
+  permissioned: () => false,
+};
+
+export const ACTION_ADAPTERS: readonly AssetActionAdapter[] = [sendAdapter, moveAdapter, acquireAdapter, swapUtilityAdapter, exitAdapter, borrowAdapter];
 
 function executionModeFor(capability: AssetCapability): ActionExecutionMode {
   if (capability.supportMode === "in_vicus") return "vicus";
@@ -149,20 +159,21 @@ export async function resolveAssetActions(
         live: true,
       });
     } else if (adapter.kind === "access") {
-      if (circleSlug === SWAP_TARGET_SLUG) {
-        // Generalized Access V1: Solana USDC funds AAPLx through the live
-        // Jupiter swap adapter. Stellar USDC stays gated (see acquire page).
+      const swapTarget = getSwapTarget(circleSlug);
+      if (swapTarget) {
+        // Executable Jupiter acquisition: Solana USDC funds the registry
+        // target through live routing. Stellar USDC stays gated (acquire page).
         resolved.push({
           kind: "access",
-          title: "Access AAPLx",
+          title: `Access ${swapTarget.code}`,
           description: "Fund with Solana USDC through live Jupiter routing. Your wallet signs; Vicus verifies.",
           state: "available",
           stateLabel: "Solana USDC · Jupiter",
           executionMode: "connected",
           href: adapter.href(circleSlug),
           external: false,
-          sourceUrl: SWAP_TARGET_ASSET.verificationSourceUrl,
-          eligibilityNote: SWAP_TARGET_ASSET.eligibilityNote,
+          sourceUrl: swapTarget.verificationSourceUrl,
+          eligibilityNote: swapTarget.eligibilityNote,
           network,
           live: true,
         });
@@ -186,17 +197,18 @@ export async function resolveAssetActions(
       });
       }
     } else if (adapter.kind === "swap") {
+      const swapTarget = getSwapTarget(circleSlug) ?? SWAP_TARGET_ASSET;
       resolved.push({
         kind: "swap",
         title: "Swap",
-        description: `Swap Solana USDC for ${SWAP_TARGET_ASSET.code} with live Jupiter routing. Funded from your connected Solana wallet.`,
+        description: `Swap Solana USDC for ${swapTarget.code} with live Jupiter routing. Funded from your connected Solana wallet.`,
         state: "available",
         stateLabel: "Jupiter · Solana",
         executionMode: "connected",
         href: adapter.href(circleSlug),
         external: false,
-        sourceUrl: SWAP_TARGET_ASSET.verificationSourceUrl,
-        eligibilityNote: SWAP_TARGET_ASSET.eligibilityNote,
+        sourceUrl: swapTarget.verificationSourceUrl,
+        eligibilityNote: swapTarget.eligibilityNote,
         network,
         live: true,
       });
@@ -212,6 +224,24 @@ export async function resolveAssetActions(
         external: false,
         sourceUrl: SWAP_TARGET_ASSET.verificationSourceUrl,
         eligibilityNote: SWAP_TARGET_ASSET.eligibilityNote,
+        network,
+        live: true,
+      });
+    } else if (adapter.kind === "borrow") {
+      // Lending V1 (CONNECTED): post AAPLc as collateral on the verified
+      // Morpho market and borrow USDC in the exact protocol flow. Vicus
+      // reads market state but never builds or signs Morpho transactions.
+      resolved.push({
+        kind: "borrow",
+        title: "Borrow against",
+        description: `Post ${ROUTER_TARGET_ASSET.code} as collateral on ${LENDING_PROTOCOL} and borrow ${LENDING_LOAN_CODE} in the verified market flow.`,
+        state: "available",
+        stateLabel: `${LENDING_PROTOCOL} · Base`,
+        executionMode: "connected",
+        href: adapter.href(circleSlug),
+        external: true,
+        sourceUrl: "https://docs.morpho.org/",
+        eligibilityNote: ROUTER_TARGET_ASSET.eligibilityNote,
         network,
         live: true,
       });

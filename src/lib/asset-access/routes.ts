@@ -14,6 +14,8 @@ import {
   SWAP_TARGET_ASSET,
   SWAP_TARGET_MINT,
   SWAP_VENUE,
+  TSLAX_TARGET_ASSET,
+  getSwapTargetByMint,
 } from "@/lib/external-utility/config";
 
 /**
@@ -74,6 +76,53 @@ export const ACCESS_ROUTES: readonly AccessRoute[] = [
     reasonUnavailable:
       "Route not currently executable: Vicus Access CCTP is Testnet-only and supports no Solana route, so Stellar USDC cannot fund this acquisition today.",
     href: `/acquire/${SWAP_TARGET_ASSET.slug}`,
+  },
+  {
+    id: "solana-usdc-to-tslax",
+    sourceNetwork: "solana",
+    sourceAsset: SWAP_SOURCE_CODE,
+    sourceMint: SWAP_SOURCE_MINT,
+    sourceDecimals: SWAP_SOURCE_DECIMALS,
+    targetNetwork: "solana",
+    targetSlug: TSLAX_TARGET_ASSET.slug,
+    targetCode: TSLAX_TARGET_ASSET.code,
+    targetMint: TSLAX_TARGET_ASSET.mint,
+    adapter: "jupiter-swap",
+    executable: true,
+    reasonUnavailable: null,
+    href: `/swap/${TSLAX_TARGET_ASSET.slug}`,
+  },
+  {
+    id: "stellar-usdc-to-tslax",
+    sourceNetwork: "stellar",
+    sourceAsset: "USDC",
+    sourceMint: null,
+    sourceDecimals: 6,
+    targetNetwork: "solana",
+    targetSlug: TSLAX_TARGET_ASSET.slug,
+    targetCode: TSLAX_TARGET_ASSET.code,
+    targetMint: TSLAX_TARGET_ASSET.mint,
+    adapter: "jupiter-swap",
+    executable: false,
+    reasonUnavailable:
+      "Route not currently executable: Vicus Access CCTP is Testnet-only and supports no Solana route, so Stellar USDC cannot fund this acquisition today.",
+    href: `/acquire/${TSLAX_TARGET_ASSET.slug}`,
+  },
+  {
+    id: "base-usdc-to-nvdac",
+    sourceNetwork: "base",
+    sourceAsset: "USDC",
+    sourceMint: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    sourceDecimals: 6,
+    targetNetwork: "base",
+    targetSlug: "nvdac-on-base",
+    targetCode: "NVDAc",
+    targetMint: "0xb20000000000000000000078ee7ce2fE4908108C",
+    adapter: "aerodrome-router",
+    executable: false,
+    reasonUnavailable:
+      "Route not currently executable: the verified Aerodrome venue quotes revert for USDC → NVDAc (no real liquidity), so Vicus cannot acquire it today.",
+    href: "/acquire/nvdac-on-base",
   },
   {
     id: "stellar-usdc-to-aaplc",
@@ -139,8 +188,9 @@ export function requireExecutableRoute(input: {
       409,
     );
   }
-  // Defense in depth: an executable Jupiter route must pin canonical mints.
-  if (route.adapter === "jupiter-swap" && (route.sourceMint !== SWAP_SOURCE_MINT || route.targetMint !== SWAP_TARGET_MINT)) {
+  // Defense in depth: an executable Jupiter route must pin a canonical
+  // registry mint on both legs — never an arbitrary address.
+  if (route.adapter === "jupiter-swap" && (route.sourceMint !== SWAP_SOURCE_MINT || !getSwapTargetByMint(route.targetMint))) {
     throw new AccessOrderError("execution-disabled", "That funding route is not executable right now.", 409);
   }
   if (route.adapter === "aerodrome-router" && route.targetMint !== ROUTER_TARGET_ASSET.contractAddress) {

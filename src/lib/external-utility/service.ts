@@ -9,6 +9,10 @@ import {
   EXIT_TARGET_DECIMALS,
   EXIT_TARGET_MINT,
   JUPITER_LITE_BASE,
+  getSwapTarget,
+  getSwapTargetByMint,
+  isSwapTargetSlug,
+  SWAP_TARGETS,
   SOLANA_EXPLORER_TX,
   SOLANA_RPC_URL,
   SWAP_ACTION_KIND,
@@ -20,8 +24,6 @@ import {
   SWAP_SOURCE_DECIMALS,
   SWAP_SOURCE_MINT,
   SWAP_TARGET_ASSET,
-  SWAP_TARGET_CODE,
-  SWAP_TARGET_DECIMALS,
   SWAP_TARGET_MINT,
   SWAP_TARGET_SLUG,
   SWAP_VENUE,
@@ -113,13 +115,13 @@ export type SolanaTransport = {
   sendRawTransaction?(base64Tx: string): Promise<string | null>;
 };
 
-async function defaultJupiterQuote(amountInSubunits: string): Promise<{ outAmount: string } | null> {
+async function defaultJupiterQuote(amountInSubunits: string, outputMint: string = SWAP_TARGET_MINT): Promise<{ outAmount: string } | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
     const url =
       `${JUPITER_LITE_BASE}/swap/v1/quote?inputMint=${SWAP_SOURCE_MINT}` +
-      `&outputMint=${SWAP_TARGET_MINT}&amount=${amountInSubunits}&slippageBps=${SWAP_SLIPPAGE_BPS}`;
+      `&outputMint=${outputMint}&amount=${amountInSubunits}&slippageBps=${SWAP_SLIPPAGE_BPS}`;
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) return null;
     const payload = (await response.json().catch(() => null)) as { outAmount?: unknown } | null;
@@ -182,6 +184,10 @@ async function solanaRpc(method: string, params: unknown[]): Promise<unknown> {
 async function defaultTransactionDeltas(
   signature: string,
   owner: string,
+  // Target-asset delta: AAPLx for entry swaps and exits, TSLAx for TSLAx
+  // swaps. Returned under the stable `aaplx` key so existing transports
+  // and verifiers keep working across every registry target.
+  targetMint: string = SWAP_TARGET_MINT,
 ): Promise<{ usdc: string; aaplx: string } | null> {
   const payload = (await solanaRpc("getTransaction", [
     signature,
@@ -216,7 +222,7 @@ async function defaultTransactionDeltas(
       return seen ? total.toString() : null;
     };
     const usdc = delta(SWAP_SOURCE_MINT);
-    const aaplx = delta(SWAP_TARGET_MINT);
+    const aaplx = delta(targetMint);
     return usdc !== null && aaplx !== null ? { usdc, aaplx } : null;
   } catch {
     return null;
@@ -249,13 +255,17 @@ export type SwapQuote = {
 export const swapAdapter = {
   venue: SWAP_VENUE,
   target: SWAP_TARGET_ASSET,
+  targets: { ...SWAP_TARGETS },
   async getQuote(
     amountInSubunits: string,
     transport?: Pick<JupiterTransport, "fetchQuote">,
+    outputMint: string = SWAP_TARGET_MINT,
   ): Promise<SwapQuote | null> {
     let answer: { outAmount: string } | null;
     try {
-      answer = transport ? await transport.fetchQuote(amountInSubunits) : await defaultJupiterQuote(amountInSubunits);
+      answer = transport
+        ? await transport.fetchQuote(amountInSubunits)
+        : await defaultJupiterQuote(amountInSubunits, outputMint);
     } catch {
       return null;
     }
@@ -303,11 +313,14 @@ export type UtilityOrderView = {
 };
 
 function mapOrderView(row: typeof externalUtilityOrders.$inferSelect): UtilityOrderView {
+  // Display resolves the target from the server-pinned row mint, so every
+  // registry asset renders its own identity through one shared view.
+  const target = getSwapTargetByMint(row.targetMint) ?? SWAP_TARGET_ASSET;
   return {
     id: row.id,
     actionKind: SWAP_ACTION_KIND,
-    targetSlug: SWAP_TARGET_SLUG,
-    targetCode: SWAP_TARGET_CODE,
+    targetSlug: target.slug,
+    targetCode: target.code,
     targetMint: row.targetMint,
     sourceCode: SWAP_SOURCE_CODE,
     sourceMint: row.sourceMint,
@@ -317,11 +330,11 @@ function mapOrderView(row: typeof externalUtilityOrders.$inferSelect): UtilityOr
     executionWallet: row.executionWallet,
     venue: row.venue,
     eligibilityAcknowledged: row.eligibilityAcknowledged,
-    eligibilityCopy: SWAP_ELIGIBILITY_COPY,
+    eligibilityCopy: target.eligibilityNote,
     fundingNote: "Funded with Solana USDC from your connected wallet. Vicus makes no Stellar bridge claim for this route.",
     quote: {
-      amountOutDisplay: row.quoteOutAmount ? formatSubunits(row.quoteOutAmount, SWAP_TARGET_DECIMALS) : null,
-      minOutDisplay: row.quoteMinOut ? formatSubunits(row.quoteMinOut, SWAP_TARGET_DECIMALS) : null,
+      amountOutDisplay: row.quoteOutAmount ? formatSubunits(row.quoteOutAmount, target.decimals) : null,
+      minOutDisplay: row.quoteMinOut ? formatSubunits(row.quoteMinOut, target.decimals) : null,
       quotedAt: row.quoteAt?.toISOString() ?? null,
     },
     swapSignature: row.swapSignature,
@@ -352,17 +365,33 @@ async function requireOwnedOrder(orderId: string, userId: string) {
   return row;
 }
 
-async function requireTargetCircle() {
+async function requireTargetCircle(slug: string) {
   const database = getDatabase();
   const [row] = await database
     .select({ id: circles.id })
     .from(circles)
-    .where(eq(circles.slug, SWAP_TARGET_SLUG))
+    .where(eq(circles.slug, slug))
     .limit(1);
   if (!row) {
     throw new UtilityOrderError("unsupported-asset", "The target asset is not available in Discover yet.", 400);
   }
   return row.id;
+}
+
+/**
+ * Fail-closed target resolution for swap-kind rows. The row's stored mints
+ * must match the server-owned registry — tampered rows and exit-kind rows
+ * can never flow through the swap path.
+ */
+function requireSwapTarget(order: typeof externalUtilityOrders.$inferSelect) {
+  if (order.actionKind !== SWAP_ACTION_KIND || order.sourceMint !== SWAP_SOURCE_MINT) {
+    throw new UtilityOrderError("verification-failed", "Order mints do not match the verified swap route.", 400);
+  }
+  const target = getSwapTargetByMint(order.targetMint);
+  if (!target) {
+    throw new UtilityOrderError("verification-failed", "Order mints do not match the verified swap route.", 400);
+  }
+  return target;
 }
 
 export async function createUtilityOrder(
@@ -371,10 +400,11 @@ export async function createUtilityOrder(
 ): Promise<UtilityOrderView> {
   try {
     const owner = requireUserId(userId);
-    if (input.targetSlug !== SWAP_TARGET_SLUG) {
-      throw new UtilityOrderError("unsupported-asset", "Only the verified target asset can be swapped here.", 400);
+    const target = getSwapTarget(typeof input.targetSlug === "string" ? input.targetSlug : "");
+    if (!target || !isSwapTargetSlug(input.targetSlug)) {
+      throw new UtilityOrderError("unsupported-asset", "Only verified acquisition targets can be swapped here.", 400);
     }
-    const targetCircleId = await requireTargetCircle();
+    const targetCircleId = await requireTargetCircle(target.slug);
     const subunits = usdcAmountToSubunits(input.sourceAmount);
     if (!subunits) {
       throw new UtilityOrderError("invalid-request", "Enter a Solana USDC amount greater than zero.", 400);
@@ -402,7 +432,7 @@ export async function createUtilityOrder(
         actionKind: SWAP_ACTION_KIND,
         sourceMint: SWAP_SOURCE_MINT,
         sourceAmountSubunits: subunits,
-        targetMint: SWAP_TARGET_MINT,
+        targetMint: target.mint,
         destinationNetwork: SWAP_NETWORK,
         executionWallet: wallet,
         venue: SWAP_VENUE,
@@ -455,7 +485,8 @@ export async function refreshUtilityQuote(
     const owner = requireUserId(userId);
     const order = await requireOwnedOrder(orderId, owner);
     if (order.status === "confirmed") return mapOrderView(order);
-    const quote = await swapAdapter.getQuote(order.sourceAmountSubunits, jupiter);
+    const target = requireSwapTarget(order);
+    const quote = await swapAdapter.getQuote(order.sourceAmountSubunits, jupiter, target.mint);
     const database = getDatabase();
     if (!quote) {
       const [next] = await database
@@ -512,6 +543,7 @@ export async function prepareUtilitySwap(
     if (order.status === "confirmed") {
       throw new UtilityOrderError("invalid-transition", "This swap already completed.", 409);
     }
+    const target = requireSwapTarget(order);
     if (!order.executionWallet) {
       throw new UtilityOrderError("invalid-request", "Connect the Solana execution wallet first.", 400);
     }
@@ -519,7 +551,7 @@ export async function prepareUtilitySwap(
     if (!order.quoteOutAmount || quoteAge > SWAP_QUOTE_TTL_MS) {
       throw new UtilityOrderError("quote-expired", "Refresh the live quote before preparing the swap.", 409);
     }
-    const fetchQuote = jupiter?.fetchQuote ?? defaultJupiterQuote;
+    const fetchQuote = jupiter?.fetchQuote ?? ((amount: string) => defaultJupiterQuote(amount, target.mint));
     const buildSwap = jupiter?.buildSwapTransaction ?? defaultJupiterSwap;
     let live: { outAmount: string } | null;
     try {
@@ -600,11 +632,16 @@ export async function confirmUtilitySwap(
         409,
       );
     }
+    const target = requireSwapTarget(order);
     if (!order.executionWallet || !order.quoteMinOut) {
       throw new UtilityOrderError("invalid-transition", "Prepare the swap before confirming it.", 409);
     }
     const statusOf = solana?.getSignatureStatus ?? defaultSignatureStatus;
-    const deltasOf = solana?.getTransactionDeltas ?? defaultTransactionDeltas;
+    // Target delta comes from the row-pinned mint: exact-route proof for
+    // whichever registry asset this order acquires.
+    const deltasOf = solana?.getTransactionDeltas
+      ? (signature: string, wallet: string) => solana.getTransactionDeltas!(signature, wallet)
+      : (signature: string, wallet: string) => defaultTransactionDeltas(signature, wallet, target.mint);
     let status: "confirmed" | "finalized" | null;
     try {
       status = await statusOf(signature);
@@ -974,7 +1011,7 @@ export async function createExitOrder(
 ): Promise<ExitOrderView> {
   try {
     const owner = requireUserId(userId);
-    const targetCircleId = await requireTargetCircle();
+    const targetCircleId = await requireTargetCircle(SWAP_TARGET_SLUG);
     const subunits = aaplxAmountToSubunits(input.sourceAmount);
     if (!subunits) {
       throw new UtilityOrderError("invalid-request", "Enter an AAPLx amount greater than zero.", 400);

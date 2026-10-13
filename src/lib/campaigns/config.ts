@@ -26,7 +26,7 @@ export const CAMPAIGN_REWARD_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4
 export const CAMPAIGN_HORIZON_URL = "https://horizon-testnet.stellar.org";
 export const CAMPAIGN_EXPLORER_TX = "https://stellar.expert/explorer/testnet/tx/";
 
-export const CAMPAIGN_TARGET_ACTIONS = ["send", "swap", "mission"] as const;
+export const CAMPAIGN_TARGET_ACTIONS = ["send", "swap", "exit", "mission"] as const;
 export type CampaignTargetAction = (typeof CAMPAIGN_TARGET_ACTIONS)[number];
 
 export const CAMPAIGN_STATUSES = [

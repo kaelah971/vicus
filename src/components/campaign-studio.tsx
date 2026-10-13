@@ -169,6 +169,7 @@ export function CampaignStudio({
             <select value={targetAction} onChange={(event) => setTargetAction(event.target.value)}>
               <option value="send">Send</option>
               <option value="swap">Swap</option>
+              <option value="exit">Exit</option>
               <option value="mission">Approved mission</option>
             </select>
           </label>

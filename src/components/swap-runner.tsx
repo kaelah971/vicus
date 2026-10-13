@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import {
   SWAP_RPC_URL,
-  SWAP_SLUG,
   SWAP_SOURCE_CODE,
-  SWAP_TARGET_CODE,
 } from "@/lib/external-utility/client-config";
 
 type OrderView = {
   id: string;
+  targetSlug: string;
+  targetCode: string;
   sourceAmountDisplay: string;
   executionWallet: string | null;
   venue: string;
@@ -61,7 +61,7 @@ async function postJson(url: string, body: unknown) {
   };
 }
 
-export function SwapRunner() {
+export function SwapRunner({ slug }: { slug: string }) {
   const [bootstrap, setBootstrap] = useState<Bootstrap | null>(null);
   const [order, setOrder] = useState<OrderView | null>(null);
   const [amount, setAmount] = useState("25");
@@ -76,11 +76,11 @@ export function SwapRunner() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/external-utility/orders", { cache: "no-store" });
+        const response = await fetch(`/api/external-utility/orders?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
         const data = (await response.json()) as Bootstrap;
         if (cancelled) return;
         setBootstrap(data);
-        const existing = data.orders?.[0] ?? null;
+        const existing = (data.orders ?? []).find((order) => order.targetSlug === slug) ?? null;
         if (existing) {
           setOrder(existing);
           setResumeId(existing.id);
@@ -93,7 +93,7 @@ export function SwapRunner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [slug]);
 
   // Resume tracking on reload: poll the owned order, never create another.
   useEffect(() => {
@@ -138,7 +138,7 @@ export function SwapRunner() {
     setBusy(true);
     setNotice(null);
     const result = await postJson("/api/external-utility/orders", {
-      targetSlug: SWAP_SLUG,
+      targetSlug: slug,
       sourceAmount: amount.trim(),
       executionWallet: wallet,
       eligibilityAcknowledged: ack,
@@ -213,6 +213,7 @@ export function SwapRunner() {
   }
   const target = bootstrap.target;
   const confirmed = order?.status === "confirmed";
+  const targetCode = order?.targetCode ?? target.code;
 
   return (
     <div className="stack">
@@ -260,10 +261,10 @@ export function SwapRunner() {
         <section className="card">
           <h2>Swap status</h2>
           <ol className="route-steps">
-            <li className="done">Order created — {order.sourceAmountDisplay} {SWAP_SOURCE_CODE} → {SWAP_TARGET_CODE}</li>
+            <li className="done">Order created — {order.sourceAmountDisplay} {SWAP_SOURCE_CODE} → {targetCode}</li>
             <li className={order.quote.amountOutDisplay ? "done" : "pending"}>
               {order.quote.amountOutDisplay
-                ? `Live Jupiter quote — ≈ ${order.quote.amountOutDisplay} ${SWAP_TARGET_CODE} (min ${order.quote.minOutDisplay})`
+                ? `Live Jupiter quote — ≈ ${order.quote.amountOutDisplay} ${targetCode} (min ${order.quote.minOutDisplay})`
                 : "Jupiter quote — refresh for the live price"}
             </li>
             <li className={confirmed ? "done" : "pending"}>
@@ -286,7 +287,7 @@ export function SwapRunner() {
               {order.swapExplorerUrl ? (
                 <a className="btn ghost" href={order.swapExplorerUrl} rel="noreferrer" target="_blank">View on Solana explorer</a>
               ) : null}
-              <a className="btn ghost" href={`/circles/${SWAP_SLUG}`}>View asset</a>
+              <a className="btn ghost" href={`/circles/${slug}`}>View asset</a>
             </div>
           )}
           {notice ? <p className="notice">{notice}</p> : null}

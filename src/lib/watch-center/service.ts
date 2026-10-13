@@ -157,7 +157,7 @@ function exitActivity(order: ExitOrderView): WatchActivity {
     return baseActivity({
       id: `exit:${order.id}`, kind: "exit", title: "AAPLx exit",
       asset: "AAPLx", network: order.destinationNetwork, status: order.status,
-      stateGroup: "completed", detail: "Completed to Solana USDC.", href,
+      stateGroup: "completed", detail: "Completed to Solana USDC. Return to Stellar is not available yet — funds stay in your Solana wallet.", href,
       createdAt: order.createdAt, updatedAt: order.updatedAt,
     });
   }

@@ -13,6 +13,7 @@ import {
   EXIT_TARGET_DECIMALS,
   SWAP_SOURCE_DECIMALS,
   SWAP_TARGET_DECIMALS,
+  getSwapTarget,
 } from "@/lib/external-utility/config";
 import {
   aaplxAmountToSubunits,
@@ -278,10 +279,13 @@ export async function requestAgentQuote(
       if (!amountIn) {
         throw new AgentApiError("invalid-request", "Enter a USDC amount greater than zero.", 400);
       }
-      const quote = await swapAdapter.getQuote(amountIn, transports);
+      const quote = await swapAdapter.getQuote(amountIn, transports, route.targetMint);
       if (!quote) {
         throw new AgentApiError("quote-unavailable", "No executable price for that route right now.", 409);
       }
+      // Display decimals come from the server-resolved registry target —
+      // the route's slug, never client input.
+      const targetDecimals = getSwapTarget(route.targetSlug)?.decimals ?? SWAP_TARGET_DECIMALS;
       return {
         action,
         assetSlug: route.targetSlug,
@@ -290,9 +294,9 @@ export async function requestAgentQuote(
         amountInSubunits: quote.amountInSubunits,
         amountInDisplay: formatSubunits(quote.amountInSubunits, SWAP_SOURCE_DECIMALS),
         amountOutSubunits: quote.amountOutSubunits,
-        amountOutDisplay: formatSubunits(quote.amountOutSubunits, SWAP_TARGET_DECIMALS),
+        amountOutDisplay: formatSubunits(quote.amountOutSubunits, targetDecimals),
         minOutSubunits: quote.minOutSubunits,
-        minOutDisplay: formatSubunits(quote.minOutSubunits, SWAP_TARGET_DECIMALS),
+        minOutDisplay: formatSubunits(quote.minOutSubunits, targetDecimals),
         venue: SWAP_VENUE,
         network: SWAP_NETWORK,
         quotedAt: quote.quotedAt.toISOString(),
@@ -393,12 +397,16 @@ export async function getAgentOrderStatus(
   }
   const type = row.actionKind === EXIT_ACTION_KIND ? ("exit" as const) : ("swap" as const);
   const { action, retryable } = actionRequiredFor(row.status, row.failureReason);
+  // Asset identity resolves from the server-owned row slug — never assumed.
+  const registryTarget = type === "swap" ? getSwapTarget(row.assetSlug) : null;
+  const assetCode = type === "exit" ? "USDC" : (registryTarget?.code ?? "AAPLx");
+  const targetDecimals = type === "exit" ? EXIT_TARGET_DECIMALS : (registryTarget?.decimals ?? SWAP_TARGET_DECIMALS);
   return {
     id: row.id,
     type,
     status: row.status,
     assetSlug: row.assetSlug,
-    assetCode: type === "swap" ? "AAPLx" : "USDC",
+    assetCode,
     network: SWAP_NETWORK,
     sourceAmountDisplay:
       type === "swap"
@@ -406,7 +414,7 @@ export async function getAgentOrderStatus(
         : formatSubunits(row.sourceAmountSubunits, EXIT_SOURCE_DECIMALS),
     quoteOutDisplay:
       row.quoteOutAmount !== null
-        ? formatSubunits(row.quoteOutAmount, type === "swap" ? SWAP_TARGET_DECIMALS : EXIT_TARGET_DECIMALS)
+        ? formatSubunits(row.quoteOutAmount, targetDecimals)
         : null,
     explorerUrl: row.swapSignature ? `https://explorer.solana.com/tx/${row.swapSignature}` : null,
     actionRequired: action,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { hasOversizedBody, isSameOriginRequest } from "@/lib/auth/request";
-import { SWAP_TARGET_ASSET } from "@/lib/external-utility/config";
+import { SWAP_TARGET_ASSET, getSwapTarget } from "@/lib/external-utility/config";
 import {
   UtilityOrderError,
   createUtilityOrder,
@@ -30,23 +30,27 @@ function errorResponse(error: unknown) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   let session;
   try {
     session = await getCurrentSession();
   } catch (error) {
     return errorResponse(error);
   }
+  // Slug-driven target: the page asks for its own asset; unknown slugs
+  // fall back to the default target rather than leaking an error surface.
+  const requested = new URL(request.url).searchParams.get("slug");
+  const target = (requested && getSwapTarget(requested)) || SWAP_TARGET_ASSET;
   if (!session) {
     return NextResponse.json(
-      { ok: true, signedIn: false, target: SWAP_TARGET_ASSET, orders: [] },
+      { ok: true, signedIn: false, target, orders: [] },
       { headers: { "Cache-Control": "no-store" } },
     );
   }
   try {
     const orders = await listMyUtilityOrders(session.user.id);
     return NextResponse.json(
-      { ok: true, signedIn: true, target: SWAP_TARGET_ASSET, orders },
+      { ok: true, signedIn: true, target, orders },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

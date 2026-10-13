@@ -9,7 +9,7 @@ import { isDatabaseUnavailableError } from "@/db";
 import { DataState } from "@/components/vicus";
 import { ROUTER_TARGET_ASSET } from "@/lib/asset-access/config";
 import { getAccessRoutesForSlug } from "@/lib/asset-access/routes";
-import { SWAP_TARGET_ASSET, SWAP_TARGET_SLUG } from "@/lib/external-utility/config";
+import { getSwapTarget, isSwapTargetSlug } from "@/lib/external-utility/config";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,8 @@ export const metadata: Metadata = {
 
 export default async function AcquirePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (slug !== ROUTER_TARGET_ASSET.slug && slug !== SWAP_TARGET_SLUG) notFound();
+  const routed = getAccessRoutesForSlug(slug);
+  if (slug !== ROUTER_TARGET_ASSET.slug && !isSwapTargetSlug(slug) && routed.length === 0) notFound();
 
   let session;
   try {
@@ -54,18 +55,19 @@ export default async function AcquirePage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  // Generalized Access V1: AAPLx exposes its funding routes (Solana USDC
-  // executable, Stellar USDC truthfully gated). Execution reuses the proven
-  // Jupiter swap adapter — this page selects the route, /swap executes it.
-  if (slug === SWAP_TARGET_SLUG) {
-    const routes = getAccessRoutesForSlug(slug);
+  // Any routed asset renders its funding routes — executable or gated.
+  // Gated-only assets (e.g. NVDAc) show their exact reasons, never a 404.
+  const swapTarget = getSwapTarget(slug);
+  const routes = swapTarget ? getAccessRoutesForSlug(slug) : routed;
+  const targetCode = swapTarget?.code ?? routes[0]?.targetCode ?? slug;
+  if (swapTarget || routes.length > 0) {
     return (
       <AppShell active="discover">
         <main className="page-main">
           <div className="shell circle-page-body">
             <AccessRoutesRunner
-              targetSlug={SWAP_TARGET_ASSET.slug}
-              targetCode={SWAP_TARGET_ASSET.code}
+              targetSlug={swapTarget?.slug ?? slug}
+              targetCode={targetCode}
               routes={routes}
             />
           </div>

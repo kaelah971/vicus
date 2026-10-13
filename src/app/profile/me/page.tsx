@@ -279,7 +279,7 @@ export default async function MyProfilePage() {
 
           <section className="p-section" aria-labelledby="watched-title">
             <SectionHead
-              action={<span className="row"><ButtonLink href="/watch" variant="glass">Watch Center</ButtonLink><ButtonLink href="/discover" variant="glass">Explore assets</ButtonLink></span>}
+              action={<span className="row"><ButtonLink href="/positions" variant="glass">Positions</ButtonLink><ButtonLink href="/watch" variant="glass">Watch Center</ButtonLink><ButtonLink href="/discover" variant="glass">Explore assets</ButtonLink></span>}
               eyebrow="Watching"
               id="watched-title"
               title="Your assets"

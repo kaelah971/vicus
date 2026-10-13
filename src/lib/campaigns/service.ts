@@ -554,6 +554,9 @@ async function validateProof(
     throw new CampaignActionError("proof-invalid", "That proof does not qualify for this campaign.", 400);
   }
   const windowStart = campaign.activatedAt?.getTime() ?? campaign.createdAt.getTime();
+  const windowEnd = campaign.endsAt?.getTime() ?? null;
+  const withinWindow = (proofAt: Date | null): proofAt is Date =>
+    proofAt !== null && proofAt.getTime() >= windowStart && (windowEnd === null || proofAt.getTime() <= windowEnd);
   if (kind === "send") {
     const [transfer] = await database
       .select()
@@ -566,8 +569,7 @@ async function validateProof(
       transfer.status !== "confirmed" ||
       transfer.circleId !== campaign.circleId ||
       transfer.network !== "stellar_mainnet" ||
-      !transfer.confirmedAt ||
-      transfer.confirmedAt.getTime() < windowStart
+      !withinWindow(transfer.confirmedAt)
     ) {
       throw new CampaignActionError("proof-invalid", "That Send receipt does not qualify for this campaign.", 400);
     }
@@ -585,11 +587,29 @@ async function validateProof(
       !order ||
       order.userId !== userId ||
       order.status !== "confirmed" ||
+      order.actionKind !== "swap" ||
       order.targetCircleId !== campaign.circleId ||
-      !order.completedAt ||
-      order.completedAt.getTime() < windowStart
+      !withinWindow(order.completedAt)
     ) {
       throw new CampaignActionError("proof-invalid", "That swap receipt does not qualify for this campaign.", 400);
+    }
+    return { kind, proofId, proofAt: order.completedAt };
+  }
+  if (kind === "exit") {
+    const [order] = await database
+      .select()
+      .from(externalUtilityOrders)
+      .where(eq(externalUtilityOrders.id, proofId))
+      .limit(1);
+    if (
+      !order ||
+      order.userId !== userId ||
+      order.status !== "confirmed" ||
+      order.actionKind !== "exit" ||
+      order.targetCircleId !== campaign.circleId ||
+      !withinWindow(order.completedAt)
+    ) {
+      throw new CampaignActionError("proof-invalid", "That exit receipt does not qualify for this campaign.", 400);
     }
     return { kind, proofId, proofAt: order.completedAt };
   }
@@ -606,8 +626,8 @@ async function validateProof(
     throw new CampaignActionError("proof-invalid", "That mission proof belongs to a different asset.", 400);
   }
   const proofAt = submission.submission.reviewedAt ?? submission.submission.submittedAt;
-  if (!proofAt || proofAt.getTime() < windowStart) {
-    throw new CampaignActionError("proof-invalid", "That mission proof predates this campaign.", 400);
+  if (!withinWindow(proofAt)) {
+    throw new CampaignActionError("proof-invalid", "That mission proof is outside this campaign window.", 400);
   }
   return { kind, proofId, proofAt };
 }
@@ -925,6 +945,9 @@ export async function listEligibleProofs(
     const database = getDatabase();
     const { campaign } = await loadCampaignRow(campaignId);
     const windowStart = campaign.activatedAt?.getTime() ?? campaign.createdAt.getTime();
+    const windowEnd = campaign.endsAt?.getTime() ?? null;
+    const inWindow = (proofAt: Date | null): proofAt is Date =>
+      proofAt !== null && proofAt.getTime() >= windowStart && (windowEnd === null || proofAt.getTime() <= windowEnd);
     const used = await database
       .select({ kind: campaignCompletions.proofKind, proofId: campaignCompletions.proofId })
       .from(campaignCompletions)
@@ -940,8 +963,7 @@ export async function listEligibleProofs(
         if (
           row.status === "confirmed" &&
           row.network === "stellar_mainnet" &&
-          row.confirmedAt &&
-          row.confirmedAt.getTime() >= windowStart &&
+          inWindow(row.confirmedAt) &&
           !usedKeys.has(`send:${row.id}`)
         ) {
           eligible.push({
@@ -960,14 +982,34 @@ export async function listEligibleProofs(
       for (const row of rows) {
         if (
           row.status === "confirmed" &&
-          row.completedAt &&
-          row.completedAt.getTime() >= windowStart &&
+          row.actionKind === "swap" &&
+          inWindow(row.completedAt) &&
           !usedKeys.has(`swap:${row.id}`)
         ) {
           eligible.push({
             kind: "swap",
             id: row.id,
             label: `Swapped on ${row.completedAt.toISOString().slice(0, 10)}`,
+            completedAt: row.completedAt.toISOString(),
+          });
+        }
+      }
+    } else if (campaign.targetAction === "exit") {
+      const rows = await database
+        .select()
+        .from(externalUtilityOrders)
+        .where(and(eq(externalUtilityOrders.userId, user), eq(externalUtilityOrders.targetCircleId, campaign.circleId)));
+      for (const row of rows) {
+        if (
+          row.status === "confirmed" &&
+          row.actionKind === "exit" &&
+          inWindow(row.completedAt) &&
+          !usedKeys.has(`exit:${row.id}`)
+        ) {
+          eligible.push({
+            kind: "exit",
+            id: row.id,
+            label: `Exited on ${row.completedAt.toISOString().slice(0, 10)}`,
             completedAt: row.completedAt.toISOString(),
           });
         }
@@ -982,8 +1024,7 @@ export async function listEligibleProofs(
         const proofAt = row.submission.reviewedAt ?? row.submission.submittedAt;
         if (
           row.submission.status === "approved" &&
-          proofAt &&
-          proofAt.getTime() >= windowStart &&
+          inWindow(proofAt) &&
           !usedKeys.has(`mission:${row.submission.id}`)
         ) {
           eligible.push({

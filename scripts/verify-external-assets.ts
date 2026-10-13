@@ -41,7 +41,7 @@ const EXPECTED = [
 ];
 
 const FAKE_METRIC = /apy|%|\$\d|yield\s+\d|x\s+returns?|tvl|\bguaranteed\b/i;
-const UNSUPPORTED = ["swap", "send", "move", "exit", "borrow", "collateral", "supply", "earn"];
+const UNSUPPORTED = ["send", "move", "exit", "borrow", "collateral", "supply", "earn"];
 
 async function main() {
   // 1. Seed is idempotent: run twice, still exactly the two circles.
@@ -108,6 +108,12 @@ async function main() {
     assert.ok(kinds.includes("redeem"), `${target.slug}: REDEEM present`);
     for (const bad of UNSUPPORTED) {
       assert.ok(!kinds.includes(bad as never), `${target.slug}: no ${bad} without execution`);
+    }
+    if (target.slug === "nvdac-on-base") {
+      assert.ok(!kinds.includes("swap" as never), "NVDAc: no swap without a live venue");
+    }
+    if (target.slug === "tslax-on-solana") {
+      assert.ok(kinds.includes("swap"), "TSLAx: verified Jupiter execution present");
     }
     for (const action of actions) {
       assert.equal(action.network, target.chain, `${target.slug}/${action.kind}: carries its chain`);

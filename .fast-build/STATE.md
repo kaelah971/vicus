@@ -1,67 +1,47 @@
-# Fast Build State
+# Fast Build State — SECOND WAVE (COMPLETE, uncommitted)
 
 ## Product
 - Name: Vicus (Stellar-first tokenized-asset utility)
-- Outcome: Pre-deploy capstone — 6 bounded V1s, then checkpoint→deploy
-- Primary demo path: discover AAPLx → fund/swap → exit → watch
+- Baseline: main @ 568263b (capstone 6/6 checkpointed)
 
-## Existing capabilities
-- USDC→AAPLx Jupiter swap: working (service + API + SwapRunner + verifier)
-- Stellar-USDC access router (AAPLc): working, execution gated (no Mainnet liquidity/CCTP)
-- Asset Action Engine + adapters: working (send/move/access/swap)
-- Contacts/send, CCTP Access, campaigns, spaces: pre-existing, preserved
+## Wave 2 Slice 1: Project-Funded Activation Campaigns — DONE
+- EXIT proof kind added (CAMPAIGN_TARGET_ACTIONS + validateProof + listEligibleProofs)
+- Swap proof binding tightened to actionKind='swap' (exit receipts can no longer masquerade)
+- Campaign window enforced both ends (endsAt now rejects late proofs, all kinds)
+- Studio exposes Exit option; claim/reserve/payout path already kind-generic
+- ONCHAIN_ACTIVATION needs no new kind (approved onchain submissions claim via mission kind)
+- Verification: campaign-funding:verify 16/16 green (new exit + masquerade + window groups)
 
-## Remaining MVP gaps (capstone slices)
-- [x] Slice 1: Exit Router V1 (AAPLx→Solana USDC)
-- [x] Slice 2: Generalized Access V1 (Solana USDC→AAPLx as explicit route)
-- [x] Slice 3: External Asset Expansion V1 (TSLAx Solana + NVDAc Base; ETH/BNB skipped)
-- [x] Slice 4: Agent API V1 (read-only wrapper + skill doc)
-- [x] Slice 5: Cross-chain Send to @handle V1 (Base+Ethereum testnet via CCTP; Solana gated)
-- [x] Slice 6: Watch Center V1 (/watch read screen) + FULL REGRESSION
-- [ ] Slice 6: Watch Center V1 (/watch read screen)
+## Targeted regression (this slice)
+- campaign-funding (16), reward, activation, send (10), external-utility (16),
+  exit, asset-actions (12), org, spaces, mission — all PASS
+- tsc clean, lint 0 errors (3 pre-existing warnings), diff--check clean
 
-## Current slice
-- CAPSTONE 6/6 COMPLETE (this invocation)
+## Planned next slices
+- [x] 2. Position Center — DONE (Wave 2 Slice 2)
+- [x] 3. Lending/Collateral Discovery + Adapter — DONE
+- [x] 4. Return-to-Stellar — GATED with documented Circle-docs evidence
+- [x] 5. Broader Executable Access — DONE
+- [x] 6. Manual E2E / Production Readiness — DONE (readiness docs, live read-only evidence, full 36-verifier regression green; wallet-signature flows PENDING HUMAN)
 
-## Completed (Slice 6)
-- Watch Center V1: /watch (WATCHING/ACTIVE/NEEDS ATTENTION/COMPLETED) over watches + swaps + exits + access orders + CCTP + sends; read-only aggregator src/lib/watch-center/service.ts, no migration, no balances/P&L/risk; profile Watch Center entry link
-- Verification: watch-center:verify PASS; full regression: all verifiers green except db:verify (legacy fresh-seed count check vs lived-in dev DB — counts-only mismatch, all config checks true) and one transient reward:verify race (green on 2 bounded retries); lint 0 errors, tsc clean, build green (/watch live), diff--check clean; safety scan clean
+## Completed (Wave 2 Slice 5)
+- Research: TSLAx live Jupiter quote re-verified (25 USDC → 0.066 TSLAx, 0% impact); NVDAc Aerodrome V2 volatile+stable quotes both revert (gated, no repeat of AAPLc mistake); Stellar access stays issuer-official (existing capability data, no Vicus-execution claims)
+- Generalized Jupiter adapter to config-driven SWAP_TARGETS registry (AAPLx+TSLAx); order rows pin target mint server-side; refresh/prepare/confirm resolve target from row with fail-closed tamper/kind checks; exit stays AAPLx-only
+- Routes: solana-usdc-to-tslax executable (+stellar gated); base-usdc-to-nvdac gated with reason; engine ACCESS/SWAP registry-driven; /acquire + /swap slug-driven; SwapRunner per-asset; agent-api labels per-asset
+- Verification: broader-access:verify PASS, generalized-access/external-utility(16)/external-assets/asset-actions(12)/positions/lifecycle/lending/exit/return-stellar PASS, tsc clean, lint 0 errors, diff--check clean
 
-## Completed (Slice 5)
-- Cross-chain Send V1: Stellar-testnet USDC → CCTP → recipient Base/Ethereum endpoint; wrapper over createAccessTransfer + resolveRecipient + refreshAccessTransfer; no migration (handle reverse-lookup), no new bridge
-- Supported: base + ethereum (Access-executable); solana → destination-coming-soon; all UI labeled Testnet; sender wallet from session, destination server-resolved (no client address field)
-- Duplicate-safe (intent reuse), reload resume, completed immutable; /send?mode=cross-chain with human-first UX; same-network Send + engine untouched
-- Verification: crosschain-send:verify PASS, access/send/contacts/asset-actions/agent-api all PASS, tsc clean, lint 0 errors (3 pre-existing warnings), diff--check clean
+## Completed (Wave 2 Slice 3)
+- Research: Stellar (permissioned funds incompatible with permissionless lending, no exact market), Solana (Kamino API probed, no enumerable xStock reserve evidence), Base/Morpho GraphQL (WINNER)
+- Winner: AAPLc collateral → USDC borrows on Base Morpho Blue market 0x26d6… (LLTV 62.5%, live liquidity, Morpho deployment verified onchain via owner())
+- Adapter: lib/lending (pinned config + live market/position reads, CONNECTED mode, no execution); engine BORROW on aaplc-on-base only; Position Center lendingPosition from protocol state (health only when reported)
+- Verification: lending:verify PASS, positions/asset-actions(12)/external-assets/external-utility(16)/lifecycle/generalized-access/campaign-funding(16) PASS, tsc clean, lint 0 errors, diff--check clean
 
-## Completed (Slice 4)
-- Agent API V1: GET /api/v1/assets (+filters), GET /api/v1/assets/:slug (+lifecycle), GET /api/v1/assets/:slug/actions (engine truth), POST /api/v1/quote (access+exit, server-owned, stateless), GET /api/v1/orders/:id (owner-scoped envelope); no prepare/signing endpoint
-- Skill: skills/vicus/SKILL.md with signature boundary + examples
-- Verification: agent-api:verify PASS, asset-actions/generalized-access/external-utility/exit/external-assets all PASS, tsc clean, lint 0 errors, diff--check clean
+## Completed (Wave 2 Slice 2)
+- Position Center V1: /positions with Stellar (session wallet → Horizon → DB code+issuer registry), Solana (connected wallet → known mints), Base (connected wallet → balanceOf); read-only, no persistence, no prices/P&L/risk; engine parity on all cards; profile Positions link
+- Verification: positions:verify PASS, asset-actions/stellar-assets/external-assets/external-utility/generalized-access/watch-center/auth all PASS, tsc clean, lint 0 errors, diff--check clean
 
-## Completed (Slice 3)
-- Added tslax-on-solana (Backed xStock; mint XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB; Jupiter-verified + live 25-USDC quote) and nvdac-on-base (Coinbase B20; 0xb20000000000000000000078ee7ce2fE4908108C; base.org-mapped + onchain symbol/decimals read)
-- Official/guide actions only (access+redeem); lifecycle access/hold/use/exit (no earn); idempotent seed; classification lists updated 15→17
-- Skipped ETH (BUIDL recall failed onchain validation — odd-length address, securitize page blocked) and BNB (no source-backed candidate)
-- Verification: external-assets:verify PASS, classification PASS, asset-actions PASS (12), lifecycle PASS, generalized-access PASS, external-utility PASS (16), exit PASS, tsc clean, lint 0 errors, diff--check clean
-
-## Completed (Slice 2)
-- AccessRoute model (sourceNetwork/sourceAsset/targetNetwork/targetAsset/adapter): solana-USDC→AAPLx executable via jupiter-swap; stellar-USDC→AAPLx + stellar-USDC→AAPLc truthfully gated
-- Engine: AAPLx ACCESS (available → /acquire/aaplx-on-solana); canonical order now access/swap/exit; AAPLc still gated
-- /acquire/aaplx-on-solana: Fund-with cards (Solana Available w/ live wallet balance, Stellar gated w/ reason) + recent executions; execution reuses /swap adapter
-- Funding gate: checkOrderFunding (server-resolved wallet) + POST orders/[id]/funding; client balance via live RPC; no migration
-- During slice: restored accidental overwrite of tracked CCTP access-runner.tsx (verified clean); updated external-utility group-15 assertion to access-first ordering
-- Verification: generalized-access:verify PASS, external-utility:verify PASS (16), exit:verify PASS, asset-actions:verify PASS (12), tsc clean, lint 0 errors, diff--check clean
-
-## Completed (Slice 1)
-- AAPLx→Jupiter→Solana USDC reverse route; reuses external_utility_orders (actionKind=exit, no migration)
-- Files: lib/external-utility/{config,service} (+exitAdapter, create/refresh/prepare/confirm), lib/asset-actions/{config (+exit kind),service (+adapter)}, app/api/external-utility/exit/** (5 routes), app/exit/[slug], components/exit-runner.tsx, scripts/verify-exit.ts, package.json (exit:verify)
-- Verification: exit:verify PASS, external-utility:verify PASS, asset-actions:verify PASS, tsc clean, lint 0 errors, diff--check clean
-
-## Blockers
-- None for Slice 1. Slice 5 depends on Access CCTP testnet boundary (expect TESTNET-only label).
-
-## Verification
-- Slice 1: npm run exit:verify / external-utility:verify / asset-actions:verify + tsc + lint (all green)
-
-## Next action
-- CHECKPOINT THE FULL CAPSTONE (manual E2Es, env review, deploy)
+## Working tree
+- Wave 2 Slice 6 (this invocation): docs/production-readiness.md, docs/manual-e2e.md, docs/demo-proof-manifest.md, acquire-page NVDAc-404 fix, gated-history fix in AccessRoutesRunner
+- Full Wave 2 regression: all 36 package.json verifiers PASS in single runs, lint/tsc/build/diff-check green, safety scan clean
+- Live evidence 2026-10-13: AAPLx + TSLAx Jupiter quotes at 0 impact; Morpho AAPLc market live; NVDAc Aerodrome reverts
+- Wallet-signature E2Es (A–E, G–H) PENDING HUMAN; Morpho read-only flow PROVEN; nothing committed/pushed/deployed

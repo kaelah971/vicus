@@ -194,7 +194,9 @@ export function AccessRoutesRunner({
         </p>
       </section>
 
-      {orders !== null && orders.length > 0 && (
+      {/* Recent executions only where a route can actually execute —
+          gated-only assets must not borrow another asset's history. */}
+      {executable.length > 0 && orders !== null && orders.length > 0 && (
         <section className="card">
           <h2>Recent access executions</h2>
           {orders.slice(0, 5).map((order) => (

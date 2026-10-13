@@ -7,6 +7,7 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { isDatabaseUnavailableError } from "@/db";
 import { DataState } from "@/components/vicus";
 import { SWAP_TARGET_SLUG } from "@/lib/external-utility/config";
+import { getReturnRoutes } from "@/lib/return-stellar/routes";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +44,43 @@ export default async function ExitPage({ params }: { params: Promise<{ slug: str
     <AppShell active="discover">
       <main className="page-main">
         <div className="shell circle-page-body">
-          {session ? <ExitRunner /> : <WalletConnectPrompt />}
+          <div className="stack">
+            {session ? <ExitRunner /> : <WalletConnectPrompt />}
+            {session ? <ReturnHomeCard /> : null}
+          </div>
         </div>
       </main>
     </AppShell>
+  );
+}
+
+/**
+ * Return-home truth: leg 1 (Jupiter exit) is executable above; leg 2
+ * (USDC home to Stellar) is modeled but gated. A completed exit leaves the
+ * user owning Solana USDC — never a whole-journey failure.
+ */
+function ReturnHomeCard() {
+  const routes = getReturnRoutes();
+  return (
+    <section className="card">
+      <p className="eyebrow">Step 2 · Return home</p>
+      <h2>Return to Stellar</h2>
+      <p className="muted">
+        Exiting leaves USDC safely in your Solana wallet. Only USDC can ever
+        cross home — AAPLx itself never leaves Solana.
+      </p>
+      {routes.map((route) => (
+        <div key={route.id} className="route-row route-gated">
+          <div>
+            <p>
+              <strong>
+                {route.sourceAsset} on {route.sourceNetwork} → Stellar
+              </strong>{" "}· <span className="pill pill-gated">Not executable</span>
+            </p>
+            <p className="muted">{route.reasonUnavailable}</p>
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
