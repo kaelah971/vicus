@@ -57,6 +57,56 @@ export function isAssetCircle(circle: { state: string }): boolean {
   return circle.state !== "education";
 }
 
+export type DiscoveryCollection = {
+  key: string;
+  label: string;
+  /** 'class' collections map onto the existing class filter; others are sets. */
+  classValue: string | null;
+  slugs: string[];
+};
+
+export type DiscoveryGroups = {
+  /** Stellar home layer — always first, never competing with the rest. */
+  stellar: string[];
+  /** Connected ecosystems extend Vicus below the home layer. */
+  beyond: string[];
+  /** Thematic collections; only non-empty collections are returned. */
+  collections: DiscoveryCollection[];
+};
+
+/**
+ * Stellar-first discovery grouping. Pure over circle slugs + taxonomy +
+ * engine/campaign sets supplied by the server: Stellar assets form the home
+ * layer, everything else extends below. No chain selection is required to
+ * discover — grouping never hides an asset, it only orders presentation.
+ */
+export function buildDiscoveryGroups(input: {
+  slugs: string[];
+  categoryOf: (slug: string) => string;
+  ecosystemOf: (slug: string) => string;
+  usableSlugs: Set<string> | string[];
+  campaignSlugs: Set<string> | string[];
+}): DiscoveryGroups {
+  const usable = input.usableSlugs instanceof Set ? input.usableSlugs : new Set(input.usableSlugs);
+  const campaigned = input.campaignSlugs instanceof Set ? input.campaignSlugs : new Set(input.campaignSlugs);
+  const seen = new Set<string>();
+  const unique = input.slugs.filter((slug) => (seen.has(slug) ? false : (seen.add(slug), true)));
+  const stellar = unique.filter((slug) => input.ecosystemOf(slug) === "stellar");
+  const beyond = unique.filter((slug) => input.ecosystemOf(slug) !== "stellar");
+  const byClass = (category: string) => unique.filter((slug) => input.categoryOf(slug) === category);
+  const collections: DiscoveryCollection[] = [];
+  const add = (key: string, label: string, classValue: string | null, slugs: string[]) => {
+    if (slugs.length > 0) collections.push({ key, label, classValue, slugs });
+  };
+  add("funds", "Tokenized Funds", "treasury_fund", byClass("treasury_fund"));
+  add("fixed-income", "Treasuries & Fixed Income", "fixed_income", byClass("fixed_income"));
+  add("equities", "Equity Exposure", "equity_fund", byClass("equity_fund"));
+  add("stable", "Stable & Settlement", "stablecoin", byClass("stablecoin"));
+  add("can-use", "Can Use Now", null, unique.filter((slug) => usable.has(slug)));
+  add("campaigns", "Active Campaigns", null, unique.filter((slug) => campaigned.has(slug)));
+  return { stellar, beyond, collections };
+}
+
 export type CircleFilterInput = {
   category: string;
   ecosystem?: string | null;

@@ -38,11 +38,13 @@ import { RoleVerification } from "@/components/role-verification";
 import { getCircleBySlug } from "@/lib/data/circles";
 import { getCircleParticipation, getRoleVerificationForCircle } from "@/lib/data/roles";
 import { getCircleOrganization } from "@/lib/organizations/service";
-import { getCirclePeople } from "@/lib/social/service";
+import { getCircleSocialSummary } from "@/lib/circles-social/service";
+import { listCircleTheses } from "@/lib/conviction/service";
 import { listCirclePosts } from "@/lib/community/service";
 import { getCircleLifecycle } from "@/lib/lifecycle/service";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
 import { listCircleCampaigns } from "@/lib/campaigns/service";
+import { getSubjectForAsset } from "@/lib/subjects/config";
 import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
@@ -80,11 +82,13 @@ export default async function CirclePage({ params }: CirclePageProps) {
     network: string;
     lastCheckedAt: string;
   } | null = null;
+  let viewerId: string | null = null;
 
   try {
     const session = await getCurrentSession();
     circle = await getCircleBySlug(slug, session?.user.id);
     authenticated = Boolean(session);
+    viewerId = session?.user.id ?? null;
     if (session) {
       try {
         const row = await getRoleVerificationForCircle(session.user.id, slug);
@@ -152,12 +156,32 @@ export default async function CirclePage({ params }: CirclePageProps) {
     lifecycle = [];
   }
 
-  let people: Awaited<ReturnType<typeof getCirclePeople>> = [];
+  let social: Awaited<ReturnType<typeof getCircleSocialSummary>> | null = null;
+  let theses: Awaited<ReturnType<typeof listCircleTheses>> = [];
   try {
-    people = await getCirclePeople(circle.id);
+    const [socialRows, thesisRows] = await Promise.all([
+      getCircleSocialSummary(slug, viewerId).catch(() => null),
+      listCircleTheses(slug, 3).catch(() => []),
+    ]);
+    social = socialRows;
+    theses = thesisRows;
   } catch {
-    people = [];
+    social = null;
   }
+  // Fallback rail reuses the summary groups — one membership read per page.
+  const peopleFallback = (social ? [...social.groups.watching, ...social.groups.contributors] : [])
+    .filter((person, index, all) => all.findIndex((entry) => entry.handle === person.handle) === index)
+    .slice(0, 8)
+    .map((person) => ({
+      user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl },
+      relationships: person.relationships,
+      approvedContributionCount: 0,
+      approvedPoints: 0,
+      recentApprovedAt: null,
+    }));
+  const peopleCount = social
+    ? social.groups.watching.length + social.groups.contributors.length + social.verifiedParticipants.length
+    : 0;
 
   let communityPreview: Awaited<ReturnType<typeof listCirclePosts>> = [];
   try {
@@ -177,6 +201,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
     ? circle.missions.find((mission) => mission.id === activationEntry[1].id) ?? null
     : null;
   const rewardNetwork = rewardNetworkLabel();
+  const subject = getSubjectForAsset(circle.slug);
   // Asset Action Engine: ONE unified action model. Source-backed capability
   // rows plus live Vicus execution (Send policy, CCTP MOVE, Access Router)
   // resolve server-side; overlays win on kind collision so execution links
@@ -199,8 +224,9 @@ export default async function CirclePage({ params }: CirclePageProps) {
     ...(actionItems.length > 0 ? [{ href: "#use", label: "Use" }] : []),
     { href: "#passport", label: "Learn" },
     { href: "#missions", label: "Missions", count: circle.missions.length },
+    { href: "#conviction", label: "Conviction" },
     { href: "#community", label: "Community", count: communityPreview.length },
-    { href: "#people", label: "People", count: people.length },
+    { href: "#people", label: "People", count: peopleCount },
     { href: "#sources", label: "Sources" },
   ];
 
@@ -245,6 +271,14 @@ export default async function CirclePage({ params }: CirclePageProps) {
                     Official source <Icon name="external" size={14} />
                   </a>
                 ) : null}
+                {subject ? (
+                  <Link
+                    className="button button-glass button-small"
+                    href={subject.type === "issuer" ? `/issuers/${subject.slug}` : `/subjects/${subject.slug}`}
+                  >
+                    View {subject.type === "issuer" ? "issuer" : "company"} <Icon name="arrow-right" size={14} />
+                  </Link>
+                ) : null}
               </div>
             </div>
             <div className="c-stats">
@@ -264,7 +298,7 @@ export default async function CirclePage({ params }: CirclePageProps) {
               <div className="c-use-head">
                 <span className="v-eyebrow">Your actions</span>
                 <h2 id="circle-use-title">What you can do with {circle.code}</h2>
-                <p>Only actions this asset actually supports — nothing speculative. Vicus never moves funds.</p>
+                <p>Only actions this asset actually supports — nothing speculative. Vicus never moves funds. <Link href="/use">Explore all utility →</Link></p>
               </div>
               <ActionTray actions={actionItems} />
             </section>
@@ -436,11 +470,123 @@ export default async function CirclePage({ params }: CirclePageProps) {
             )}
           </section>
 
+          <section className="circle-section" id="conviction">
+            <SectionHead
+              eyebrow="Conviction"
+              line="Structured paper claims with evidence — never investment advice, never a position claim unless verified."
+              title="Theses on this asset."
+              action={
+                <Link className="v-text-link" href={`/circles/${circle.slug}/conviction`}>
+                  Open conviction <Icon name="arrow-right" size={15} />
+                </Link>
+              }
+            />
+            {theses.length > 0 ? (
+              <div className="mission-grid">
+                {theses.map((thesis) => (
+                  <Link className="p-asset" href={`/circles/${circle.slug}/conviction/${thesis.id}`} key={thesis.id}>
+                    <span>
+                      <strong>{thesis.title}</strong>
+                      <small>
+                        @{thesis.authorHandle} · {thesis.thesisType === "verified-position" ? "VERIFIED POSITION" : "PAPER"} ·{" "}
+                        {thesis.confidence}% confidence · {thesis.timeframe} · {thesis.status}
+                      </small>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No theses yet">Publish the first structured claim for this Circle.</EmptyState>
+            )}
+          </section>
+
           <section className="circle-section" id="people">
-            <SectionHead eyebrow="People" line="Watchers, contributors, and participants — never balances or holdings." title="People around this asset." />
-            {people.length > 0 ? (
+            <SectionHead
+              eyebrow="People"
+              line="Watching means interest. Contributing means useful knowledge. Verified means a real completed action — never a balance. Holdings stay private."
+              title="People around this asset."
+            />
+            {social ? (
+              <>
+                {social.groups.following.length > 0 ? (
+                  <div className="c-people-group">
+                    <h3>People you follow</h3>
+                    <div className="x-rail">
+                      {social.groups.following.slice(0, 8).map((person) => (
+                        <PersonCard
+                          key={person.handle}
+                          person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {social.verifiedParticipants.length > 0 ? (
+                  <div className="c-people-group">
+                    <h3>Verified participants</h3>
+                    <p className="muted small">Completed a verified asset action — mission, campaign, or role check. No amounts shown.</p>
+                    <div className="x-rail">
+                      {social.verifiedParticipants.slice(0, 8).map((participant) => (
+                        <Link className="person-tile" href={`/u/${participant.handle}`} key={participant.handle}>
+                          <span className="person-tile-main">
+                            <strong>{participant.displayName}</strong>
+                            <small>@{participant.handle}</small>
+                          </span>
+                          <span className="v-chip tone-green">
+                            {participant.basis === "mission" ? "MISSION" : participant.basis === "campaign" ? "CAMPAIGN" : "VERIFIED"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {social.groups.contributors.length > 0 ? (
+                  <div className="c-people-group">
+                    <h3>Contributors</h3>
+                    <div className="x-rail">
+                      {social.groups.contributors.slice(0, 8).map((person) => {
+                        const signal = social.contributorSignals.find((entry) => entry.handle === person.handle);
+                        return (
+                          <div key={person.handle}>
+                            <PersonCard
+                              person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                            />
+                            {signal ? (
+                              <p className="muted small">
+                                {[signal.answers > 0 ? `${signal.answers} answers` : null, signal.helpfulReceived > 0 ? `${signal.helpfulReceived} helpful` : null, signal.insights > 0 ? `${signal.insights} insights` : null, signal.sources > 0 ? `${signal.sources} sources` : null]
+                                  .filter(Boolean)
+                                  .join(" · ") || "New contributor"}
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+                {social.groups.watching.length > 0 ? (
+                  <div className="c-people-group">
+                    <h3>Watching</h3>
+                    <div className="x-rail">
+                      {social.groups.watching.slice(0, 8).map((person) => (
+                        <PersonCard
+                          key={person.handle}
+                          person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {social.groups.following.length === 0 &&
+                social.verifiedParticipants.length === 0 &&
+                social.groups.contributors.length === 0 &&
+                social.groups.watching.length === 0 ? (
+                  <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
+                ) : null}
+              </>
+            ) : peopleFallback.length > 0 ? (
               <div className="x-rail">
-                {people.slice(0, 8).map((person) => (
+                {peopleFallback.map((person) => (
                   <PersonCard key={person.user.id} person={person} />
                 ))}
               </div>

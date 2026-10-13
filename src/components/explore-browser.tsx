@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCard, EmptyState, Icon } from "@/components/vicus";
 import { Orb, assetClassMeta, ecosystemMeta } from "@/components/vicus-ui";
 import type { Circle } from "@/lib/vicus-data";
-import { matchesCircleFilters } from "@/lib/data/circles";
+import { buildDiscoveryGroups, matchesCircleFilters } from "@/lib/data/circles";
 
 const ALL_ECOSYSTEMS = "all";
 const ALL_CLASSES = "all";
@@ -43,15 +44,23 @@ const ASSET_CLASS_FILTER_LABELS: Record<string, string> = {
 export function ExploreBrowser({
   circles,
   useCounts = {},
+  usableSlugs = [],
+  campaignSlugs = [],
+  actionLabels = {},
 }: {
   circles: Circle[];
   useCounts?: Record<string, number>;
+  usableSlugs?: string[];
+  campaignSlugs?: string[];
+  actionLabels?: Record<string, string[]>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [state, setState] = useState("All statuses");
+  const [onlyUsable, setOnlyUsable] = useState(false);
+  const [onlyCampaigned, setOnlyCampaigned] = useState(false);
 
   const ecosystemOptions = useMemo(
     () =>
@@ -112,12 +121,34 @@ export function ExploreBrowser({
     () => Array.from(new Set(circles.map((circle) => circle.stateLabel))),
     [circles],
   );
+  const usableSet = useMemo(() => new Set(usableSlugs), [usableSlugs]);
+  const campaignedSet = useMemo(() => new Set(campaignSlugs), [campaignSlugs]);
   const filteredCircles = useMemo(() => {
     const filters = { assetClass, ecosystem, query, state };
-    return circles.filter((circle) => matchesCircleFilters(circle, filters));
-  }, [assetClass, circles, ecosystem, query, state]);
+    return circles.filter(
+      (circle) =>
+        matchesCircleFilters(circle, filters) &&
+        (!onlyUsable || usableSet.has(circle.slug)) &&
+        (!onlyCampaigned || campaignedSet.has(circle.slug)),
+    );
+  }, [assetClass, circles, ecosystem, query, state, onlyUsable, onlyCampaigned, usableSet, campaignedSet]);
 
-  const [lead, ...others] = filteredCircles;
+  const groups = useMemo(
+    () =>
+      buildDiscoveryGroups({
+        slugs: filteredCircles.map((circle) => circle.slug),
+        categoryOf: (slug) => filteredCircles.find((circle) => circle.slug === slug)?.category ?? "",
+        ecosystemOf: (slug) => filteredCircles.find((circle) => circle.slug === slug)?.ecosystem ?? "",
+        usableSlugs: usableSet,
+        campaignSlugs: campaignedSet,
+      }),
+    [filteredCircles, usableSet, campaignedSet],
+  );
+  const bySlug = useMemo(() => new Map(filteredCircles.map((circle) => [circle.slug, circle])), [filteredCircles]);
+  const stellarCircles = groups.stellar.map((slug) => bySlug.get(slug)!).filter(Boolean);
+  const beyondCircles = groups.beyond.map((slug) => bySlug.get(slug)!).filter(Boolean);
+
+  const [lead, ...others] = stellarCircles;
   const side = others.slice(0, 2);
   const rest = others.slice(2);
 
@@ -139,6 +170,7 @@ export function ExploreBrowser({
           />
         </label>
         <div aria-label="Filter by ecosystem" className="x-pills" role="group">
+          <Link className="button button-outline button-small" href="/use">Explore what you can do →</Link>
           <button aria-pressed={ecosystem === ALL_ECOSYSTEMS} onClick={() => handleEcosystemChange(ALL_ECOSYSTEMS)} type="button">
             All
           </button>
@@ -186,6 +218,14 @@ export function ExploreBrowser({
           {filteredCircles.length} of {circles.length} assets
           {assetClass !== ALL_CLASSES ? ` · ${classOptions.find((item) => item.value === assetClass)?.label ?? ""}` : ""}
         </span>
+        <div className="x-toggles" role="group" aria-label="Availability filters">
+          <button aria-pressed={onlyUsable} onClick={() => setOnlyUsable((value) => !value)} type="button">
+            Can use now
+          </button>
+          <button aria-pressed={onlyCampaigned} onClick={() => setOnlyCampaigned((value) => !value)} type="button">
+            Has campaign
+          </button>
+        </div>
         <label className="select-field select-field-compact">
           <span className="sr-only">Filter by status</span>
           <select aria-label="Filter by status" onChange={(event) => setState(event.target.value)} value={state}>
@@ -198,14 +238,53 @@ export function ExploreBrowser({
         </label>
       </div>
 
+      {groups.collections.length > 0 ? (
+        <div aria-label="Browse by what you want" className="x-collections" role="group">
+          {groups.collections.map((collection) => (
+            <button
+              key={collection.key}
+              onClick={() => {
+                if (collection.classValue) {
+                  handleAssetClassChange(assetClass === collection.classValue ? ALL_CLASSES : collection.classValue);
+                } else if (collection.key === "can-use") {
+                  setOnlyUsable((value) => !value);
+                } else if (collection.key === "campaigns") {
+                  setOnlyCampaigned((value) => !value);
+                }
+              }}
+              type="button"
+            >
+              <strong>{collection.label}</strong>
+              <small>{collection.slugs.length}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {lead ? (
-        <>
+        <section aria-label="Stellar home assets">
+          <div className="x-block-head">
+            <h2>Stellar · home</h2>
+            <span>Your home for tokenized assets</span>
+          </div>
           <div className={`x-featured${side.length === 0 ? " x-featured-solo" : ""}`}>
-            <CircleCard circle={lead} useCount={useCounts[lead.slug] ?? 0} variant="feature" />
+            <CircleCard
+              circle={lead}
+              useCount={useCounts[lead.slug] ?? 0}
+              variant="feature"
+              issuer={(lead as { issuerSource?: string }).issuerSource}
+              actionLabels={actionLabels[lead.slug]}
+            />
             {side.length > 0 ? (
               <div className="x-featured-side">
                 {side.map((circle) => (
-                  <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} />
+                  <CircleCard
+                    circle={circle}
+                    key={circle.slug}
+                    useCount={useCounts[circle.slug] ?? 0}
+                    issuer={(circle as { issuerSource?: string }).issuerSource}
+                    actionLabels={actionLabels[circle.slug]}
+                  />
                 ))}
               </div>
             ) : null}
@@ -213,22 +292,43 @@ export function ExploreBrowser({
           {rest.length > 0 ? (
             <div className="x-more">
               <div className="x-block-head">
-                <h2>More assets</h2>
+                <h2>More on Stellar</h2>
                 <span>{rest.length}</span>
               </div>
               <div className="x-rail">
                 {rest.map((circle) => (
-                  <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} variant="compact" />
+                  <CircleCard
+                    circle={circle}
+                    key={circle.slug}
+                    useCount={useCounts[circle.slug] ?? 0}
+                    variant="compact"
+                    issuer={(circle as { issuerSource?: string }).issuerSource}
+                    actionLabels={actionLabels[circle.slug]}
+                  />
                 ))}
               </div>
             </div>
           ) : null}
-        </>
-      ) : (
+        </section>
+      ) : null}
+      {beyondCircles.length > 0 ? (
+        <section aria-label="Assets beyond Stellar">
+          <div className="x-block-head">
+            <h2>Beyond Stellar</h2>
+            <span>Additional assets through connected ecosystems</span>
+          </div>
+          <div className="x-rail">
+            {beyondCircles.map((circle) => (
+              <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} variant="compact" />
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {!lead && beyondCircles.length === 0 ? (
         <EmptyState title="No matching assets">
           Try a different search or clear one of the filters.
         </EmptyState>
-      )}
+      ) : null}
     </section>
   );
 }

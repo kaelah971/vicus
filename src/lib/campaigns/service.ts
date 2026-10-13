@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
 import {
   assetTransfers,
@@ -284,8 +284,23 @@ export async function getCampaign(campaignId: string): Promise<CampaignView> {
   }
 }
 
-export async function listCircleCampaigns(circleSlug: string): Promise<CampaignView[]> {
+/** Circle slugs with at least one visible campaign — one query for discovery. */
+export async function listActiveCampaignCircles(): Promise<string[]> {
   try {
+    const database = getDatabase();
+    const rows = await database
+      .select({ slug: circles.slug })
+      .from(campaigns)
+      .innerJoin(circles, eq(campaigns.circleId, circles.id))
+      .where(inArray(campaigns.status, ["active", "funded", "exhausted"]));
+    return [...new Set(rows.map((row) => row.slug))];
+  } catch (error) {
+    if (preserveExpectedError(error)) throw error;
+    throw toDatabaseUnavailableError("list active campaign circles");
+  }
+}
+
+export async function listCircleCampaigns(circleSlug: string): Promise<CampaignView[]> {  try {
     const database = getDatabase();
     const rows = await database
       .select({ campaign: campaigns, slug: circles.slug, name: circles.name })
@@ -1063,6 +1078,24 @@ export async function listMyCompletions(
 }
 
 /** Manager-visible campaigns for an organization (any status). */
+/** Live campaigns for utility discovery — active or funded only. Drafts never look live. */
+export async function listLiveCampaigns(): Promise<CampaignView[]> {
+  try {
+    const database = getDatabase();
+    const rows = await database
+      .select({ campaign: campaigns, slug: circles.slug, name: circles.name })
+      .from(campaigns)
+      .innerJoin(circles, eq(campaigns.circleId, circles.id))
+      .where(inArray(campaigns.status, ["active", "funded"]))
+      .orderBy(desc(campaigns.createdAt))
+      .limit(50);
+    return rows.map((row) => mapCampaignView(row.campaign, { slug: row.slug, name: row.name }));
+  } catch (error) {
+    if (preserveExpectedError(error)) throw error;
+    throw toDatabaseUnavailableError("list live campaigns");
+  }
+}
+
 export async function listOrgCampaigns(
   organizationId: string,
   actorId: string | null | undefined,

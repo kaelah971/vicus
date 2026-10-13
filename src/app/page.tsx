@@ -105,9 +105,9 @@ export default async function Home() {
         <section className="hero">
           <div className="shell hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow hero-eyebrow">THE COMMUNITY LAYER FOR TOKENIZED ASSETS</span>
+              <span className="eyebrow hero-eyebrow">STELLAR IS HOME FOR TOKENIZED ASSETS</span>
               <h1 className="hero-title">Tokenized assets need a place to belong.</h1>
-              <p className="hero-support">Discover them, understand them, and put them to work — together.</p>
+              <p className="hero-support">Start on Stellar — discover its tokenized funds and assets, put them to work, and extend outward where connected ecosystems add more.</p>
               <div className="hero-actions">
                 <ButtonLink href="/discover" variant="white">
                   Explore Vicus <Icon name="arrow-right" size={16} />
@@ -143,8 +143,8 @@ export default async function Home() {
                   Explore assets <Icon name="arrow-right" size={16} />
                 </ButtonLink>
               }
-              eyebrow="Discover"
-              line="Real tokenized assets across real ecosystems."
+              eyebrow="Discover · Start on Stellar"
+              line="Real Stellar tokenized assets first — connected ecosystems extend below."
               title="Every asset, one place to start."
             />
             {databaseUnavailable ? (

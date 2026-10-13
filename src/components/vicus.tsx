@@ -209,10 +209,16 @@ export function CircleCard({
   circle,
   useCount = 0,
   variant = "default",
+  issuer,
+  actionLabels,
 }: {
   circle: CircleView;
   useCount?: number;
   variant?: "default" | "feature" | "compact";
+  /** Registry issuer shown on home-layer cards; omitted elsewhere. */
+  issuer?: string | null;
+  /** Engine-derived current actions; when provided they replace the generic row. */
+  actionLabels?: string[];
 }) {
   const roleAvailable = Boolean(circle.verification?.enabled);
   const assetClass = assetClassMeta(circle.category);
@@ -244,15 +250,26 @@ export function CircleCard({
       <div className="asset-card-body">
         <h3>{circle.name}</h3>
         <span className="asset-card-class">{circle.assetClassLabel ?? circle.category}</span>
+        {issuer ? <span className="asset-card-issuer">{issuer}</span> : null}
         {variant !== "compact" ? <p className="asset-card-line">{circle.summary}</p> : null}
       </div>
       <div className="asset-card-foot">
         <EcoChip ecosystem={circle.ecosystem ?? circle.network} label={circle.ecosystemLabel} />
         <span aria-label="Available in this Circle" className="asset-card-acts">
-          <span>Learn</span>
-          {useCount > 0 ? <span>Use</span> : null}
-          <span>{circle.watched ? "Watching" : "Watch"}</span>
-          {roleAvailable ? <span>Role check</span> : null}
+          {actionLabels ? (
+            actionLabels.length > 0 ? (
+              actionLabels.map((label) => <span key={label}>{label}</span>)
+            ) : (
+              <span>Learn</span>
+            )
+          ) : (
+            <>
+              <span>Learn</span>
+              {useCount > 0 ? <span>Use</span> : null}
+              <span>{circle.watched ? "Watching" : "Watch"}</span>
+              {roleAvailable ? <span>Role check</span> : null}
+            </>
+          )}
         </span>
         <span className="asset-card-open">
           Open <Icon name="arrow-right" size={15} />

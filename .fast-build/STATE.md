@@ -1,4 +1,4 @@
-# Fast Build State — SECOND WAVE (COMPLETE, uncommitted)
+# Fast Build State — WAVE 3 (COMPLETE, checkpointing)
 
 ## Product
 - Name: Vicus (Stellar-first tokenized-asset utility)
@@ -18,7 +18,55 @@
 - tsc clean, lint 0 errors (3 pre-existing warnings), diff--check clean
 
 ## Planned next slices
-- [x] 2. Position Center — DONE (Wave 2 Slice 2)
+- [x] Wave 3 Slice 1: Stellar-first Home + Discover — DONE
+- [x] 2. Companies / Issuers / Representations + Compare — DONE
+- [x] 3. Asset Circles — DONE
+- [x] 4. Conviction / Theses — DONE
+- [x] 5. Personalized Activity — DONE
+- [x] 6. Earn / Use Discovery — DONE
+- [x] 7. IA + Mobile Polish — DONE (this invocation)
+
+## Completed (Wave 3 Slice 7)
+- IA: mobile 5-destination nav (Discover/Use/Circles/Activity/You), desktop adds secondary Missions/Lab/Spaces/Rewards; new read-only /circles directory; profile links Positions/Watch/Activity/Contacts; circle tabs include Conviction; active states correct per page
+- Dedupe: circle page people reads merged into the social summary (one membership read); gated states audited deliberate; all internal links resolve (42 routes)
+- Responsive/static: no fixed-width/table constructs in Wave-3 surfaces; a11y spot-check clean (labeled controls, pressed states); device render pass still owed (no browser tooling here)
+- Verification: wave3-ia:verify PASS; ALL 43 package.json :verify scripts exit 0 in single runs; lint 0 errors; tsc clean; build green; migration 0027 registered + applied; secret/artifact scan clean
+
+## Completed (Wave 3 Slice 6)
+- Earn/Use Discovery V1: /use with On Stellar / Beyond Stellar sections + intent chips (Access/Send/Borrow/Earn/Redeem/Exit/Rewards/Other); every opportunity derives from engine actions or live campaigns; execution states labeled LIVE/CONNECTED/OFFICIAL/PERMISSIONED/GATED
+- Private holding flags (boolean only) for signed-in owners; no balances/APY/TVL/winners anywhere; circle + discover entry links; no new tables
+- Verification: utility-discovery:verify PASS, full targeted set (11 suites) PASS, tsc clean, lint 0 errors, diff--check clean
+
+## Completed (Wave 3 Slice 5)
+- Personalized Activity V1: /activity with Needs-Attention (expiring own theses, ending-soon + claimable campaigns) + relevance-ranked What Changed (community, theses, campaigns); relevance from watched/held-Stellar/followed/participated/own signals, no event table, deterministic order (relevance/recency/Stellar-parity/id)
+- Every item carries its reason label; holdings personalize silently and never surface; no Watch transaction state duplicated
+- Incidental finding: app clock runs ~300ms behind DB now() — verifier backdates campaign starts instead of weakening the product window check
+- Verification: personalized-activity:verify PASS, asset-circles/conviction/community/social/campaign-funding(16)/positions/watch-center/representations/stellar-home PASS, tsc clean, lint 0 errors, diff--check clean
+
+## Completed (Wave 3 Slice 4)
+- Conviction V1: additive migration 0027 (theses table, applied); paper theses with claim/timeframe/confidence/evidence; Circle- or subject-bound (exactly one); evidence restricted to active bound-circle posts + registry sources
+- Existence-only Stellar position linking (live balance check, nothing numeric persisted); agent labels rejected (shape render-only, no fake agents); author-only resolve-with-note/withdraw; deterministic expiry from closesAt
+- UI: circle Conviction section + /conviction list/publish + /conviction/[id] detail + subject conviction block + profile open/total counts (no accuracy scoring)
+- Verification: conviction:verify PASS, asset-circles/community/social/representations/positions/agent-api/stellar-home PASS, tsc clean, lint 0 errors, diff--check clean
+
+## Completed (Wave 3 Slice 3)
+- Circle-social read model (lib/circles-social): following/contributors/verified/watching groups + per-author signals (questions/insights/sources/answers/helpful/approved) + verified participants (mission/campaign/role, handles only)
+- Circle page People section grouped with distinction copy; verified-participant tiles; contributor signal lines; community/campaigns/missions/lifecycle already native
+- Public profile already showed Watching/Contributions/Verified with no-wallet copy — asserted, not duplicated
+- Verification: asset-circles:verify PASS, community/social/contacts/campaign-funding(16)/stellar-home/representations/asset-actions(12)/positions PASS, tsc clean, lint 0 errors, diff--check clean
+
+## Completed (Wave 3 Slice 2)
+- Subject layer as config (no migration): apple (AAPLx+AAPLc, no fake Stellar leg), franklin-templeton (BENJI), wisdomtree (5 funds); membership resolves live from registry
+- Routes /subjects/[slug], /issuers/[slug] (redirect into subjects), /compare (stacked rows, any two slugs; AAPLx-vs-AAPLc + BENJI-vs-WTGXX entry links)
+- Every representation field + compare row derived from registry/lifecycle/engine; unknown identifiers marked, never fabricated; no scores/prices/winners
+- Circle pages link View company/issuer where applicable
+- Verification: representations:verify PASS, stellar-home/stellar-assets/classification/lifecycle/asset-actions(12)/external-assets/broader-access/lending PASS, tsc clean, lint 0 errors, diff--check clean
+
+## Completed (Wave 3 Slice 1)
+- Discover restructured: Stellar home layer first (featured + rail), Beyond Stellar below (compact rail); chain stays an optional filter, never required
+- Thematic collections (funds/fixed-income/equities/stable/can-use-now/active-campaigns) from taxonomy + engine + campaign truth; empty collections omitted
+- Cards: registry issuer + top engine actions on home layer; landing copy Stellar-first; circle detail already lifecycle+engine+campaign complete
+- Verification: stellar-home:verify PASS, stellar-assets/classification/lifecycle/asset-actions(12)/external-assets/campaign-funding(16) PASS, tsc clean, lint 0 errors, diff--check clean
 - [x] 3. Lending/Collateral Discovery + Adapter — DONE
 - [x] 4. Return-to-Stellar — GATED with documented Circle-docs evidence
 - [x] 5. Broader Executable Access — DONE

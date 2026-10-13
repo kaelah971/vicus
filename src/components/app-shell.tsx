@@ -7,24 +7,45 @@ import { VicusWordmark } from "@/components/vicus";
 import { Glyph, type GlyphName } from "@/components/vicus-ui";
 import { WalletAuthButton } from "@/components/wallet-auth";
 
-export type AppShellSection = "discover" | "missions" | "lab" | "spaces" | "profile" | "admin" | "ecosystems" | "host";
+export type AppShellSection =
+  | "discover"
+  | "use"
+  | "circles"
+  | "activity"
+  | "missions"
+  | "lab"
+  | "spaces"
+  | "profile"
+  | "admin"
+  | "ecosystems"
+  | "host";
 
 type NavItem = { section: AppShellSection | "rewards"; href: string; label: string; icon: GlyphName };
 
-const PRIMARY_NAV: NavItem[] = [
-  { section: "discover", href: "/discover", label: "Explore", icon: "compass" },
+/** Mobile primary nav: five destinations — Discover, Use, Circles, Activity, You. */
+const BOTTOM_NAV: NavItem[] = [
+  { section: "discover", href: "/discover", label: "Discover", icon: "compass" },
+  { section: "use", href: "/use", label: "Use", icon: "bolt" },
+  { section: "circles", href: "/circles", label: "Circles", icon: "grid" },
+  { section: "activity", href: "/activity", label: "Activity", icon: "chat" },
+  { section: "profile", href: "/profile/me", label: "You", icon: "user" },
+];
+
+/** Desktop sidebar: primary five plus secondary capabilities. */
+const SIDEBAR_EXTRA_NAV: NavItem[] = [
   { section: "missions", href: "/missions", label: "Missions", icon: "target" },
   { section: "lab", href: "/lab", label: "Lab", icon: "spark" },
   { section: "spaces", href: "/spaces", label: "Spaces", icon: "grid" },
   // Rewards live on the profile (no dedicated claim route); the tab deep-links there.
   { section: "rewards", href: "/profile/me#rewards", label: "Rewards", icon: "gift" },
-  { section: "profile", href: "/profile/me", label: "Profile", icon: "user" },
 ];
+
+const PRIMARY_NAV: NavItem[] = [...BOTTOM_NAV, ...SIDEBAR_EXTRA_NAV];
 
 function BottomNav({ active }: { active?: AppShellSection }) {
   return (
     <nav aria-label="Primary" className="bottom-nav">
-      {PRIMARY_NAV.map((item) => {
+      {BOTTOM_NAV.map((item) => {
         const current = item.section === active;
         return (
           <Link

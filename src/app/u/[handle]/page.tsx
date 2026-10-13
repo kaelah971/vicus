@@ -14,6 +14,7 @@ import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getPublicProfileByHandle } from "@/lib/social/service";
 import { getUserCommunityContributions } from "@/lib/community/service";
+import { getProfileThesisSummary } from "@/lib/conviction/service";
 import { FollowButton } from "@/components/follow-button";
 import { ContactButton } from "@/components/contact-button";
 import { isContactSaved } from "@/lib/contacts/service";
@@ -77,6 +78,12 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   }
 
   const isSelf = viewerId === profile.user.id;
+  let thesisSummary = { open: 0, total: 0 };
+  try {
+    thesisSummary = await getProfileThesisSummary(profile.user.id);
+  } catch {
+    thesisSummary = { open: 0, total: 0 };
+  }
 
   return (
     <AppShell>
@@ -141,6 +148,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             <MetricCard detail="Approved mission responses" label="Contributions" value={String(profile.approvedContributionCount)} />
             <MetricCard detail="Actively watched asset communities" label="Watching" value={String(profile.watchedCircleCount)} />
             <MetricCard detail="Supported persisted role checks" label="Verified roles" value={String(profile.verifiedRoles.length)} />
+            <MetricCard detail="Open paper theses (no accuracy scoring)" label="Conviction" value={`${thesisSummary.open} open · ${thesisSummary.total} total`} />
           </div>
 
           <section className="circle-section" aria-labelledby="person-contributions-title">

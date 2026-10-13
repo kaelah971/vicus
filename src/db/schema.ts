@@ -875,3 +875,33 @@ export const externalUtilityOrders = pgTable(
     index("utility_orders_status_idx").on(table.status),
   ],
 );
+
+export const theses = pgTable(
+  "theses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    circleId: uuid("circle_id").references(() => circles.id, { onDelete: "cascade" }),
+    subjectSlug: varchar("subject_slug", { length: 80 }),
+    title: varchar("title", { length: 180 }).notNull(),
+    claim: text("claim").notNull(),
+    timeframe: varchar("timeframe", { length: 16 }).notNull(),
+    confidence: integer("confidence").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("open"),
+    thesisType: varchar("thesis_type", { length: 32 }).notNull().default("paper"),
+    evidenceRefs: jsonb("evidence_refs").$type<{ kind: string; label: string; url: string | null; postId: string | null }[]>().notNull().default([]),
+    positionLinked: boolean("position_linked").notNull().default(false),
+    linkedAssetSlug: varchar("linked_asset_slug", { length: 140 }),
+    outcomeNote: text("outcome_note"),
+    closesAt: timestamp("closes_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("theses_circle_status_idx").on(table.circleId, table.status, table.createdAt),
+    index("theses_subject_status_idx").on(table.subjectSlug, table.status, table.createdAt),
+    index("theses_author_idx").on(table.authorUserId),
+  ],
+);

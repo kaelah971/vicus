@@ -10,6 +10,8 @@ import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session
 import { listCircles } from "@/lib/data/circles";
 import { isAssetCircle } from "@/lib/data/circles";
 import { getCircleCapabilities } from "@/lib/utility/service";
+import { resolveAssetActions } from "@/lib/asset-actions/service";
+import { listActiveCampaignCircles } from "@/lib/campaigns/service";
 import { listSpaces } from "@/lib/organizations/service";
 
 export const dynamic = "force-dynamic";
@@ -39,15 +41,30 @@ export default async function DiscoverPage() {
 
   // Real "Use" signal per asset: count of active, source-backed capabilities.
   const useCounts: Record<string, number> = {};
+  // Engine truth per asset: which circles expose an available action now,
+  // plus their top action labels for discovery cards.
+  const usableSlugs: string[] = [];
+  const actionLabels: Record<string, string[]> = {};
+  let campaignSlugs: string[] = [];
   let spaces: Awaited<ReturnType<typeof listSpaces>> = [];
   if (!databaseUnavailable) {
-    const [capabilityLists, spaceList] = await Promise.all([
+    const [capabilityLists, spaceList, engineLists, campaigned] = await Promise.all([
       Promise.all(circleData.map((circle) => getCircleCapabilities(circle.slug).catch(() => []))),
       listSpaces().catch(() => []),
+      Promise.all(
+        circleData.map((circle) =>
+          resolveAssetActions(circle.slug, circle.network ?? circle.ecosystem ?? "stellar").catch(() => []),
+        ),
+      ),
+      listActiveCampaignCircles().catch(() => [] as string[]),
     ]);
     circleData.forEach((circle, index) => {
       useCounts[circle.slug] = capabilityLists[index].length;
+      const available = (engineLists[index] ?? []).filter((action) => action.state === "available");
+      if (available.length > 0) usableSlugs.push(circle.slug);
+      actionLabels[circle.slug] = available.slice(0, 3).map((action) => action.title);
     });
+    campaignSlugs = campaigned;
     spaces = spaceList;
   }
   const ecosystemCount = new Set(circleData.map((circle) => circle.ecosystem)).size;
@@ -58,9 +75,9 @@ export default async function DiscoverPage() {
         <header className="v-page-head">
           <GlowField tones={["violet", "blue"]} />
           <div className="shell">
-            <span className="v-eyebrow">Discover</span>
+            <span className="v-eyebrow">Discover · Stellar is home</span>
             <h1>Explore</h1>
-            <p>Tokenized assets across every ecosystem.</p>
+            <p>Start with Stellar tokenized assets — extend outward where connected ecosystems add more.</p>
             {!databaseUnavailable ? (
               <div className="v-head-stats">
                 <span><strong>{circleData.length}</strong> assets</span>
@@ -82,7 +99,13 @@ export default async function DiscoverPage() {
             </section>
           ) : (
             <Suspense>
-              <ExploreBrowser circles={circleData} useCounts={useCounts} />
+              <ExploreBrowser
+                circles={circleData}
+                useCounts={useCounts}
+                usableSlugs={usableSlugs}
+                campaignSlugs={campaignSlugs}
+                actionLabels={actionLabels}
+              />
             </Suspense>
           )}
 
