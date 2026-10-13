@@ -1,182 +1,176 @@
-# Vicus
+<div align="center">
 
-> **Where assets find their people.**
->
-> **The community layer for tokenized assets.**
+# VICUS
 
-Vicus is a Stellar-first community and campaign layer for tokenized assets. It gives people a place to discover assets, understand what they represent, verify meaningful participation, complete proof-based missions, and build reputation around asset communities.
+### Where tokenized assets become usable.
 
-Vicus sits above the wallet. It is not an investment platform, brokerage, custody service, or financial adviser.
+A Stellar-first operating layer for discovering, understanding, accessing, and using tokenized assets.
 
-## Why Vicus
+**Discover what exists. Understand what it represents. See what you can actually do. Participate around the asset.**
 
-Tokenized assets can be technically real while remaining socially inert.
+[![Explore Vicus](https://img.shields.io/badge/EXPLORE_VICUS-live_app-7c3aed?style=for-the-badge)](https://explorevicus.vercel.app)
+[![Product walkthrough](https://img.shields.io/badge/PRODUCT_WALKTHROUGH-screenshots-111827?style=for-the-badge)](#product-walkthrough)
+[![Stellar proof](https://img.shields.io/badge/STELLAR_PROOF-verified_tx-00a3c4?style=for-the-badge)](#proof-on-stellar)
 
-Wallets hold and send assets. RWA dashboards display them. Neither naturally creates community, education, contribution, identity, or issuer distribution.
+![Stellar](https://img.shields.io/badge/Stellar-Testnet_%2B_Mainnet_reads-000000) ![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6) ![Freighter](https://img.shields.io/badge/Freighter-wallet_auth-00a3c4) ![Neon Postgres](https://img.shields.io/badge/Neon-Postgres-00e699) ![Stellar – Find Your Way](https://img.shields.io/badge/Stellar-Find_Your_Way-7c3aed)
 
-Vicus adds that participation layer: source-backed context, watch-first discovery, privacy-safe role verification, proof-based missions, and an operational surface for reviewing contributions and campaign activity.
+Website · [Walkthrough](#product-walkthrough) · [Stellar Proof](#proof-on-stellar) · [Architecture](#architecture) · [Technical Documentation](#tech-stack)
 
-## Product loop
+</div>
 
-```text
-Discover → Understand → Watch → Verify → Participate → Build reputation → Receive proof / eligible rewards
-```
+![Vicus landing — tokenized assets need a place to belong](docs/screenshots/01-landing-hero.png)
 
-The product is intentionally watch-first: people can learn before connecting a wallet. The final reward step is part of the product direction, but live Stellar reward settlement is not shipped yet.
+<div align="center">
 
-## What is live today
+**Journey:** Discover → Understand → Access → Hold → Use → Send → Earn → Exit. Stellar is home; connected ecosystems extend discovery and utility.
 
-| Capability | Status | Current truth |
-|---|---|---|
-| Premium web product | ✅ Shipped | Next.js App Router surfaces for Explore, circles, passports, missions, profiles, and admin review. |
-| Content and campaign data | ✅ Shipped | Neon Postgres and Drizzle-backed circles, Asset Passports, missions, profiles, and campaign records. |
-| Stellar role verification | ✅ Shipped | Real Stellar mainnet USDC holder/trustline checks with privacy-safe results. |
-| Proof-of-understanding missions | ✅ Shipped | Server-graded quiz configuration keeps correct answers off the client. |
-| Manual mission review | ✅ Shipped | Text and research submissions support pending, approved, rejected, and needs-revision states. |
-| Vicus reputation | ✅ Shipped | Approved participation points are derived from database state; they are not money or blockchain rewards. |
-| Wallet authentication | ✅ Shipped | Freighter plus SEP-53 signed-message authentication creates secure wallet-backed sessions. |
-| Authenticated participation | ✅ Shipped | Authenticated profiles, mission submissions, and admin review are session-backed. |
-| Testnet native XLM reward settlement | 🟣 In progress | Real direct-payment and durable receipt path is implemented; manual testnet acceptance still needs a funded distributor and recipient account. |
-| Mainnet payout, claimable balances, Soroban, CCTP, and cross-chain identity | ○ Roadmap | These remain safety-gated or future architecture and product work, not shipped functionality. |
+</div>
 
-## Stellar integration
+> Live product, real data. Every screenshot below is a production frame — see [`docs/screenshots/CAPTURE_MANIFEST.md`](docs/screenshots/CAPTURE_MANIFEST.md) for URLs and capture conditions. USDC is infrastructure in Vicus, not its identity. No demo video URL exists yet — one will be linked here when published.
 
-Stellar is infrastructure in Vicus, not decoration:
+## The problem
 
-- **Mainnet reads:** the server reads Stellar account data through Horizon for the live verification path.
-- **USDC role verification:** a canonical USDC trustline with a positive balance can produce `Verified holder`; a matching trustline without a positive balance can produce `Verified trustline`.
-- **Privacy-safe output:** the API returns a role, reason, asset/network context, and timestamp—not an exact balance, portfolio, or issuer account.
-- **Freighter:** Stellar Wallets Kit discovers the wallet and Freighter signs the authentication message on Stellar mainnet.
-- **SEP-53 authentication:** Vicus verifies a short-lived signed message, not a transaction. Login requires no XLM and creates no Horizon transaction.
-- **Testnet settlement:** approved reward-enabled missions can send native XLM from a dedicated server-side distributor and persist the real transaction receipt. The default path is Stellar Testnet; Testnet XLM has no monetary value.
-- **Safety boundary:** public-network rewards require `VICUS_ENABLE_MAINNET_REWARDS=true`; USDC rewards, claimable balances, Soroban vaults, and treasury operations remain roadmap work.
+A tokenized asset can be technically real and still practically unusable. The same company (say, Apple) appears as different products on different chains, from different issuers, with different eligibility rules — and none of the existing interfaces tell a normal person three things together: *what exists, what it is, and what I can actually do with it.* Wallets move value but don't explain. Dashboards display tokens but don't act. Communities live somewhere else entirely.
+
+## The Vicus solution
+
+Vicus puts discovery, understanding, action, and participation in one experience. One catalogue answers “what exists”; one preview sheet answers “what is it and what can I do”; one action layer routes each capability to its real execution path or official flow; one social layer gathers questions, theses, campaigns, and contributors per asset. Nothing is invented to fill gaps — gated stays gated, empty states stay empty.
+
+## Product walkthrough
+
+### 01 · Landing — the product in one screen
+
+Full-width hero above. Stellar-first positioning, two doors in: **Explore Vicus** (browse) and **Put assets to work** (act).
+
+| 02 · Discover — a visual catalogue, Stellar first | 03 · Preview — tap any tile, understand before you commit |
+|---|---|
+| [![Discover catalogue](docs/screenshots/02-discover-catalogue.png)](https://explorevicus.vercel.app/discover) | [![BENJI preview sheet](docs/screenshots/03-asset-preview-benji.png)](https://explorevicus.vercel.app/discover?asset=benji-on-stellar) |
+| Real issuer marks (Circle, PayPal, Ondo, Franklin Templeton, WisdomTree), Stellar home layer above connected ecosystems. | BENJI's identity, available actions, short About, and a path to full detail — progressive disclosure, not a wall of text. |
+
+| 04 · Understand — Overview with facts, not fog | 05 · Compare — Apple, honestly represented |
+|---|---|
+| [![BENJI overview](docs/screenshots/04-asset-overview-benji.png)](https://explorevicus.vercel.app/circles/benji-on-stellar) | [![Apple comparison](docs/screenshots/05-compare-apple.png)](https://explorevicus.vercel.app/subjects/apple) |
+| Issuer, network, asset class, lifecycle — long prose collapsed behind disclosures. | AAPLx (Solana) vs AAPLc (Base): distinct issuers, contracts, eligible actions, US restrictions — and an explicit “no verified Stellar representation.” |
+
+| 06 · Use — action-first, not asset-first | 07 · Act — real states, real rails |
+|---|---|
+| [![Use interface](docs/screenshots/06-use-actions.png)](https://explorevicus.vercel.app/use) | [![AAPLx actions](docs/screenshots/07-action-sheet-aaplx.png)](https://explorevicus.vercel.app/use?asset=aaplx-on-solana) |
+| Pick what you want to do (Access, Send, Earn, Borrow, Redeem, Exit); eligible assets follow. | AAPLx shows CONNECTED Access/Exit/Swap via Solana USDC and Jupiter routing — wallet-signed, Vicus-verified, never presented as completed. |
+
+| 08 · Circles — people around assets | 09 · Projects — Spaces with honest metrics |
+|---|---|
+| [![Circles](docs/screenshots/08-circles.png)](https://explorevicus.vercel.app/circles) | [![Circle Space](docs/screenshots/09-space-missions.png)](https://explorevicus.vercel.app/spaces/circle) |
+| Real social signals per asset (“1 watching”) and truthful empty states where nothing exists yet. | Hosted assets, lessons, open missions — including a visible “0 contributions” where true. |
+
+| Mobile: the catalogue in your pocket | Mobile: the preview sheet |
+|---|---|
+| ![Mobile Discover](docs/screenshots/10-mobile-discover.png) | ![Mobile asset sheet](docs/screenshots/11-mobile-sheet.png) |
+| Two-column visual grid, compact filters, bottom nav — no clipping. | BENJI sheet at ~⅔ viewport over the dimmed grid, grab handle and action grid intact. |
+
+## Judge Vicus in 90 seconds
+
+1. **Land** on [explorevicus.vercel.app](https://explorevicus.vercel.app/) — read the proposition, note the two doors.
+2. **Discover** at [`/discover`](https://explorevicus.vercel.app/discover) — filter Stellar vs beyond-Stellar, open any tile.
+3. **Preview BENJI** at [`/discover?asset=benji-on-stellar`](https://explorevicus.vercel.app/discover?asset=benji-on-stellar) — check actions, About, issuer, representation.
+4. **Understand** at [`/circles/benji-on-stellar`](https://explorevicus.vercel.app/circles/benji-on-stellar) — switch Overview / Actions / Circle / Details tabs.
+5. **Compare Apple** at [`/subjects/apple`](https://explorevicus.vercel.app/subjects/apple) — read the restrictions, note the missing Stellar representation.
+6. **Use** at [`/use`](https://explorevicus.vercel.app/use) — pick Earn, see which assets actually support it.
+7. **Circles** at [`/circles`](https://explorevicus.vercel.app/circles) — verify social signals are real, empties are empty.
+
+No wallet needed for any of the above. Wallet-gated flows stop at an explicit connect step.
+
+## Proof on Stellar
+
+### Real Testnet reward settlement — confirmed on-chain
+
+| | |
+|---|---|
+| Network | Stellar Testnet |
+| Asset | XLM (native, no monetary value) |
+| Amount | 0.1 |
+| Status | **CONFIRMED** |
+| Ledger | 5066878 |
+| Transaction | `36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc` |
+
+[![Stellar Testnet explorer record of the Vicus reward settlement](docs/screenshots/12-stellar-reward-proof.png)](https://stellar.expert/explorer/testnet/tx/36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc)
+
+**[Verify on Stellar Testnet →](https://stellar.expert/explorer/testnet/tx/36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc)** · [Raw Horizon record →](https://horizon-testnet.stellar.org/transactions/36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc)
+
+A user completed an eligible approved mission, claimed the reward, and Vicus settled native XLM through Stellar Testnet with a durable receipt. The on-chain record was independently re-verified: `successful: true`, one `payment` operation of `0.1000000` native XLM, ledger `5066878` — matching the stored claim exactly. Testnet XLM has no monetary value. **This historical proof does not mean public-network rewards are currently enabled** — mainnet stays behind its safety flag.
+
+## Why Stellar?
+
+| Integration | True state |
+|---|---|
+| Stellar-first discovery | **Shipped.** Home layer ordering, Stellar asset identities, issuer context. |
+| Horizon role verification | **Shipped.** Mainnet trustline/holder checks returning a privacy-safe role — never a balance. |
+| Freighter signed-message auth | **Shipped.** Challenge/response wallet sessions; login submits no transaction and needs no XLM. |
+| Native Stellar Send | **Shipped, policy-gated.** Per-asset allowlist; permissioned assets (e.g. BENJI) require issuer-authorized recipients. Wallet required. |
+| Tokenization Lab | **Shipped, Testnet-only.** Define/trust/issue/verify flows against Stellar Testnet Horizon by construction. |
+| XLM reward settlement | **Implemented, Testnet-only, funding-gated — with one independently verified historical settlement** (see [Proof on Stellar](#proof-on-stellar)). Server distributor + durable receipts; needs a funded distributor account; mainnet behind an explicit flag (off by default). |
+| CCTP cross-chain send | **Implemented, restricted.** Testnet USDC toward Base/Ethereum receive endpoints; recipient must hold an endpoint. |
+| Solana/Jupiter routing (AAPLx/TSLAx access, AAPLx exit) | **Connected.** Execution happens in-wallet; Vicus routes and verifies. AAPLc acquisition stays **gated**; NVDAc exposes **nothing executable**. |
+| Morpho borrow discovery (AAPLc) | **Connected discovery.** Read-only market route into the external protocol flow. |
+| Claimable balances, Soroban vaults, mainnet payouts | **Roadmap, not shipped.** |
+
+## Real functionality and boundaries
+
+| Area | Status |
+|---|---|
+| Asset Action Engine (available / permissioned / connected / gated) | Shipped — single resolver, engine truth reused by Discover, Use, sheets, and verifiers |
+| Campaigns, missions, manual + automatic review | Shipped, live records |
+| Verified reward records | Real receipts where Testnet-funded; never mocked |
+| Community posts, answers, helpful votes | Shipped; sparse where sparse |
+| Conviction theses (paper + verified-position) | Shipped |
+| Contacts, receive endpoints, spaces, lessons | Shipped |
+| Testnet-only, permissioned, connected, and gated states | Labeled as such in-UI; this README mirrors those labels |
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    User[User / Freighter] --> App[Next.js App Router]
-    App --> API[Server / API layer]
-    API --> DB[Neon Postgres / Drizzle]
-    API --> Missions[Mission + identity services]
-    API --> Stellar[Stellar services]
-    Stellar --> Horizon[Horizon mainnet reads]
-    Stellar --> Role[USDC role verification]
-    Stellar --> SEP53[SEP-53 wallet proof]
-    Stellar --> Rewards[Testnet XLM settlement + receipt]
+    User[User] --> App[Next.js App Router<br/>tiles · sheets · tabs · runners]
+    Wallet[Freighter / Solana wallet] -. signs .-> App
+    App --> API[Server actions + API routes]
+    API --> Engines[Domain engines<br/>asset-actions · utility-discovery<br/>campaigns · lifecycle · subjects]
+    Engines --> DB[(Neon Postgres / Drizzle)]
+    Engines --> Horizon[Stellar Horizon<br/>mainnet reads · testnet writes]
+    Engines --> Solana[Solana / Jupiter routing]
+    Engines --> External[Morpho · CCTP · issuers]
+    Horizon -. verifies .-> Wallet
 ```
 
-The current server boundary keeps database access, role rules, authentication verification, distributor signing, and sensitive configuration on the server. Mainnet settlement is explicitly safety-gated.
-
-For a compact engineering map, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-## Core product surfaces
-
-- **Explore** — browse circles without a wallet.
-- **Asset Circles** — an asset-native home for context, watch mode, verification, and missions.
-- **Asset Passport** — source-linked asset identity, intended use, eligibility, and risk/disclosure context.
-- **Missions** — proof-of-understanding quizzes and reviewed text/research contributions.
-- **Profile** — authenticated participation history, derived points, and contribution records.
-- **Issuer/Admin dashboard** — campaign-backed mission data and authenticated submission review. Full issuer onboarding and campaign funding are roadmap items.
-
-## Verification philosophy
-
-Vicus is explicit about what each proof means:
-
-- A **pasted address** is a read-only blockchain lookup. It is not proof that the visitor controls the address.
-- A **signed wallet message** is proof of control of the selected Stellar address. It is not proof of a balance, asset holding, or multisig authority.
-- Exact balances and unrelated portfolio data are never exposed publicly by the role-verification path.
-- Vicus does not invent asset ownership, approvals, rewards, or transaction hashes.
-- Eligibility, approval, claim creation, submission, and confirmation are separate states when reward settlement exists.
-- Roadmap functionality is labelled as roadmap rather than presented as live.
+Modules map 1:1 to `src/lib/*` (access, asset-access, asset-actions, campaigns, circles-social, community, conviction, crosschain-send, lab, lending, lifecycle, rewards, send, subjects, utility-discovery, …). Wallet authorization boundaries: Vicus never holds funds or secrets; execution is wallet-signed, Vicus verifies.
 
 ## Tech stack
 
-Only the packages used by the current implementation are listed here:
+Next.js 16 (App Router) · React 19 · Drizzle ORM + Neon Postgres · Stellar SDK + Freighter API + Stellar Wallets Kit · Solana web3.js · Tailwind CSS 4 · DM Sans / Geist Mono via `next/font` · three.js hero scene · TypeScript + ESLint · 50+ `tsx` verifier scripts (`npm run *:verify`).
 
-- Next.js 16.3.8 and React 19.2.8
-- TypeScript 5
-- Tailwind CSS v4
-- Neon Postgres via `@neondatabase/serverless`
-- Drizzle ORM and Drizzle Kit
-- Stellar SDK via `@stellar/stellar-sdk`
-- Stellar Wallets Kit via `@creit.tech/stellar-wallets-kit`
-- Freighter API via `@stellar/freighter-api`
-
-## Local development
+## Local setup
 
 ```bash
+git clone https://github.com/kaelah971/vicus.git
+cd vicus
 npm install
-cp .env.example .env.local
-```
-
-On PowerShell, the equivalent is `Copy-Item .env.example .env.local`.
-
-Configure these server-side values in `.env.local`:
-
-```text
-DATABASE_URL
-VICUS_APP_URL
-VICUS_HOME_DOMAIN
-VICUS_ADMIN_WALLET_ADDRESSES
-VICUS_REWARD_NETWORK
-VICUS_REWARD_DISTRIBUTOR_SECRET
-VICUS_REWARD_MAX_XLM
-VICUS_ENABLE_MAINNET_REWARDS
-```
-
-The current auth implementation binds SEP-53 messages through `VICUS_HOME_DOMAIN`; it does not require a separate `VICUS_WEB_AUTH_DOMAIN` setting. Reward distributor secrets are server-only and must never be prefixed with `NEXT_PUBLIC_`. Never commit `.env.local` or real credentials.
-
-Initialize the database with the deterministic development seed:
-
-```bash
+cp .env.example .env.local   # fill DATABASE_URL (Neon); keep secrets server-side
 npm run db:migrate
-npm run db:seed
-npm run db:verify
+npm run db:seed              # demo content (optional)
+npm run dev                  # http://localhost:3000
 ```
 
-Start the app:
+Useful: `npm run build`, `npm run lint`, `npx tsc --noEmit`, plus focused gates such as `npm run stellar-home:verify`, `npm run utility-discovery:verify`, `npm run asset-actions:verify`, `npm run wave3-ia:verify`.
 
-```bash
-npm run dev
-```
+## Verification and testing
 
-## Verification commands
+The repo ships 50+ bounded verifier scripts covering engines, discovery ordering, action parity, representations, social integrity, lifecycle, and IA. Core UI/truth gates (stellar-home, utility-discovery, asset-circles, asset-actions, representations, lifecycle, community, conviction, wave3-ia) pass against production code; typecheck, lint, and production build are green. No test counts are claimed beyond what these scripts assert.
 
-```bash
-npm run lint
-npx tsc --noEmit
-npm run build
-npm run db:verify
-npm run mission:verify
-npm run auth:verify
-npm run reward:verify
-```
+## Current limitations and honest next steps
 
-The database, mission, auth, and reward verification scripts exercise the implemented Neon-backed flows. `reward:verify` uses isolated temporary records and settlement fakes; it does not present mocked activity as blockchain state. Real testnet settlement requires the manual distributor setup documented in Slice 5B.
+- Community activity is real but sparse — empty states are shown, not backfilled.
+- Two brand marks (Tesla, Franklin Templeton) use ticker fallback: official endpoints block automated fetching; documented in `src/lib/asset-visuals.ts`.
+- Reward settlement needs a funded Testnet distributor to demonstrate end-to-end; mainnet stays behind its flag.
+- No public demo video URL exists yet — owner to provide; no placeholder button shipped.
 
-## Product documentation
+---
 
-- [Product idea](docs/Vicus_Product_Idea.md)
-- [PRD, build plan, and architecture](docs/Vicus_PRD_Build_Plan_Architecture.md)
-- [Brand messaging](docs/Vicus_Brand_Messaging.md)
-- [Design system](docs/DESIGN.md)
-- [Current architecture map](docs/ARCHITECTURE.md)
-- [Slice 3 — Stellar verification](docs/Vicus_Slice_3_Stellar_Verification.md)
-- [Slice 4 — Missions](docs/Vicus_Slice_4_Missions.md)
-- [Slice 5A — Authentication](docs/Vicus_Slice_5A_Auth.md)
-- [Slice 5B — XLM rewards](docs/Vicus_Slice_5B_Rewards.md)
-
-## Roadmap
-
-- Mainnet Stellar reward settlement and broader receipt operations
-- Issuer campaign funding and onboarding
-- Richer asset communities and contribution surfaces
-- Cross-chain identity
-- CCTP-funded campaigns
-
-These are planned directions, not current product claims.
-
-## Hackathon
-
-Built for **Find Your Way: Hackathon** as a Stellar-first project.
+**Live:** [explorevicus.vercel.app](https://explorevicus.vercel.app) · **Stellar – Find Your Way.** Discover → Understand → Access → Hold → Use → Send → Earn → Exit.
