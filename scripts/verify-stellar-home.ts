@@ -82,10 +82,11 @@ async function main() {
   const foundExternal = assets.filter((c) => matchesCircleFilters(c, { assetClass: "all", ecosystem: "all", query: "tslax", state: "All statuses" }));
   assert.ok(foundExternal.some((c) => c.slug === "tslax-on-solana"), "search finds external");
 
-  // 6. Source structure: home/beyond headings, collections, no fixed widths.
+  // 6. Source structure: home/beyond headings, category shortcuts, one Filters control.
   const browser = readFileSync(join(ROOT, "src/components/explore-browser.tsx"), "utf8");
-  assert.ok(browser.includes("Stellar · home") && browser.includes("Beyond Stellar"), "hierarchy headings present");
-  assert.ok(browser.includes("x-collections"), "collections strip present");
+  assert.ok(browser.includes(">Stellar</h2>") && browser.includes("Beyond Stellar"), "hierarchy headings present");
+  assert.ok(browser.includes("CATEGORY_SHORTCUTS") && browser.includes("x-filters-more"), "shortcuts plus one Filters control");
+  assert.ok(!browser.includes("x-collections") && !browser.includes("directory-count"), "clutter controls removed");
   assert.ok(!/w-\[|min-w-\[|whitespace-nowrap|<table/.test(browser), "no overflow-prone constructs");
 
   console.log("stellar-home:verified");

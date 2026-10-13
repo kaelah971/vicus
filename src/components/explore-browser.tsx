@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCard, EmptyState, Icon } from "@/components/vicus";
-import { Orb, assetClassMeta, ecosystemMeta } from "@/components/vicus-ui";
+import { ecosystemMeta } from "@/components/vicus-ui";
 import type { Circle } from "@/lib/vicus-data";
 import { buildDiscoveryGroups, matchesCircleFilters } from "@/lib/data/circles";
 
@@ -22,18 +21,13 @@ const ASSET_CLASS_ORDER = [
   "real_estate",
   "other_financial",
 ] as const;
-
-const ASSET_CLASS_FILTER_LABELS: Record<string, string> = {
-  stablecoin: "Stablecoins",
-  treasury_fund: "Treasuries & Funds",
-  equity_fund: "Equities",
-  fixed_income: "Fixed Income",
-  commodity: "Commodities",
-  private_credit: "Private Credit",
-  alternative: "Alternatives",
-  real_estate: "Real Estate",
-  other_financial: "Other",
-};
+const CATEGORY_SHORTCUTS = [
+  { value: ALL_CLASSES, label: "All" },
+  { value: "treasury_fund", label: "Funds" },
+  { value: "fixed_income", label: "Treasuries" },
+  { value: "equity_fund", label: "Equities" },
+  { value: "stablecoin", label: "Stablecoins" },
+] as const;
 
 /**
  * The URL (?ecosystem=, ?class=) is the source of truth for both filter
@@ -43,13 +37,11 @@ const ASSET_CLASS_FILTER_LABELS: Record<string, string> = {
  */
 export function ExploreBrowser({
   circles,
-  useCounts = {},
   usableSlugs = [],
   campaignSlugs = [],
   actionLabels = {},
 }: {
   circles: Circle[];
-  useCounts?: Record<string, number>;
   usableSlugs?: string[];
   campaignSlugs?: string[];
   actionLabels?: Record<string, string[]>;
@@ -100,22 +92,12 @@ export function ExploreBrowser({
     updateParams("class", value, ALL_CLASSES);
   }
 
-  const classCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const circle of circles) counts.set(circle.category, (counts.get(circle.category) ?? 0) + 1);
-    return counts;
-  }, [circles]);
-  const classOptions = useMemo(
-    () =>
-      ASSET_CLASS_ORDER.filter((value) => classCounts.has(value)).map((value: string) => ({
-        value,
-        label: ASSET_CLASS_FILTER_LABELS[value] ?? value,
-      })),
-    [classCounts],
-  );
-  const classValues = useMemo(() => new Set(classOptions.map((option) => option.value)), [classOptions]);
   const requestedClass = (searchParams.get("class") ?? "").trim().toLowerCase();
-  const assetClass = classValues.has(requestedClass) ? requestedClass : ALL_CLASSES;
+  const knownClasses = useMemo(
+    () => new Set<string>([...CATEGORY_SHORTCUTS.map((entry) => entry.value), ...ASSET_CLASS_ORDER]),
+    [],
+  );
+  const assetClass = requestedClass && knownClasses.has(requestedClass) ? requestedClass : ALL_CLASSES;
 
   const states = useMemo(
     () => Array.from(new Set(circles.map((circle) => circle.stateLabel))),
@@ -169,108 +151,69 @@ export function ExploreBrowser({
             value={query}
           />
         </label>
-        <div aria-label="Filter by ecosystem" className="x-pills" role="group">
-          <Link className="button button-outline button-small" href="/use">Explore what you can do →</Link>
-          <button aria-pressed={ecosystem === ALL_ECOSYSTEMS} onClick={() => handleEcosystemChange(ALL_ECOSYSTEMS)} type="button">
-            All
-          </button>
-          {ecosystemOptions.map((item) => (
+        <div aria-label="Browse by category" className="x-pills" role="group">
+          {CATEGORY_SHORTCUTS.map((entry) => (
             <button
-              aria-pressed={ecosystem === item.value}
-              className={`tone-${ecosystemMeta(item.value).tone}`}
-              key={item.value}
-              onClick={() => handleEcosystemChange(item.value)}
+              aria-pressed={assetClass === entry.value}
+              key={entry.value}
+              onClick={() => handleAssetClassChange(entry.value)}
               type="button"
             >
-              <span aria-hidden="true" className="v-chip-dot" />
-              {item.label}
+              {entry.label}
             </button>
           ))}
+          <details className="x-filters-more">
+            <summary>Filters</summary>
+            <div className="x-filters-panel">
+              <div aria-label="Filter by ecosystem" className="x-pills" role="group">
+                <button aria-pressed={ecosystem === ALL_ECOSYSTEMS} onClick={() => handleEcosystemChange(ALL_ECOSYSTEMS)} type="button">
+                  All chains
+                </button>
+                {ecosystemOptions.map((item) => (
+                  <button
+                    aria-pressed={ecosystem === item.value}
+                    className={`tone-${ecosystemMeta(item.value).tone}`}
+                    key={item.value}
+                    onClick={() => handleEcosystemChange(item.value)}
+                    type="button"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="x-toggles" role="group" aria-label="Availability filters">
+                <button aria-pressed={onlyUsable} onClick={() => setOnlyUsable((value) => !value)} type="button">
+                  Can use now
+                </button>
+                <button aria-pressed={onlyCampaigned} onClick={() => setOnlyCampaigned((value) => !value)} type="button">
+                  Has campaign
+                </button>
+              </div>
+              <label className="select-field select-field-compact">
+                <span className="sr-only">Filter by status</span>
+                <select aria-label="Filter by status" onChange={(event) => setState(event.target.value)} value={state}>
+                  <option>All statuses</option>
+                  {states.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+                <Icon name="chevron-down" size={15} />
+              </label>
+            </div>
+          </details>
         </div>
       </div>
-
-      <div aria-label="Filter by asset class" className="x-class-rail" role="group">
-        {ASSET_CLASS_ORDER.map((value) => {
-          const meta = assetClassMeta(value);
-          const count = classCounts.get(value) ?? 0;
-          const active = assetClass === value;
-          return (
-            <button
-              aria-pressed={active}
-              className={`x-class tone-${meta.tone}`}
-              disabled={count === 0 && !active}
-              key={value}
-              onClick={() => handleAssetClassChange(active ? ALL_CLASSES : value)}
-              type="button"
-            >
-              <Orb icon={meta.icon} size="sm" tone={meta.tone} />
-              <span>
-                <strong>{ASSET_CLASS_FILTER_LABELS[value]}</strong>
-                <small>{count > 0 ? count : "None yet"}</small>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="x-result-bar">
-        <span className="directory-count">
-          {filteredCircles.length} of {circles.length} assets
-          {assetClass !== ALL_CLASSES ? ` · ${classOptions.find((item) => item.value === assetClass)?.label ?? ""}` : ""}
-        </span>
-        <div className="x-toggles" role="group" aria-label="Availability filters">
-          <button aria-pressed={onlyUsable} onClick={() => setOnlyUsable((value) => !value)} type="button">
-            Can use now
-          </button>
-          <button aria-pressed={onlyCampaigned} onClick={() => setOnlyCampaigned((value) => !value)} type="button">
-            Has campaign
-          </button>
-        </div>
-        <label className="select-field select-field-compact">
-          <span className="sr-only">Filter by status</span>
-          <select aria-label="Filter by status" onChange={(event) => setState(event.target.value)} value={state}>
-            <option>All statuses</option>
-            {states.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-          <Icon name="chevron-down" size={15} />
-        </label>
-      </div>
-
-      {groups.collections.length > 0 ? (
-        <div aria-label="Browse by what you want" className="x-collections" role="group">
-          {groups.collections.map((collection) => (
-            <button
-              key={collection.key}
-              onClick={() => {
-                if (collection.classValue) {
-                  handleAssetClassChange(assetClass === collection.classValue ? ALL_CLASSES : collection.classValue);
-                } else if (collection.key === "can-use") {
-                  setOnlyUsable((value) => !value);
-                } else if (collection.key === "campaigns") {
-                  setOnlyCampaigned((value) => !value);
-                }
-              }}
-              type="button"
-            >
-              <strong>{collection.label}</strong>
-              <small>{collection.slugs.length}</small>
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {lead ? (
         <section aria-label="Stellar home assets">
           <div className="x-block-head">
-            <h2>Stellar · home</h2>
+            <h2>Stellar</h2>
             <span>Your home for tokenized assets</span>
           </div>
           <div className={`x-featured${side.length === 0 ? " x-featured-solo" : ""}`}>
             <CircleCard
               circle={lead}
-              useCount={useCounts[lead.slug] ?? 0}
+
               variant="feature"
               issuer={(lead as { issuerSource?: string }).issuerSource}
               actionLabels={actionLabels[lead.slug]}
@@ -281,7 +224,7 @@ export function ExploreBrowser({
                   <CircleCard
                     circle={circle}
                     key={circle.slug}
-                    useCount={useCounts[circle.slug] ?? 0}
+
                     issuer={(circle as { issuerSource?: string }).issuerSource}
                     actionLabels={actionLabels[circle.slug]}
                   />
@@ -300,7 +243,7 @@ export function ExploreBrowser({
                   <CircleCard
                     circle={circle}
                     key={circle.slug}
-                    useCount={useCounts[circle.slug] ?? 0}
+
                     variant="compact"
                     issuer={(circle as { issuerSource?: string }).issuerSource}
                     actionLabels={actionLabels[circle.slug]}
@@ -315,11 +258,11 @@ export function ExploreBrowser({
         <section aria-label="Assets beyond Stellar" className="x-beyond">
           <div className="x-block-head">
             <h2>Beyond Stellar</h2>
-            <span>Additional assets through connected ecosystems</span>
+            <span>More across connected ecosystems</span>
           </div>
           <div className="x-rail">
             {beyondCircles.map((circle) => (
-              <CircleCard circle={circle} key={circle.slug} useCount={useCounts[circle.slug] ?? 0} variant="compact" />
+              <CircleCard circle={circle} key={circle.slug} variant="compact" />
             ))}
           </div>
         </section>

@@ -100,7 +100,6 @@ export function MissionCenterBrowser({ missions }: { missions: CenterMission[] }
               onClick={() => handleParamChange("ecosystem", item.value)}
               type="button"
             >
-              <span aria-hidden="true" className="v-chip-dot" />
               {item.label}
             </button>
           ))}

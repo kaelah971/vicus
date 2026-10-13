@@ -1441,8 +1441,7 @@ a.v-row:hover {
 }
 
 /* ---------- Rails ---------- */
-.x-rail {
-  display: grid;
+.x-rail {  display: grid;
   gap: 14px;
   grid-auto-columns: minmax(250px, 300px);
   grid-auto-flow: column;
@@ -2148,6 +2147,36 @@ a.v-row:hover {
   border-color: #fff;
   box-shadow: 0 8px 22px -10px rgba(var(--fg-rgb), 0.7);
   color: var(--ink);
+}
+
+.x-filters-more {
+  flex: 1 1 100%;
+}
+
+.x-filters-more > summary {
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  list-style: none;
+  padding: 8px 4px;
+}
+
+.x-filters-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.x-filters-panel {
+  display: grid;
+  gap: 12px;
+  padding: 8px 4px 4px;
+}
+
+.x-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .x-class-rail {

@@ -5,6 +5,45 @@ import Link from "next/link";
 import { UTILITY_INTENTS, type UtilityIntent } from "@/lib/utility-discovery/intents";
 import { groupByAsset, type AssetGroup } from "@/lib/utility-discovery/grouping";
 import type { UtilityDiscovery, UtilityOpportunity } from "@/lib/utility-discovery/service";
+import { AssetToken, Orb, capabilityMeta } from "@/components/vicus-ui";
+
+function ActionIcon({ kind }: { kind: string }) {
+  const meta = capabilityMeta(kind);
+  return <Orb icon={meta.icon} size="sm" tone={meta.tone} />;
+}
+
+function ActionRow({ action }: { action: UtilityOpportunity }) {
+  const label = actionCtaLabel(action.kind, action.title);
+  const cta = action.state === "available" || action.state === "permissioned" ? (
+    action.href.startsWith("http") ? (
+      <a className="button button-outline button-small" href={action.href} target="_blank" rel="noreferrer">
+        {action.state === "available" ? label : "Official flow"}
+      </a>
+    ) : (
+      <Link className="button button-outline button-small" href={action.href}>
+        {action.state === "available" ? label : "Official flow"}
+      </Link>
+    )
+  ) : null;
+  const hasDetail = Boolean(action.description || action.eligibilityNote);
+  return (
+    <div className="use-action" key={action.id}>
+      <ActionIcon kind={action.kind} />
+      <span className="use-action-main">
+        <strong>{label}</strong>
+        <small>{action.stateLabel}</small>
+      </span>
+      {cta}
+      {hasDetail ? (
+        <details className="use-action-detail">
+          <summary>Why</summary>
+          {action.description ? <p className="muted small">{action.description}</p> : null}
+          {action.eligibilityNote ? <p className="muted small">{action.eligibilityNote}</p> : null}
+        </details>
+      ) : null}
+    </div>
+  );
+}
 
 function actionCtaLabel(kind: string, title: string): string {
   const key = kind.toLowerCase();
@@ -20,38 +59,19 @@ function actionCtaLabel(kind: string, title: string): string {
 
 function AssetCard({ group }: { group: AssetGroup<UtilityOpportunity> }) {
   return (
-    <div className="watch-card" data-asset={group.slug}>
-      <p>
-        <strong>{group.code}</strong>
-        <span className="muted"> · {group.network}</span>
+    <div className="watch-card use-card" data-asset={group.slug}>
+      <div className="use-card-head">
+        <AssetToken code={group.code} ecosystem={group.network} size="lg" />
+        <span>
+          <strong>{group.code}</strong>
+          <small>{group.classLabel}</small>
+        </span>
         {group.held ? <span className="pill">You hold this</span> : null}
-      </p>
-      <p className="muted small">{group.classLabel} · {group.issuer}</p>
+      </div>
       {group.actions.length > 0 ? (
-        <div className="stack">
-          <p className="muted small"><strong>Available utility</strong></p>
+        <div className="use-actions">
           {group.actions.map((action) => (
-            <div className="watch-row" key={action.id}>
-              <div>
-                <p><strong>{action.title.split("—")[1]?.trim() ?? action.title}</strong></p>
-                <p className="muted small">{action.description}</p>
-                <p className="muted small">{action.stateLabel}</p>
-                {action.eligibilityNote ? <p className="muted small">{action.eligibilityNote}</p> : null}
-              </div>
-              <div className="watch-row-side">
-                {action.state === "available" || action.state === "permissioned" ? (
-                  action.href.startsWith("http") ? (
-                    <a className="button button-outline button-small" href={action.href} target="_blank" rel="noreferrer">
-                      {action.state === "available" ? actionCtaLabel(action.kind, action.title) : "View official flow"}
-                    </a>
-                  ) : (
-                    <Link className="button button-outline button-small" href={action.href}>
-                      {action.state === "available" ? actionCtaLabel(action.kind, action.title) : "View official flow"}
-                    </Link>
-                  )
-                ) : null}
-              </div>
-            </div>
+            <ActionRow key={action.id} action={action} />
           ))}
         </div>
       ) : null}
@@ -60,7 +80,7 @@ function AssetCard({ group }: { group: AssetGroup<UtilityOpportunity> }) {
           <div>
             <p><strong>Verified action reward</strong></p>
             <p className="muted small">
-              {item.description} Reward: {item.campaign!.rewardPerCompletion ?? "?"} {item.campaign!.rewardAsset}
+              Reward: {item.campaign!.rewardPerCompletion ?? "?"} {item.campaign!.rewardAsset}
             </p>
           </div>
           <div className="watch-row-side">

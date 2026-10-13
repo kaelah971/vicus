@@ -232,9 +232,9 @@ export function AssetToken({
 
 export function EcoChip({ ecosystem, label }: { ecosystem?: string | null; label?: string | null }) {
   const eco = ecosystemMeta(ecosystem, label);
+  // No decorative dot: chain identity is the toned label itself.
   return (
     <span className={cx("v-chip", `tone-${eco.tone}`)}>
-      <span aria-hidden="true" className="v-chip-dot" />
       {eco.label}
     </span>
   );

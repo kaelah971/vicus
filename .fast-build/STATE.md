@@ -26,7 +26,9 @@
 - [x] 6. Earn / Use Discovery — DONE
 - [x] 6b. /use Asset-First UX Fix — DONE
 - [x] 6c. Rewards Nav Fix — DONE
-- [x] 6d. Mobile-First UI Simplification — DONE (this invocation)
+- [x] 6d. Mobile-First UI Simplification — DONE
+- [x] 6e. Hero Animation Restore — DONE (prior session, preserved uncommitted)
+- [x] 6f. Mobile Visual UX Correction — DONE (this invocation)
 - [x] 7. IA + Mobile Polish — DONE
 
 ## Completed (Wave 3 Slice 7)
@@ -34,6 +36,14 @@
 - Dedupe: circle page people reads merged into the social summary (one membership read); gated states audited deliberate; all internal links resolve (42 routes)
 - Responsive/static: no fixed-width/table constructs in Wave-3 surfaces; a11y spot-check clean (labeled controls, pressed states); device render pass still owed (no browser tooling here)
 - Verification: wave3-ia:verify PASS; ALL 43 package.json :verify scripts exit 0 in single runs; lint 0 errors; tsc clean; build green; migration 0027 registered + applied; secret/artifact scan clean
+
+## Completed (Wave 3 Slice 6f — Mobile Visual UX Correction)
+- Removed all decorative chain dots (EcoChip dot, filter-button dots, mission browser dots); toned chain labels remain, truthful state text kept quietly
+- Discover mobile header rebuilt: search + 5 category shortcuts + one Filters disclosure (chains/status/toggles inside); removed count strip, class rail, collections strip, result bar; calm STELLAR / BEYOND STELLAR headings
+- /use rebuilt as visual cards: asset medallion header, icon action rows with one-line state + CTA, prose behind Why disclosures, campaigns intact
+- CircleCard foot trimmed to Watching/Role-check only; dropped dead useCounts prop + per-circle capability fetch (perf win)
+- Defined missing watch-grid/watch-card/watch-row styles; mobile rail/card gaps widened; bottom-nav overlap already covered by existing padding
+- Verification: utility-discovery/stellar-home/asset-actions(12)/positions/campaign-funding(16) PASS, tsc clean, lint 0 errors (3 pre-existing), build green, diff-check clean; local render confirms zero dots/counts, grouped /use, all routes 200
 
 ## Completed (Wave 3 Slice 6)
 - Earn/Use Discovery V1: /use with On Stellar / Beyond Stellar sections + intent chips (Access/Send/Borrow/Earn/Redeem/Exit/Rewards/Other); every opportunity derives from engine actions or live campaigns; execution states labeled LIVE/CONNECTED/OFFICIAL/PERMISSIONED/GATED

@@ -18,6 +18,7 @@ import {
   edgeClass,
   type ActionItem,
 } from "@/components/vicus-ui";
+import { VicusHeroVisual } from "@/components/vicus-hero-visual";
 import { VicusFooter } from "@/components/vicus-footer";
 import { isDatabaseUnavailableError } from "@/db";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
@@ -130,6 +131,9 @@ export default async function Home() {
               <p className="trust-line">
                 Educational product. Not financial advice.
               </p>
+            </div>
+            <div className="hero-visual" aria-hidden="true">
+              <VicusHeroVisual />
             </div>
           </div>
         </section>

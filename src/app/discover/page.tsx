@@ -9,7 +9,6 @@ import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { listCircles } from "@/lib/data/circles";
 import { isAssetCircle } from "@/lib/data/circles";
-import { getCircleCapabilities } from "@/lib/utility/service";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
 import { listActiveCampaignCircles } from "@/lib/campaigns/service";
 import { listSpaces } from "@/lib/organizations/service";
@@ -39,8 +38,6 @@ export default async function DiscoverPage() {
     }
   }
 
-  // Real "Use" signal per asset: count of active, source-backed capabilities.
-  const useCounts: Record<string, number> = {};
   // Engine truth per asset: which circles expose an available action now,
   // plus their top action labels for discovery cards.
   const usableSlugs: string[] = [];
@@ -48,8 +45,7 @@ export default async function DiscoverPage() {
   let campaignSlugs: string[] = [];
   let spaces: Awaited<ReturnType<typeof listSpaces>> = [];
   if (!databaseUnavailable) {
-    const [capabilityLists, spaceList, engineLists, campaigned] = await Promise.all([
-      Promise.all(circleData.map((circle) => getCircleCapabilities(circle.slug).catch(() => []))),
+    const [spaceList, engineLists, campaigned] = await Promise.all([
       listSpaces().catch(() => []),
       Promise.all(
         circleData.map((circle) =>
@@ -59,7 +55,6 @@ export default async function DiscoverPage() {
       listActiveCampaignCircles().catch(() => [] as string[]),
     ]);
     circleData.forEach((circle, index) => {
-      useCounts[circle.slug] = capabilityLists[index].length;
       const available = (engineLists[index] ?? []).filter((action) => action.state === "available");
       if (available.length > 0) usableSlugs.push(circle.slug);
       actionLabels[circle.slug] = available.slice(0, 3).map((action) => action.title);
@@ -101,7 +96,6 @@ export default async function DiscoverPage() {
             <Suspense>
               <ExploreBrowser
                 circles={circleData}
-                useCounts={useCounts}
                 usableSlugs={usableSlugs}
                 campaignSlugs={campaignSlugs}
                 actionLabels={actionLabels}

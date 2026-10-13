@@ -207,13 +207,11 @@ function circleStatusTone(circle: Circle) {
 
 export function CircleCard({
   circle,
-  useCount = 0,
   variant = "default",
   issuer,
   actionLabels,
 }: {
   circle: CircleView;
-  useCount?: number;
   variant?: "default" | "feature" | "compact";
   /** Registry issuer shown on home-layer cards; omitted elsewhere. */
   issuer?: string | null;
@@ -255,18 +253,14 @@ export function CircleCard({
       </div>
       <div className="asset-card-foot">
         <EcoChip ecosystem={circle.ecosystem ?? circle.network} label={circle.ecosystemLabel} />
-        <span aria-label="Available in this Circle" className="asset-card-acts">
+        <span aria-label="Circle status" className="asset-card-acts">
           {actionLabels ? (
             actionLabels.length > 0 ? (
-              actionLabels.map((label) => <span key={label}>{label}</span>)
-            ) : (
-              <span>Learn</span>
-            )
+              actionLabels.slice(0, 3).map((label) => <span key={label}>{label}</span>)
+            ) : null
           ) : (
             <>
-              <span>Learn</span>
-              {useCount > 0 ? <span>Use</span> : null}
-              <span>{circle.watched ? "Watching" : "Watch"}</span>
+              {circle.watched ? <span>Watching</span> : null}
               {roleAvailable ? <span>Role check</span> : null}
             </>
           )}
