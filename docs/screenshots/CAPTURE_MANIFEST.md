@@ -7,6 +7,7 @@ no payouts, no data created. No secrets, cookies, or private material visible in
 
 | File | Live URL | Viewport | What is shown | Notes / limitations |
 |---|---|---|---|---|
+| `01-landing-hero.gif` | `/` | 1440×900 source, 1000px GIF, 4 s loop @ 5 fps | Real hero motion: SwiftShader-rendered 3D scene across 6 verified phases, full headline + CTAs | 577 KB, 2-pass palette; text verified readable; loops cleanly |
 | `01-landing-hero.png` | `/` | 1440×900 | Animated-hero landing: VICUS wordmark, “Tokenized assets need a place to belong.”, Explore / Put-assets-to-work CTAs | 3D hero canvas renders dark in still frame; copy and CTAs fully legible |
 | `02-discover-catalogue.png` | `/discover` | 1440×900 | Visual asset catalogue: search, All/Funds/Treasury/Equity/Stable tabs, Stellar tile grid with official USDC, PYUSD, USDY, BENJI, WisdomTree marks | Real registry data; sidebar visible |
 | `03-asset-preview-benji.png` | `/discover?asset=benji-on-stellar` | 1440×900 | BENJI bottom-sheet preview over dimmed grid: identity, Access/Send/Earn/Redeem action grid, About, Issuer, Representation, Open-full-asset CTA | Sheet opens from URL state (same as tap) |

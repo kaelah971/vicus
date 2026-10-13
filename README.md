@@ -18,7 +18,9 @@ Website · [Walkthrough](#product-walkthrough) · [Stellar Proof](#proof-on-stel
 
 </div>
 
-![Vicus landing — tokenized assets need a place to belong](docs/screenshots/01-landing-hero.png)
+![Vicus landing hero in motion — tokenized assets need a place to belong](docs/screenshots/01-landing-hero.gif)
+
+*Live hero motion from the production landing page.*
 
 <div align="center">
 
@@ -40,7 +42,9 @@ Vicus puts discovery, understanding, action, and participation in one experience
 
 ### 01 · Landing — the product in one screen
 
-Full-width hero above. Stellar-first positioning, two doors in: **Explore Vicus** (browse) and **Put assets to work** (act).
+Full-width motion above. Stellar-first positioning, two doors in: **Explore Vicus** (browse) and **Put assets to work** (act).
+
+[![Vicus landing — static frame](docs/screenshots/01-landing-hero.png)](https://explorevicus.vercel.app/)
 
 | 02 · Discover — a visual catalogue, Stellar first | 03 · Preview — tap any tile, understand before you commit |
 |---|---|
