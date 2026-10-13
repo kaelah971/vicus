@@ -9,12 +9,13 @@ A Stellar-first operating layer for discovering, understanding, accessing, and u
 **Discover what exists. Understand what it represents. See what you can actually do. Participate around the asset.**
 
 [![Explore Vicus](https://img.shields.io/badge/EXPLORE_VICUS-live_app-7c3aed?style=for-the-badge)](https://explorevicus.vercel.app)
+[![Watch Demo](https://img.shields.io/badge/WATCH_DEMO-video-ff0000?style=for-the-badge)](https://youtu.be/w-jVztqD7qU)
 [![Product walkthrough](https://img.shields.io/badge/PRODUCT_WALKTHROUGH-screenshots-111827?style=for-the-badge)](#product-walkthrough)
 [![Stellar proof](https://img.shields.io/badge/STELLAR_PROOF-verified_tx-00a3c4?style=for-the-badge)](#proof-on-stellar)
 
 ![Stellar](https://img.shields.io/badge/Stellar-Testnet_%2B_Mainnet_reads-000000) ![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6) ![Freighter](https://img.shields.io/badge/Freighter-wallet_auth-00a3c4) ![Neon Postgres](https://img.shields.io/badge/Neon-Postgres-00e699) ![Stellar – Find Your Way](https://img.shields.io/badge/Stellar-Find_Your_Way-7c3aed)
 
-Website · [Walkthrough](#product-walkthrough) · [Stellar Proof](#proof-on-stellar) · [Architecture](#architecture) · [Technical Documentation](#tech-stack)
+Website · [Demo](https://youtu.be/w-jVztqD7qU) · [Walkthrough](#product-walkthrough) · [Stellar Proof](#proof-on-stellar) · [Architecture](#architecture) · [Technical Documentation](#tech-stack)
 
 </div>
 
@@ -28,7 +29,7 @@ Website · [Walkthrough](#product-walkthrough) · [Stellar Proof](#proof-on-stel
 
 </div>
 
-> Live product, real data. Every screenshot below is a production frame — see [`docs/screenshots/CAPTURE_MANIFEST.md`](docs/screenshots/CAPTURE_MANIFEST.md) for URLs and capture conditions. USDC is infrastructure in Vicus, not its identity. No demo video URL exists yet — one will be linked here when published.
+> Live product, real data. Every screenshot below is a production frame — see [`docs/screenshots/CAPTURE_MANIFEST.md`](docs/screenshots/CAPTURE_MANIFEST.md) for URLs and capture conditions. USDC is infrastructure in Vicus, not its identity. Prefer video? [Watch the official demo](https://youtu.be/w-jVztqD7qU).
 
 ## The problem
 
@@ -173,7 +174,7 @@ The repo ships 50+ bounded verifier scripts covering engines, discovery ordering
 - Community activity is real but sparse — empty states are shown, not backfilled.
 - Two brand marks (Tesla, Franklin Templeton) use ticker fallback: official endpoints block automated fetching; documented in `src/lib/asset-visuals.ts`.
 - Reward settlement needs a funded Testnet distributor to demonstrate end-to-end; mainnet stays behind its flag.
-- No public demo video URL exists yet — owner to provide; no placeholder button shipped.
+- Official demo video: [youtu.be/w-jVztqD7qU](https://youtu.be/w-jVztqD7qU).
 
 ---
 
