@@ -42,14 +42,12 @@ export function ExploreBrowser({
   circles,
   usableSlugs = [],
   campaignSlugs = [],
-  actionLabels = {},
   actionsBySlug = {},
   subjectMap = {},
 }: {
   circles: Circle[];
   usableSlugs?: string[];
   campaignSlugs?: string[];
-  actionLabels?: Record<string, string[]>;
   actionsBySlug?: Record<string, SheetAction[]>;
   subjectMap?: Record<string, SheetSubject>;
 }) {
@@ -167,7 +165,6 @@ export function ExploreBrowser({
             ecosystem: circle.ecosystem ?? circle.network,
             ecosystemLabel: circle.ecosystemLabel,
             network: circle.network,
-            actionLabels: actionLabels[circle.slug] ?? [],
           }}
           href={`/circles/${circle.slug}`}
           onSelect={openAsset}

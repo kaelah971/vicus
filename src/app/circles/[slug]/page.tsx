@@ -9,7 +9,6 @@ import {
   Eyebrow,
   Icon,
   MissionCard,
-  StatusPill,
 } from "@/components/vicus";
 import {
   ActionTray,
@@ -23,7 +22,6 @@ import {
   Orb,
   SectionHead,
   StepFlow,
-  TabBar,
   assetClassMeta,
   capabilityMeta,
   type ActionItem,
@@ -48,6 +46,7 @@ import { getSubjectForAsset } from "@/lib/subjects/config";
 import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
+import { AssetTabs } from "@/components/asset-tabs";
 
 type CirclePageProps = {
   params: Promise<{ slug: string }>;
@@ -179,10 +178,6 @@ export default async function CirclePage({ params }: CirclePageProps) {
       approvedPoints: 0,
       recentApprovedAt: null,
     }));
-  const peopleCount = social
-    ? social.groups.watching.length + social.groups.contributors.length + social.verifiedParticipants.length
-    : 0;
-
   let communityPreview: Awaited<ReturnType<typeof listCirclePosts>> = [];
   try {
     communityPreview = await listCirclePosts(circle.slug, null, null, 30);
@@ -220,15 +215,23 @@ export default async function CirclePage({ params }: CirclePageProps) {
       external: action.external,
     };
   });
-  const tabs = [
-    ...(actionItems.length > 0 ? [{ href: "#use", label: "Use" }] : []),
-    { href: "#passport", label: "Learn" },
-    { href: "#missions", label: "Missions", count: circle.missions.length },
-    { href: "#conviction", label: "Conviction" },
-    { href: "#community", label: "Community", count: communityPreview.length },
-    { href: "#people", label: "People", count: peopleCount },
-    { href: "#sources", label: "Sources" },
-  ];
+  const overviewSummary =
+    circle.summary.length > 180 ? `${circle.summary.slice(0, 177).trimEnd()}…` : circle.summary;
+
+  const lifecycleSteps = lifecycle.map((step) => ({
+    icon:
+      step.stage === "access"
+        ? ("receive" as const)
+        : step.stage === "hold"
+          ? ("coins" as const)
+          : step.stage === "use"
+            ? ("send" as const)
+            : step.stage === "earn"
+              ? ("gift" as const)
+              : ("redeem" as const),
+    label: step.title,
+    line: step.stage.toUpperCase(),
+  }));
 
   return (
     <AppShell active="discover">
@@ -247,380 +250,433 @@ export default async function CirclePage({ params }: CirclePageProps) {
                 <div className="c-chips">
                   <Chip icon={assetClass.icon} tone={assetClass.tone}>{circle.assetClassLabel ?? circle.category}</Chip>
                   <EcoChip ecosystem={circle.ecosystem} label={circle.ecosystemLabel} />
-                  <StatusPill tone={circle.state === "education" ? "blue" : "muted"}>{circle.stateLabel}</StatusPill>
-                  {circle.verification.enabled ? (
-                    <Chip icon="shield" tone="green">Role check available</Chip>
-                  ) : null}
                 </div>
                 <h1>{circle.name}</h1>
                 <p className="c-meta">
-                  {circle.issuerSource} · {circle.sourceStatus}
+                  {circle.issuerSource}
                   {hostOrg ? (
                     <>
                       {" · "}Hosted by <Link href={`/spaces/${hostOrg.slug}`}>{hostOrg.name}</Link>
                     </>
                   ) : null}
                 </p>
-                <p className="c-summary">{circle.summary}</p>
               </div>
               <div className="c-hero-actions">
                 <WatchButton circleSlug={circle.slug} initialWatched={circle.watched} />
                 <ShareButton title={circle.name} path={`/circles/${circle.slug}`} />
-                {circle.sourceUrl ? (
-                  <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
-                    Official source <Icon name="external" size={14} />
-                  </a>
-                ) : null}
-                {subject ? (
-                  <Link
-                    className="button button-glass button-small"
-                    href={subject.type === "issuer" ? `/issuers/${subject.slug}` : `/subjects/${subject.slug}`}
-                  >
-                    View {subject.type === "issuer" ? "issuer" : "company"} <Icon name="arrow-right" size={14} />
-                  </Link>
-                ) : null}
               </div>
-            </div>
-            <div className="c-stats">
-              <MetricTile hint="Watch relationships for this circle" icon="eye" label="Watchers" tone="violet" value={String(participation.watcherCount)} />
-              <MetricTile hint="Approved mission responses in this circle" icon="chat" label="Contributions" tone="pink" value={String(participation.approvedContributionCount)} />
-              <MetricTile hint="Stellar role checks in this circle" icon="shield" label="Verified roles" tone="green" value={String(participation.verificationCount)} />
             </div>
           </div>
         </header>
 
-        <TabBar items={tabs} label="Circle sections" />
-
         <div className="shell c-body">
-          {actionItems.length > 0 ? (
-            <section aria-labelledby="circle-use-title" className="c-use" id="use">
-              <GlowField tones={["blue", "green", "violet"]} />
-              <div className="c-use-head">
-                <span className="v-eyebrow">Your actions</span>
-                <h2 id="circle-use-title">What you can do with {circle.code}</h2>
-                <p>Only actions this asset actually supports — nothing speculative. Vicus never moves funds. <Link href="/use">Explore all utility →</Link></p>
-              </div>
-              <ActionTray actions={actionItems} />
-            </section>
-          ) : null}
-          {circleCampaigns.length > 0 ? (
-            <section aria-labelledby="circle-campaigns-title" className="c-use" id="campaigns">
-              <div className="c-use-head">
-                <span className="v-eyebrow">Active campaign</span>
-                <h2 id="circle-campaigns-title">Earn for using {circle.code}</h2>
-              </div>
-              <div className="stack">
-                {circleCampaigns.map((entry) => (
-                  <div className="card" key={entry.id}>
-                    <p><strong>{entry.objective}</strong></p>
-                    <p className="muted small">
-                      {entry.targetAction === "send"
-                        ? `Send ${circle.code}`
-                        : entry.targetAction === "swap"
-                          ? `Swap into ${circle.code}`
-                          : `Complete a ${circle.code} mission`}
-                      {" · Earn "}
-                      {entry.rewardPerCompletion ?? "—"} {entry.rewardAsset} ({entry.rewardNetworkLabel})
-                    </p>
-                    <div className="row">
-                      <a className="btn" href={`/campaigns/${entry.id}`}>View campaign</a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {lifecycle.length > 0 ? (
-            <section aria-labelledby="circle-lifecycle-title" className="c-use" id="lifecycle">
-              <div className="c-use-head">
-                <span className="v-eyebrow">Asset lifecycle</span>
-                <h2 id="circle-lifecycle-title">From access to exit</h2>
-                <p>Only stages with official evidence are shown — not investment advice.</p>
-              </div>
-              <StepFlow
-                label="Asset lifecycle"
-                steps={lifecycle.map((step) => ({
-                  icon:
-                    step.stage === "access"
-                      ? ("receive" as const)
-                      : step.stage === "hold"
-                        ? ("coins" as const)
-                        : step.stage === "use"
-                          ? ("send" as const)
-                          : step.stage === "earn"
-                            ? ("gift" as const)
-                            : ("redeem" as const),
-                  label: step.title,
-                  line: step.stage.toUpperCase(),
-                }))}
-              />
-              <dl className="mission-meta">
-                {lifecycle.map((step) => (
-                  <div key={step.id}>
-                    <dt>{step.stage.toUpperCase()}</dt>
-                    <dd>
-                      <strong>{step.title}</strong> — {step.shortDescription}{" "}
-                      <Chip tone="white">{step.supportModeLabel}</Chip>
-                      {step.ctaLabel && step.destinationUrl ? (
-                        step.destinationUrl.startsWith("/") ? (
-                          <Link href={step.destinationUrl}> {step.ctaLabel} →</Link>
-                        ) : (
-                          <a href={step.destinationUrl} rel="noreferrer" target="_blank">
-                            {" "}{step.ctaLabel} →
-                          </a>
-                        )
-                      ) : null}
-                      <details>
-                        <summary>Eligibility & source</summary>
-                        {step.eligibilityNote ? <p>{step.eligibilityNote}</p> : null}
-                        <p>
-                          <a href={step.sourceUrl} rel="noreferrer" target="_blank">
-                            Official source
-                          </a>
-                        </p>
-                      </details>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ) : null}
-
-          {activationMission ? (
-            <MissionStrip
-              context={`${circle.name} · onchain proof`}
-              href={`/missions/${activationMission.id}`}
-              points={activationMission.points}
-              reward={activationMission.reward}
-              rewardNetwork={rewardNetwork}
-              title={activationMission.title}
-            />
-          ) : null}
-
-          <AssetPassport circle={circle} />
-
-          {circle.verification.enabled && circle.verification.assetCode && circle.verification.network ? (
-            <RoleVerification
-              circleSlug={circle.slug}
-              circleName={circle.name}
-              assetCode={circle.verification.assetCode}
-              network={circle.verification.network}
-              sourceUrl={circle.verification.sourceUrl}
-              initialAuthenticated={authenticated}
-              initialVerification={initialVerification}
-            />
-          ) : (
-            <section className="content-panel role-deferred-panel" aria-labelledby="role-deferred-title">
-              <Eyebrow>Role verification</Eyebrow>
-              <h2 id="role-deferred-title">Watch and learn — no live check here.</h2>
-              <p>
-                {circle.ecosystem === "stellar"
-                  ? "No enabled classic Stellar asset check. No wallet, balance, or issuer approval is inferred."
-                  : `Holder verification for ${circle.ecosystemLabel} isn't supported yet. No wallet, balance, or holder status is inferred.`}
-              </p>
-            </section>
-          )}
-
-          <section className="circle-section" id="missions">
-            <SectionHead eyebrow="Missions" line="Approval creates offchain Vicus points." title="Participate with a record." />
-            {circle.missions.length > 0 ? (
-              <div className="mission-grid">
-                {circle.missions.map((mission) => (
-                  <MissionCard key={mission.id} mission={mission} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No missions yet">This circle has no mission records yet.</EmptyState>
-            )}
-          </section>
-
-          {circle.activity.length > 0 ? (
-            <section className="circle-section" id="activity">
-              <SectionHead eyebrow="Activity" title="Recent participation." />
-              <div className="v-list">
-                {circle.activity.map((activity) => (
-                  <ActivityItem key={activity.id} {...activity} />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="circle-section" id="community">
-            <SectionHead
-              action={
-                <Link className="v-text-link" href={`/circles/${circle.slug}/community`}>
-                  Open community <Icon name="arrow-right" size={15} />
-                </Link>
-              }
-              eyebrow="Community"
-              title="Questions, insights, sources."
-            />
-            {communityPreview.length > 0 ? (
-              <div className="mission-grid">
-                {[...communityByType.question, ...communityByType.insight, ...communityByType.source].map((post) => (
-                  <CommunityPostCard circleSlug={circle.slug} key={post.id} post={post} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No contributions yet">
-                Ask the first question for this Circle.{" "}
-                <Link href={`/circles/${circle.slug}/community`}>Open community</Link>
-              </EmptyState>
-            )}
-          </section>
-
-          <section className="circle-section" id="conviction">
-            <SectionHead
-              eyebrow="Conviction"
-              line="Structured paper claims with evidence — never investment advice, never a position claim unless verified."
-              title="Theses on this asset."
-              action={
-                <Link className="v-text-link" href={`/circles/${circle.slug}/conviction`}>
-                  Open conviction <Icon name="arrow-right" size={15} />
-                </Link>
-              }
-            />
-            {theses.length > 0 ? (
-              <div className="mission-grid">
-                {theses.map((thesis) => (
-                  <Link className="p-asset" href={`/circles/${circle.slug}/conviction/${thesis.id}`} key={thesis.id}>
-                    <span>
-                      <strong>{thesis.title}</strong>
-                      <small>
-                        @{thesis.authorHandle} · {thesis.thesisType === "verified-position" ? "VERIFIED POSITION" : "PAPER"} ·{" "}
-                        {thesis.confidence}% confidence · {thesis.timeframe} · {thesis.status}
-                      </small>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No theses yet">Publish the first structured claim for this Circle.</EmptyState>
-            )}
-          </section>
-
-          <section className="circle-section" id="people">
-            <SectionHead
-              eyebrow="People"
-              line="Watching means interest. Contributing means useful knowledge. Verified means a real completed action — never a balance. Holdings stay private."
-              title="People around this asset."
-            />
-            {social ? (
-              <>
-                {social.groups.following.length > 0 ? (
-                  <div className="c-people-group">
-                    <h3>People you follow</h3>
-                    <div className="x-rail">
-                      {social.groups.following.slice(0, 8).map((person) => (
-                        <PersonCard
-                          key={person.handle}
-                          person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {social.verifiedParticipants.length > 0 ? (
-                  <div className="c-people-group">
-                    <h3>Verified participants</h3>
-                    <p className="muted small">Completed a verified asset action — mission, campaign, or role check. No amounts shown.</p>
-                    <div className="x-rail">
-                      {social.verifiedParticipants.slice(0, 8).map((participant) => (
-                        <Link className="person-tile" href={`/u/${participant.handle}`} key={participant.handle}>
-                          <span className="person-tile-main">
-                            <strong>{participant.displayName}</strong>
-                            <small>@{participant.handle}</small>
-                          </span>
-                          <span className="v-chip tone-green">
-                            {participant.basis === "mission" ? "MISSION" : participant.basis === "campaign" ? "CAMPAIGN" : "VERIFIED"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {social.groups.contributors.length > 0 ? (
-                  <div className="c-people-group">
-                    <h3>Contributors</h3>
-                    <div className="x-rail">
-                      {social.groups.contributors.slice(0, 8).map((person) => {
-                        const signal = social.contributorSignals.find((entry) => entry.handle === person.handle);
-                        return (
-                          <div key={person.handle}>
-                            <PersonCard
-                              person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
-                            />
-                            {signal ? (
-                              <p className="muted small">
-                                {[signal.answers > 0 ? `${signal.answers} answers` : null, signal.helpfulReceived > 0 ? `${signal.helpfulReceived} helpful` : null, signal.insights > 0 ? `${signal.insights} insights` : null, signal.sources > 0 ? `${signal.sources} sources` : null]
-                                  .filter(Boolean)
-                                  .join(" · ") || "New contributor"}
-                              </p>
+          <AssetTabs
+            panels={[
+              {
+                id: "overview",
+                label: "Overview",
+                node: (
+                  <>
+                    <section aria-labelledby="circle-about-title" className="c-use" id="about">
+                      <div className="c-use-head">
+                        <span className="v-eyebrow">What it is</span>
+                        <h2 id="circle-about-title">{circle.code}</h2>
+                        <p>{overviewSummary}</p>
+                      </div>
+                      <dl className="a-facts">
+                        <div>
+                          <dt>Issuer</dt>
+                          <dd>{circle.issuerSource}</dd>
+                        </div>
+                        <div>
+                          <dt>Network</dt>
+                          <dd>{circle.ecosystemLabel ?? circle.ecosystem ?? circle.network}</dd>
+                        </div>
+                        <div>
+                          <dt>Asset class</dt>
+                          <dd>{circle.assetClassLabel ?? circle.category}</dd>
+                        </div>
+                        <div>
+                          <dt>Representation</dt>
+                          <dd>
+                            {circle.code} · {circle.network}
+                            {subject ? (
+                              <>
+                                {" · "}
+                                <Link href={subject.type === "issuer" ? `/issuers/${subject.slug}` : `/subjects/${subject.slug}`}>
+                                  {subject.name} →
+                                </Link>
+                              </>
                             ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-                {social.groups.watching.length > 0 ? (
-                  <div className="c-people-group">
-                    <h3>Watching</h3>
-                    <div className="x-rail">
-                      {social.groups.watching.slice(0, 8).map((person) => (
-                        <PersonCard
-                          key={person.handle}
-                          person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {social.groups.following.length === 0 &&
-                social.verifiedParticipants.length === 0 &&
-                social.groups.contributors.length === 0 &&
-                social.groups.watching.length === 0 ? (
-                  <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
-                ) : null}
-              </>
-            ) : peopleFallback.length > 0 ? (
-              <div className="x-rail">
-                {peopleFallback.map((person) => (
-                  <PersonCard key={person.user.id} person={person} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
-            )}
-          </section>
+                          </dd>
+                        </div>
+                      </dl>
+                    </section>
 
-          <section className="circle-section" id="sources">
-            <SectionHead eyebrow="Sources & disclosures" title="Check, don't trust." />
-            <div className="c-sources">
-              <div className="c-source-main">
-                <Orb icon="globe" size="md" tone="blue" />
-                <span>
-                  <strong>{circle.sourceUrl ? circle.sourceLabel : "No source attached"}</strong>
-                  <small>{circle.issuerSource} · {circle.sourceStatus}</small>
-                </span>
-                {circle.sourceUrl ? (
-                  <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
-                    Open <Icon name="external" size={14} />
-                  </a>
-                ) : null}
-              </div>
-              <p className="c-source-note">
-                {circle.verification.enabled
-                  ? "The role check uses the canonical identifiers stored for this circle and never exposes an exact balance."
-                  : "Role verification is deferred here; this page is watch-and-learn only."}{" "}
-                Watch is never proof of ownership. Pasted-address checks are read-only and never stored.
-              </p>
-              <p className="c-source-note c-source-risk">
-                <Glyph name="lock" size={14} /> {circle.riskNote}
-              </p>
-            </div>
-          </section>
+                    {lifecycle.length > 0 ? (
+                      <section aria-labelledby="circle-lifecycle-title" className="c-use" id="lifecycle">
+                        <div className="c-use-head">
+                          <span className="v-eyebrow">Asset lifecycle</span>
+                          <h2 id="circle-lifecycle-title">From access to exit</h2>
+                        </div>
+                        <StepFlow label="Asset lifecycle" steps={lifecycleSteps} />
+                        {lifecycle.map((step) => (
+                          <details className="a-stage" key={step.id}>
+                            <summary>
+                              {step.stage.toUpperCase()} · {step.title}
+                            </summary>
+                            <p>{step.shortDescription}</p>
+                          </details>
+                        ))}
+                      </section>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                id: "actions",
+                label: "Actions",
+                node: (
+                  <>
+                    {activationMission ? (
+                      <MissionStrip
+                        context={`${circle.name} · onchain proof`}
+                        href={`/missions/${activationMission.id}`}
+                        points={activationMission.points}
+                        reward={activationMission.reward}
+                        rewardNetwork={rewardNetwork}
+                        title={activationMission.title}
+                      />
+                    ) : null}
+                    {actionItems.length > 0 ? (
+                      <section aria-labelledby="circle-use-title" className="c-use" id="use">
+                        <GlowField tones={["blue", "green", "violet"]} />
+                        <div className="c-use-head">
+                          <span className="v-eyebrow">Your actions</span>
+                          <h2 id="circle-use-title">What you can do with {circle.code}</h2>
+                          <p>Only actions this asset actually supports. <Link href="/use">Explore all utility →</Link></p>
+                        </div>
+                        <ActionTray actions={actionItems} />
+                      </section>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                id: "circle",
+                label: "Circle",
+                node: (
+                  <>
+                    <section aria-label="Circle at a glance" className="c-use" id="glance">
+                      <div className="c-stats">
+                        <MetricTile hint="Watch relationships for this circle" icon="eye" label="Watchers" tone="violet" value={String(participation.watcherCount)} />
+                        <MetricTile hint="Approved mission responses in this circle" icon="chat" label="Contributions" tone="pink" value={String(participation.approvedContributionCount)} />
+                        <MetricTile hint="Stellar role checks in this circle" icon="shield" label="Verified roles" tone="green" value={String(participation.verificationCount)} />
+                      </div>
+                    </section>
+
+                    {circleCampaigns.length > 0 ? (
+                      <section aria-labelledby="circle-campaigns-title" className="c-use" id="campaigns">
+                        <div className="c-use-head">
+                          <span className="v-eyebrow">Active campaign</span>
+                          <h2 id="circle-campaigns-title">Earn for using {circle.code}</h2>
+                        </div>
+                        <div className="stack">
+                          {circleCampaigns.map((entry) => (
+                            <div className="card" key={entry.id}>
+                              <p><strong>{entry.objective}</strong></p>
+                              <p className="muted small">
+                                {entry.targetAction === "send"
+                                  ? `Send ${circle.code}`
+                                  : entry.targetAction === "swap"
+                                    ? `Swap into ${circle.code}`
+                                    : `Complete a ${circle.code} mission`}
+                                {" · Earn "}
+                                {entry.rewardPerCompletion ?? "—"} {entry.rewardAsset} ({entry.rewardNetworkLabel})
+                              </p>
+                              <div className="row">
+                                <a className="btn" href={`/campaigns/${entry.id}`}>View campaign</a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    <section className="circle-section" id="missions">
+                      <SectionHead eyebrow="Missions" line="Approval creates offchain Vicus points." title="Participate with a record." />
+                      {circle.missions.length > 0 ? (
+                        <div className="mission-grid">
+                          {circle.missions.map((mission) => (
+                            <MissionCard key={mission.id} mission={mission} />
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState title="No missions yet">This circle has no mission records yet.</EmptyState>
+                      )}
+                    </section>
+
+                    {circle.activity.length > 0 ? (
+                      <section className="circle-section" id="activity">
+                        <SectionHead eyebrow="Activity" title="Recent participation." />
+                        <div className="v-list">
+                          {circle.activity.map((activity) => (
+                            <ActivityItem key={activity.id} {...activity} />
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    <section className="circle-section" id="community">
+                      <SectionHead
+                        action={
+                          <Link className="v-text-link" href={`/circles/${circle.slug}/community`}>
+                            Open community <Icon name="arrow-right" size={15} />
+                          </Link>
+                        }
+                        eyebrow="Community"
+                        title="Questions, insights, sources."
+                      />
+                      {communityPreview.length > 0 ? (
+                        <div className="mission-grid">
+                          {[...communityByType.question, ...communityByType.insight, ...communityByType.source].map((post) => (
+                            <CommunityPostCard circleSlug={circle.slug} key={post.id} post={post} />
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState title="No contributions yet">
+                          Ask the first question for this Circle.{" "}
+                          <Link href={`/circles/${circle.slug}/community`}>Open community</Link>
+                        </EmptyState>
+                      )}
+                    </section>
+
+                    <section className="circle-section" id="conviction">
+                      <SectionHead
+                        eyebrow="Conviction"
+                        line="Structured paper claims with evidence — never investment advice, never a position claim unless verified."
+                        title="Theses on this asset."
+                        action={
+                          <Link className="v-text-link" href={`/circles/${circle.slug}/conviction`}>
+                            Open conviction <Icon name="arrow-right" size={15} />
+                          </Link>
+                        }
+                      />
+                      {theses.length > 0 ? (
+                        <div className="mission-grid">
+                          {theses.map((thesis) => (
+                            <Link className="p-asset" href={`/circles/${circle.slug}/conviction/${thesis.id}`} key={thesis.id}>
+                              <span>
+                                <strong>{thesis.title}</strong>
+                                <small>
+                                  @{thesis.authorHandle} · {thesis.thesisType === "verified-position" ? "VERIFIED POSITION" : "PAPER"} ·{" "}
+                                  {thesis.confidence}% confidence · {thesis.timeframe} · {thesis.status}
+                                </small>
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState title="No theses yet">Publish the first structured claim for this Circle.</EmptyState>
+                      )}
+                    </section>
+
+                    <section className="circle-section" id="people">
+                      <SectionHead
+                        eyebrow="People"
+                        line="Watching means interest. Contributing means useful knowledge. Verified means a real completed action — never a balance. Holdings stay private."
+                        title="People around this asset."
+                      />
+                      {social ? (
+                        <>
+                          {social.groups.following.length > 0 ? (
+                            <div className="c-people-group">
+                              <h3>People you follow</h3>
+                              <div className="x-rail">
+                                {social.groups.following.slice(0, 8).map((person) => (
+                                  <PersonCard
+                                    key={person.handle}
+                                    person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          {social.verifiedParticipants.length > 0 ? (
+                            <div className="c-people-group">
+                              <h3>Verified participants</h3>
+                              <p className="muted small">Completed a verified asset action — mission, campaign, or role check. No amounts shown.</p>
+                              <div className="x-rail">
+                                {social.verifiedParticipants.slice(0, 8).map((participant) => (
+                                  <Link className="person-tile" href={`/u/${participant.handle}`} key={participant.handle}>
+                                    <span className="person-tile-main">
+                                      <strong>{participant.displayName}</strong>
+                                      <small>@{participant.handle}</small>
+                                    </span>
+                                    <span className="v-chip tone-green">
+                                      {participant.basis === "mission" ? "MISSION" : participant.basis === "campaign" ? "CAMPAIGN" : "VERIFIED"}
+                                    </span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          {social.groups.contributors.length > 0 ? (
+                            <div className="c-people-group">
+                              <h3>Contributors</h3>
+                              <div className="x-rail">
+                                {social.groups.contributors.slice(0, 8).map((person) => {
+                                  const signal = social.contributorSignals.find((entry) => entry.handle === person.handle);
+                                  return (
+                                    <div key={person.handle}>
+                                      <PersonCard
+                                        person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                                      />
+                                      {signal ? (
+                                        <p className="muted small">
+                                          {[signal.answers > 0 ? `${signal.answers} answers` : null, signal.helpfulReceived > 0 ? `${signal.helpfulReceived} helpful` : null, signal.insights > 0 ? `${signal.insights} insights` : null, signal.sources > 0 ? `${signal.sources} sources` : null]
+                                            .filter(Boolean)
+                                            .join(" · ") || "New contributor"}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+                          {social.groups.watching.length > 0 ? (
+                            <div className="c-people-group">
+                              <h3>Watching</h3>
+                              <div className="x-rail">
+                                {social.groups.watching.slice(0, 8).map((person) => (
+                                  <PersonCard
+                                    key={person.handle}
+                                    person={{ user: { id: person.handle, handle: person.handle, displayName: person.displayName, avatarUrl: person.avatarUrl }, relationships: person.relationships, approvedContributionCount: 0, approvedPoints: 0, recentApprovedAt: null }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          {social.groups.following.length === 0 &&
+                          social.verifiedParticipants.length === 0 &&
+                          social.groups.contributors.length === 0 &&
+                          social.groups.watching.length === 0 ? (
+                            <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
+                          ) : null}
+                        </>
+                      ) : peopleFallback.length > 0 ? (
+                        <div className="x-rail">
+                          {peopleFallback.map((person) => (
+                            <PersonCard key={person.user.id} person={person} />
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState title="No people yet">Watch this Circle or complete a mission to be listed here.</EmptyState>
+                      )}
+                    </section>
+                  </>
+                ),
+              },
+              {
+                id: "details",
+                label: "Details",
+                node: (
+                  <>
+                    <AssetPassport circle={circle} />
+
+                    {circle.verification.enabled && circle.verification.assetCode && circle.verification.network ? (
+                      <RoleVerification
+                        circleSlug={circle.slug}
+                        circleName={circle.name}
+                        assetCode={circle.verification.assetCode}
+                        network={circle.verification.network}
+                        sourceUrl={circle.verification.sourceUrl}
+                        initialAuthenticated={authenticated}
+                        initialVerification={initialVerification}
+                      />
+                    ) : (
+                      <section className="content-panel role-deferred-panel" aria-labelledby="role-deferred-title">
+                        <Eyebrow>Role verification</Eyebrow>
+                        <h2 id="role-deferred-title">Watch and learn — no live check here.</h2>
+                        <p>
+                          {circle.ecosystem === "stellar"
+                            ? "No enabled classic Stellar asset check. No wallet, balance, or issuer approval is inferred."
+                            : `Holder verification for ${circle.ecosystemLabel} isn't supported yet. No wallet, balance, or holder status is inferred.`}
+                        </p>
+                      </section>
+                    )}
+
+                    {lifecycle.length > 0 ? (
+                      <section aria-labelledby="circle-lifecycle-full-title" className="c-use" id="lifecycle-full">
+                        <div className="c-use-head">
+                          <span className="v-eyebrow">Lifecycle detail</span>
+                          <h2 id="circle-lifecycle-full-title">Stage by stage</h2>
+                          <p>Only stages with official evidence are shown — not investment advice.</p>
+                        </div>
+                        <dl className="mission-meta">
+                          {lifecycle.map((step) => (
+                            <div key={step.id}>
+                              <dt>{step.stage.toUpperCase()}</dt>
+                              <dd>
+                                <strong>{step.title}</strong> — {step.shortDescription}{" "}
+                                <Chip tone="white">{step.supportModeLabel}</Chip>
+                                {step.ctaLabel && step.destinationUrl ? (
+                                  step.destinationUrl.startsWith("/") ? (
+                                    <Link href={step.destinationUrl}> {step.ctaLabel} →</Link>
+                                  ) : (
+                                    <a href={step.destinationUrl} rel="noreferrer" target="_blank">
+                                      {" "}{step.ctaLabel} →
+                                    </a>
+                                  )
+                                ) : null}
+                                <details>
+                                  <summary>Eligibility & source</summary>
+                                  {step.eligibilityNote ? <p>{step.eligibilityNote}</p> : null}
+                                  <p>
+                                    <a href={step.sourceUrl} rel="noreferrer" target="_blank">
+                                      Official source
+                                    </a>
+                                  </p>
+                                </details>
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </section>
+                    ) : null}
+
+                    <section className="circle-section" id="sources">
+                      <SectionHead eyebrow="Sources & disclosures" title="Check, don't trust." />
+                      <div className="c-sources">
+                        <div className="c-source-main">
+                          <Orb icon="globe" size="md" tone="blue" />
+                          <span>
+                            <strong>{circle.sourceUrl ? circle.sourceLabel : "No source attached"}</strong>
+                            <small>{circle.issuerSource} · {circle.sourceStatus}</small>
+                          </span>
+                          {circle.sourceUrl ? (
+                            <a className="button button-glass button-small" href={circle.sourceUrl} rel="noreferrer" target="_blank">
+                              Open <Icon name="external" size={14} />
+                            </a>
+                          ) : null}
+                        </div>
+                        <p className="c-source-note">
+                          {circle.verification.enabled
+                            ? "The role check uses the canonical identifiers stored for this circle and never exposes an exact balance."
+                            : "Role verification is deferred here; this page is watch-and-learn only."}{" "}
+                          Watch is never proof of ownership. Pasted-address checks are read-only and never stored.
+                        </p>
+                        <p className="c-source-note c-source-risk">
+                          <Glyph name="lock" size={14} /> {circle.riskNote}
+                        </p>
+                      </div>
+                    </section>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       </main>
     </AppShell>

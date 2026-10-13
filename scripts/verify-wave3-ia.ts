@@ -26,11 +26,16 @@ async function main() {
   }
   assert.ok(!bottomSection.includes("/missions") && !bottomSection.includes("/lab"), "secondary routes stay out of mobile nav");
 
-  // 3. Discover and Use preserve Stellar-first ordering in source.
+  // 3. Each tab owns a distinct primary: catalogue, action tool, social layer.
   const browser = read("src/components/explore-browser.tsx");
   assert.ok(browser.indexOf("Stellar · home") < browser.indexOf("Beyond Stellar"), "home renders before beyond");
+  assert.ok(browser.includes("AssetTile") && browser.includes("v-tiles"), "Discover primary is the asset grid");
   const useBrowser = read("src/components/use-browser.tsx");
-  assert.ok(useBrowser.indexOf("On Stellar") < useBrowser.indexOf("Beyond Stellar"), "use leads with Stellar");
+  assert.ok(useBrowser.includes("ActionIntentGrid"), "Use primary is the action-intent grid");
+  assert.ok(!useBrowser.includes("AssetTile"), "Use does not reuse the Discover grid");
+  const circlesPage = read("src/app/circles/page.tsx");
+  assert.ok(circlesPage.includes("getCircleSocialSummary") && circlesPage.includes("s-circle-card"), "Circles primary is social/community cards");
+  assert.ok(!circlesPage.includes("AssetTile") && !circlesPage.includes("v-tiles"), "Circles does not reuse the Discover grid");
 
   // 4. Personal links resolve; profile exposes tools without duplicating data.
   for (const route of ["src/app/positions/page.tsx", "src/app/watch/page.tsx", "src/app/activity/page.tsx"]) {
@@ -76,6 +81,46 @@ async function main() {
   assert.ok(sheetSrc.includes('role="dialog"') && sheetSrc.includes("Escape"), "sheet is a dismissible dialog");
   assert.ok(!/\bapy\b|\$\d|\btvl\b|guaranteed returns/i.test(tileSrc + sheetSrc), "no fake market metrics in preview layer");
   assert.ok(visuals.includes("localSrc") && visuals.includes("officialSource"), "imagery mapping prefers verified sources with fallback");
+  // 11. Global typography: DM Sans product-wide, mono reserved for technical.
+  const layout = read("src/app/layout.tsx");
+  const globals = read("src/app/globals.css");
+  assert.ok(layout.includes("DM_Sans") && layout.includes("--font-dm-sans"), "DM Sans via next/font");
+  assert.ok(layout.includes("Geist_Mono"), "mono retained for technical values");
+  assert.ok(globals.includes("--font-dm-sans") && /body\s*\{[\s\S]*?font-family:\s*var\(--font-dm-sans\)/.test(globals), "body defaults to sans");
+  assert.ok(!/body\s*\{[^}]*font-family:[^;]*--font-mono/.test(globals), "body no longer mono");
+  assert.ok(globals.includes(".mono") && globals.includes(".t-id"), "technical mono classes exist");
+  assert.ok(globals.includes(".wordmark") && /\.wordmark[\s\S]*?letter-spacing:\s*0\.35em/.test(globals), "wordmark keeps deliberate tracking");
+
+  // 12. Mobile menu: light Spoke-pattern sheet, segmented, grouped, no chains.
+  const menu = read("src/components/mobile-menu.tsx");
+  const shellSrc = read("src/components/app-shell.tsx");
+  assert.ok(shellSrc.includes("MobileMenu"), "menu mounted in app shell");
+  assert.ok(menu.includes('role="dialog"') && menu.includes('aria-modal="true"'), "dialog semantics");
+  assert.ok(menu.includes('aria-expanded') && menu.includes('aria-controls="vicus-menu-sheet"'), "trigger exposes state");
+  assert.ok(menu.includes('aria-label="Close menu"'), "close is labelled");
+  assert.ok(menu.includes('"personal"') && menu.includes('"projects"') && menu.includes("m-menu-seg"), "Personal/Projects segmented control");
+  for (const heading of ["Discover", "Personal", "Participate", "Tools", "Build", "For projects"]) {
+    assert.ok(menu.includes(`heading: "${heading}"`), `menu group ${heading}`);
+  }
+  assert.ok(!menu.includes("/ecosystems/"), "no chain destinations in menu");
+  for (const href of ["/discover", "/use", "/circles", "/activity", "/profile/me", "/positions", "/watch", "/missions", "/rewards", "/send", "/contacts", "/spaces", "/lab", "/host", "/admin"]) {
+    assert.ok(menu.includes(`"${href}"`), `menu links ${href}`);
+  }
+  assert.ok(menu.includes('aria-current') && menu.includes("is-active"), "active route treatment");
+  assert.ok(menu.includes("popstate") && menu.includes("pushState") && menu.includes('"Escape"'), "back/Escape/backdrop close");
+  assert.ok(menu.includes("overflow") && menu.includes("hidden"), "background locks while open");
+  assert.ok(!/\/lib\/(services\/|[a-z-]+\/service)/.test(menu) && !menu.includes("fetch("), "menu touches no business logic");
+  const menuCss = read("src/app/vicus-system.css");
+  assert.ok(menuCss.includes(".m-menu-sheet") && menuCss.includes("92dvh") && menuCss.includes(".m-menu-seg"), "sheet styles present");
+
+  // 13. Asset page is tabbed: Overview / Actions / Circle / Details.
+  const assetPage = read("src/app/circles/[slug]/page.tsx");
+  assert.ok(assetPage.includes("AssetTabs"), "segmented asset sections");
+  for (const tab of ['"overview"', '"actions"', '"circle"', '"details"']) {
+    assert.ok(assetPage.includes(tab), `asset tab ${tab} exists`);
+  }
+  assert.ok(assetPage.includes("StepFlow") && assetPage.includes("a-facts"), "Overview keeps lifecycle visual + key facts");
+  assert.ok(assetPage.includes("AssetPassport"), "Details keeps provenance");
   const css = read("src/app/vicus-system.css");
   assert.ok(/\.v-sheet\s*\{[^}]*max-height:\s*66d?vh/.test(css), "sheet default ~two-thirds viewport");
   assert.ok(css.includes(".v-sheet-actions") && css.includes(".v-sheet-backdrop"), "action grid + backdrop present");

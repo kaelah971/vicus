@@ -92,6 +92,9 @@ async function main() {
   assert.ok(!browser.includes("x-collections") && !browser.includes("directory-count"), "clutter controls removed");
   assert.ok(!/w-\[|min-w-\[|whitespace-nowrap|<table/.test(browser), "no overflow-prone constructs");
   assert.ok(browser.includes("v-tiles") && browser.includes("AssetTile"), "visual asset grid exists");
+  assert.ok(!browser.includes("actionLabels"), "Discover tiles carry no action pills");
+  const discoverPage = readFileSync(join(ROOT, "src/app/discover/page.tsx"), "utf8");
+  assert.ok(!discoverPage.includes("v-head-stats") && !discoverPage.includes("ecosystems</span>"), "no stats strip on Discover top");
   assert.ok(browser.includes('get("asset")') && browser.includes("AssetSheet"), "route-aware sheet (?asset=)");
   assert.ok(browser.includes("v-filter-tabs"), "compact filter tabs");
   assert.ok(!/Source review|Role check|Vicus never holds funds|source-review pills/i.test(browser + tileSrc), "no source-review clutter on tiles");

@@ -1,17 +1,44 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { UTILITY_INTENTS, type UtilityIntent } from "@/lib/utility-discovery/intents";
+import type { UtilityIntent } from "@/lib/utility-discovery/intents";
 import { groupByAsset, type AssetGroup } from "@/lib/utility-discovery/grouping";
 import type { UtilityDiscovery, UtilityOpportunity } from "@/lib/utility-discovery/service";
-import { AssetTile } from "@/components/asset-tile";
 import { AssetSheet, type SheetSubject } from "@/components/asset-sheet";
+import { Glyph, capabilityMeta, type GlyphName, type Tone } from "@/components/vicus-ui";
+
+type IntentKey = Exclude<UtilityIntent, "all">;
+
+const INTENT_ORDER: IntentKey[] = ["access", "send", "earn", "borrow", "redeem", "exit", "rewards", "use"];
+
+const INTENT_LABEL: Record<IntentKey, string> = {
+  access: "Access",
+  send: "Send",
+  earn: "Earn",
+  borrow: "Borrow",
+  redeem: "Redeem",
+  exit: "Exit",
+  rewards: "Rewards",
+  use: "Other",
+};
+
+function intentStyle(intent: IntentKey): { tone: Tone; icon: GlyphName } {
+  if (intent === "exit") return { tone: "orange", icon: "arrow-up-right" };
+  if (intent === "rewards") return { tone: "pink", icon: "gift" };
+  if (intent === "use") return { tone: "white", icon: "spark" };
+  return capabilityMeta(intent);
+}
+
+function cleanTitle(action: UtilityOpportunity): string {
+  return action.title.replace(`${action.assetCode} — `, "");
+}
 
 function toSheetActions(actions: UtilityOpportunity[]) {
   return actions.map((action) => ({
     kind: action.kind,
-    title: action.title.replace(`${action.assetCode} — `, ""),
+    title: cleanTitle(action),
     description: action.description,
     state: action.state,
     stateLabel: action.stateLabel,
@@ -22,6 +49,46 @@ function toSheetActions(actions: UtilityOpportunity[]) {
   }));
 }
 
+/**
+ * Use is action-first: pick what you want to do, then see the eligible
+ * assets as compact rows. Never an asset catalogue — that is Discover.
+ */
+export function ActionIntentGrid({
+  counts,
+  active,
+  onPick,
+}: {
+  counts: Record<string, number>;
+  active: IntentKey | null;
+  onPick: (intent: IntentKey | null) => void;
+}) {
+  const intents = INTENT_ORDER.filter((key) => (counts[key] ?? 0) > 0);
+  if (intents.length === 0) return null;
+  return (
+    <div className="u-intent-grid" role="group" aria-label="What do you want to do?">
+      {intents.map((key) => {
+        const style = intentStyle(key);
+        const pressed = active === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            className={`u-intent tone-${style.tone}${pressed ? " is-active" : ""}`}
+            aria-pressed={pressed}
+            onClick={() => onPick(pressed ? null : key)}
+          >
+            <Glyph name={style.icon} size={26} />
+            <strong>{INTENT_LABEL[key]}</strong>
+            <small>
+              {counts[key]} {counts[key] === 1 ? "path" : "paths"}
+            </small>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function UseBrowser({
   discovery,
   subjectMap = {},
@@ -29,22 +96,30 @@ export function UseBrowser({
   discovery: UtilityDiscovery;
   subjectMap?: Record<string, SheetSubject>;
 }) {
-  const [intent, setIntent] = useState<UtilityIntent | "all">("all");
+  const [intent, setIntent] = useState<IntentKey | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const stellar = useMemo(() => {
-    const items = intent === "all" ? discovery.stellar : discovery.stellar.filter((item) => item.intent === intent);
-    return groupByAsset(items);
-  }, [discovery, intent]);
-  const beyond = useMemo(() => {
-    const items = intent === "all" ? discovery.beyond : discovery.beyond.filter((item) => item.intent === intent);
-    return groupByAsset(items);
-  }, [discovery, intent]);
+  const all = useMemo(() => [...discovery.stellar, ...discovery.beyond], [discovery]);
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of all) map[item.intent] = (map[item.intent] ?? 0) + 1;
+    return map;
+  }, [all]);
 
-  const allGroups = useMemo(() => [...stellar, ...beyond], [stellar, beyond]);
-  const bySlug = useMemo(() => new Map(allGroups.map((group) => [group.slug, group])), [allGroups]);
+  const availableNow = useMemo(
+    () =>
+      [...discovery.stellar.filter((i) => i.state === "available"), ...discovery.beyond.filter((i) => i.state === "available")].slice(0, 4),
+    [discovery],
+  );
+
+  const matchedGroups = useMemo(() => {
+    if (!intent) return [];
+    return groupByAsset(all.filter((item) => item.intent === intent));
+  }, [all, intent]);
+
+  const bySlug = useMemo(() => new Map(groupByAsset(all).map((group) => [group.slug, group])), [all]);
   const selectedSlug = (searchParams.get("asset") ?? "").trim();
   const selected: AssetGroup<UtilityOpportunity> | null = selectedSlug ? (bySlug.get(selectedSlug) ?? null) : null;
 
@@ -61,87 +136,85 @@ export function UseBrowser({
     router.replace(next ? `${pathname}?${next}` : pathname);
   }
 
-  const renderTiles = (groups: AssetGroup<UtilityOpportunity>[], emptyNote: string) =>
-    groups.length === 0 ? (
-      <p className="muted">{emptyNote}</p>
-    ) : (
-      <div className="v-tiles">
-        {groups.map((group) => {
-          const matched = intent === "all" ? group.actions : group.actions.filter((a) => a.intent === intent);
-          const labels = (matched.length > 0 ? matched : group.actions).slice(0, 3).map((a) => {
-            const key = a.kind.toLowerCase();
-            if (key === "access") return "Access";
-            if (key === "send") return "Send";
-            if (key === "borrow") return "Borrow";
-            if (key === "exit") return "Exit";
-            if (key === "swap") return "Swap";
-            if (key === "redeem") return "Redeem";
-            if (key === "earn") return "Earn";
-            return a.title.replace(`${group.code} — `, "");
-          });
-          const head = group.actions[0];
-          return (
-            <AssetTile
-              key={group.slug}
-              asset={{
-                slug: group.slug,
-                code: group.code,
-                name: head?.assetName ?? group.code,
-                issuer: head?.issuer ?? null,
-                classLabel: group.classLabel,
-                ecosystem: head?.ecosystem ?? null,
-                network: head?.network ?? null,
-                actionLabels: labels,
-              }}
-              href={`/circles/${group.slug}`}
-              onSelect={openAsset}
-            />
-          );
-        })}
-      </div>
-    );
-
   return (
     <>
-      <div className="x-pills v-filter-tabs" role="group" aria-label="Filter by intent">
-        {UTILITY_INTENTS.map((entry) => (
-          <button
-            key={entry.key}
-            aria-pressed={intent === entry.key}
-            onClick={() => setIntent(entry.key)}
-            type="button"
-          >
-            {entry.key === "all" ? "All" : entry.label}
-          </button>
-        ))}
-      </div>
-      <section className="card">
-        <h2>On Stellar ({stellar.length} {stellar.length === 1 ? "asset" : "assets"})</h2>
-        {renderTiles(stellar, "No Stellar assets match this intent right now.")}
-      </section>
-      <section className="card">
-        <h2>Beyond Stellar ({beyond.length} {beyond.length === 1 ? "asset" : "assets"})</h2>
-        <p className="muted small">Extensions through connected ecosystems — never equal homes.</p>
-        {renderTiles(beyond, "No connected-ecosystem assets match this intent right now.")}
-      </section>
+      <ActionIntentGrid counts={counts} active={intent} onPick={setIntent} />
+
+      {!intent ? (
+        <section className="card u-available" aria-label="Available now">
+          <h2>Available now</h2>
+          {availableNow.length === 0 ? (
+            <p className="muted">Nothing executable right now — check back soon.</p>
+          ) : (
+            <ul className="u-now-list">
+              {availableNow.map((item) => (
+                <li key={item.id}>
+                  {item.href.startsWith("http") ? (
+                    <a href={item.href} target="_blank" rel="noreferrer">
+                      <strong>{cleanTitle(item)}</strong>
+                      <small>
+                        {item.assetCode} · {item.network}
+                      </small>
+                    </a>
+                  ) : (
+                    <Link href={item.href}>
+                      <strong>{cleanTitle(item)}</strong>
+                      <small>
+                        {item.assetCode} · {item.network}
+                      </small>
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <section className="card" aria-label={`${INTENT_LABEL[intent]} assets`}>
+          <h2>
+            {INTENT_LABEL[intent]} · {matchedGroups.length} {matchedGroups.length === 1 ? "asset" : "assets"}
+          </h2>
+          {matchedGroups.length === 0 ? (
+            <p className="muted">No assets support this right now.</p>
+          ) : (
+            <ul className="u-result-rows">
+              {matchedGroups.map((group) => {
+                const first = group.actions[0] ?? group.campaigns[0];
+                return (
+                  <li key={group.slug} className="u-result-row">
+                    <button type="button" onClick={() => openAsset(group.slug)} aria-label={`Preview ${group.code}`}>
+                      <span className="u-result-main">
+                        <strong>{group.code}</strong>
+                        <small>
+                          {group.classLabel} · {first?.network ?? group.network}
+                        </small>
+                        {first ? <small className="u-result-state">{first.stateLabel}</small> : null}
+                      </span>
+                      <span className="u-result-open">Open →</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
 
       {selected ? (
         <AssetSheet
           asset={{
             slug: selected.slug,
             code: selected.code,
-            name: selected.actions[0]?.assetName ?? selected.code,
-            issuer: selected.actions[0]?.issuer ?? null,
+            name: selected.actions[0]?.assetName ?? selected.campaigns[0]?.assetName ?? selected.code,
+            issuer: selected.actions[0]?.issuer ?? selected.campaigns[0]?.issuer ?? null,
             classLabel: selected.classLabel,
-            ecosystem: selected.actions[0]?.ecosystem ?? null,
-            network: selected.actions[0]?.network ?? null,
+            ecosystem: selected.actions[0]?.ecosystem ?? selected.campaigns[0]?.ecosystem ?? null,
+            network: selected.actions[0]?.network ?? selected.campaigns[0]?.network ?? null,
             summary: selected.actions[0]?.description ?? null,
             sourceUrl: selected.actions[0]?.sourceUrl ?? null,
           }}
           actions={toSheetActions(
-            intent === "all" ? selected.actions : selected.actions.filter((a) => a.intent === intent).length > 0
-              ? selected.actions.filter((a) => a.intent === intent)
-              : selected.actions,
+            intent ? selected.actions.filter((a) => a.intent === intent) : selected.actions,
           )}
           subject={subjectMap[selected.slug] ?? null}
           campaignActive={selected.campaigns.length > 0}

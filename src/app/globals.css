@@ -23,7 +23,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-mono);
+  --font-sans: var(--font-dm-sans), "DM Sans", ui-rounded, system-ui, sans-serif;
+  --font-tech: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
@@ -40,10 +41,41 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-dm-sans), "DM Sans", ui-rounded, system-ui, -apple-system, sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.55;
   text-rendering: optimizeLegibility;
+}
+
+/* Monospace is reserved for genuinely technical values only:
+   addresses, mints, hashes, identifiers, code. */
+.mono,
+.t-id,
+code.t-id,
+dd.mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+
+/* Product type scale (DM Sans). Landing hero keeps its own display rule. */
+.page-main h1 {
+  font-size: clamp(2rem, 1.55rem + 4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+.card h2,
+.circle-section h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+h3 {
+  letter-spacing: -0.01em;
 }
 
 body,
@@ -169,7 +201,7 @@ ul {
   color: var(--subtle);
   font-size: 0.64rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -532,7 +564,7 @@ button:focus-visible {
   display: inline-block;
   font-size: 0.69rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   line-height: 1.2;
 }
 
@@ -2893,7 +2925,7 @@ button:focus-visible {
   border: 1px solid rgba(139, 43, 255, 0.65);
   border-radius: 50%;
   display: flex;
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
   font-size: 0.72rem;
   height: 64px;
   justify-content: center;

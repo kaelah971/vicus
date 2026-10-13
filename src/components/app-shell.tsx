@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { listEcosystems } from "@/lib/data/circles";
 import { VicusWordmark } from "@/components/vicus";
 import { Glyph, type GlyphName } from "@/components/vicus-ui";
+import { MobileMenu } from "@/components/mobile-menu";
 import { WalletAuthButton } from "@/components/wallet-auth";
 
 export type AppShellSection =
@@ -137,6 +138,7 @@ export async function AppShell({
             <Link className="nav-issuer" href="/admin">
               Issuer access
             </Link>
+            <MobileMenu active={active} />
           </div>
         </div>
       </header>

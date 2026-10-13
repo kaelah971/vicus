@@ -59,9 +59,7 @@ export default async function UsePage() {
             <section className="card">
               <p className="eyebrow">Use</p>
               <h1>Put tokenized assets to work</h1>
-              <p className="muted">
-                See what you can actually do with tokenized assets — starting on Stellar.
-              </p>
+              <p className="muted">What do you want to do?</p>
             </section>
             <Suspense>
               <UseBrowser discovery={discovery} subjectMap={buildUseSubjectMap(discovery)} />

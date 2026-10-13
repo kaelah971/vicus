@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./vicus-system.css";
 
-// One coherent editorial monospace family across the whole product.
+// DM Sans is the primary product typeface (navigation, headlines, body, UI).
+// Geist Mono remains only for genuinely technical values (addresses, hashes).
+const dmSans = DM_Sans({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "700"],
+});
+
 const geistMono = Geist_Mono({
   display: "swap",
   subsets: ["latin"],
@@ -21,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={geistMono.variable}>
+    <html lang="en" className={`${dmSans.variable} ${geistMono.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DataState, Icon } from "@/components/vicus";
 import { ExploreBrowser } from "@/components/explore-browser";
-import { GlowField, Glyph } from "@/components/vicus-ui";
+import { GlowField } from "@/components/vicus-ui";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
 import { listCircles } from "@/lib/data/circles";
@@ -41,10 +41,10 @@ export default async function DiscoverPage() {
   }
 
   // Engine truth per asset: which circles expose an available action now,
-  // plus their top action labels for discovery tiles and full action sets
-  // for the preview sheet. Subjects resolve from config (no new truth).
+  // plus full action sets for the preview sheet. Subjects resolve from
+  // config (no new truth). Tiles carry no action pills — Discover is for
+  // choosing an asset, not showing everything it can do.
   const usableSlugs: string[] = [];
-  const actionLabels: Record<string, string[]> = {};
   const actionsBySlug: Record<string, SheetAction[]> = {};
   const subjectMap: Record<string, SheetSubject> = {};
   let campaignSlugs: string[] = [];
@@ -63,7 +63,6 @@ export default async function DiscoverPage() {
       const resolved = engineLists[index] ?? [];
       const available = resolved.filter((action) => action.state === "available");
       if (available.length > 0) usableSlugs.push(circle.slug);
-      actionLabels[circle.slug] = available.slice(0, 3).map((action) => action.title);
       actionsBySlug[circle.slug] = resolved.map((action) => ({
         kind: action.kind,
         title: action.title,
@@ -83,8 +82,6 @@ export default async function DiscoverPage() {
     campaignSlugs = campaigned;
     spaces = spaceList;
   }
-  const ecosystemCount = new Set(circleData.map((circle) => circle.ecosystem)).size;
-
   return (
     <AppShell active="discover">
       <main className="page-main">
@@ -93,16 +90,7 @@ export default async function DiscoverPage() {
           <div className="shell">
             <span className="v-eyebrow">Discover · Stellar is home</span>
             <h1>Discover</h1>
-            <p>Tokenized assets, starting on Stellar. Tap a tile for a fast preview — open the full asset for depth.</p>
-            {!databaseUnavailable ? (
-              <div className="v-head-stats">
-                <span><strong>{circleData.length}</strong> assets</span>
-                <span><strong>{ecosystemCount}</strong> ecosystems</span>
-                <span title="Ecosystem labels describe where an asset exists. They are not wallet or holder verification.">
-                  <Glyph name="shield" size={13} /> Source-backed
-                </span>
-              </div>
-            ) : null}
+            <p>Tokenized assets, starting on Stellar.</p>
           </div>
         </header>
 
@@ -119,7 +107,6 @@ export default async function DiscoverPage() {
                 circles={circleData}
                 usableSlugs={usableSlugs}
                 campaignSlugs={campaignSlugs}
-                actionLabels={actionLabels}
                 actionsBySlug={actionsBySlug}
                 subjectMap={subjectMap}
               />
