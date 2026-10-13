@@ -36,8 +36,8 @@ const SIDEBAR_EXTRA_NAV: NavItem[] = [
   { section: "missions", href: "/missions", label: "Missions", icon: "target" },
   { section: "lab", href: "/lab", label: "Lab", icon: "spark" },
   { section: "spaces", href: "/spaces", label: "Spaces", icon: "grid" },
-  // Rewards live on the profile (no dedicated claim route); the tab deep-links there.
-  { section: "rewards", href: "/profile/me#rewards", label: "Rewards", icon: "gift" },
+  // Rewards has a dedicated page; the sidebar deep-links there, never an anchor.
+  { section: "rewards", href: "/rewards", label: "Rewards", icon: "gift" },
 ];
 
 const PRIMARY_NAV: NavItem[] = [...BOTTOM_NAV, ...SIDEBAR_EXTRA_NAV];

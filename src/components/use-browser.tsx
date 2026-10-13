@@ -3,52 +3,97 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { UTILITY_INTENTS, type UtilityIntent } from "@/lib/utility-discovery/intents";
-import type { UtilityDiscovery } from "@/lib/utility-discovery/service";
+import { groupByAsset, type AssetGroup } from "@/lib/utility-discovery/grouping";
+import type { UtilityDiscovery, UtilityOpportunity } from "@/lib/utility-discovery/service";
+
+function actionCtaLabel(kind: string, title: string): string {
+  const key = kind.toLowerCase();
+  if (key === "access") return "Access";
+  if (key === "send") return "Send";
+  if (key === "borrow") return "Borrow";
+  if (key === "exit") return "Exit";
+  if (key === "swap") return "Swap";
+  if (key === "redeem") return "Redeem";
+  if (key === "earn") return "Earn";
+  return title;
+}
+
+function AssetCard({ group }: { group: AssetGroup<UtilityOpportunity> }) {
+  return (
+    <div className="watch-card" data-asset={group.slug}>
+      <p>
+        <strong>{group.code}</strong>
+        <span className="muted"> · {group.network}</span>
+        {group.held ? <span className="pill">You hold this</span> : null}
+      </p>
+      <p className="muted small">{group.classLabel} · {group.issuer}</p>
+      {group.actions.length > 0 ? (
+        <div className="stack">
+          <p className="muted small"><strong>Available utility</strong></p>
+          {group.actions.map((action) => (
+            <div className="watch-row" key={action.id}>
+              <div>
+                <p><strong>{action.title.split("—")[1]?.trim() ?? action.title}</strong></p>
+                <p className="muted small">{action.description}</p>
+                <p className="muted small">{action.stateLabel}</p>
+                {action.eligibilityNote ? <p className="muted small">{action.eligibilityNote}</p> : null}
+              </div>
+              <div className="watch-row-side">
+                {action.state === "available" || action.state === "permissioned" ? (
+                  action.href.startsWith("http") ? (
+                    <a className="button button-outline button-small" href={action.href} target="_blank" rel="noreferrer">
+                      {action.state === "available" ? actionCtaLabel(action.kind, action.title) : "View official flow"}
+                    </a>
+                  ) : (
+                    <Link className="button button-outline button-small" href={action.href}>
+                      {action.state === "available" ? actionCtaLabel(action.kind, action.title) : "View official flow"}
+                    </Link>
+                  )
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {group.campaigns.map((item) => (
+        <div className="watch-row" key={item.id}>
+          <div>
+            <p><strong>Verified action reward</strong></p>
+            <p className="muted small">
+              {item.description} Reward: {item.campaign!.rewardPerCompletion ?? "?"} {item.campaign!.rewardAsset}
+            </p>
+          </div>
+          <div className="watch-row-side">
+            <Link className="button button-outline button-small" href={item.href}>View campaign</Link>
+          </div>
+        </div>
+      ))}
+      <div className="row">
+        <Link className="button button-outline button-small" href={`/circles/${group.slug}`}>Open {group.code}</Link>
+      </div>
+    </div>
+  );
+}
+
 export function UseBrowser({ discovery }: { discovery: UtilityDiscovery }) {
   const [intent, setIntent] = useState<UtilityIntent | "all">("all");
-  const matches = useMemo(
-    () => (intent === "all" ? null : new Set([intent] as string[])),
-    [intent],
-  );
-  const stellar = useMemo(
-    () => (matches ? discovery.stellar.filter((item) => matches.has(item.intent)) : discovery.stellar),
-    [discovery, matches],
-  );
-  const beyond = useMemo(
-    () => (matches ? discovery.beyond.filter((item) => matches.has(item.intent)) : discovery.beyond),
-    [discovery, matches],
-  );
 
-  const renderGroup = (items: typeof stellar, emptyNote: string) =>
-    items.length === 0 ? (
+  const stellar = useMemo(() => {
+    const items = intent === "all" ? discovery.stellar : discovery.stellar.filter((item) => item.intent === intent);
+    return groupByAsset(items);
+  }, [discovery, intent]);
+  const beyond = useMemo(() => {
+    const items = intent === "all" ? discovery.beyond : discovery.beyond.filter((item) => item.intent === intent);
+    return groupByAsset(items);
+  }, [discovery, intent]);
+
+  const renderSection = (groups: AssetGroup<UtilityOpportunity>[], emptyNote: string) =>
+    groups.length === 0 ? (
       <p className="muted">{emptyNote}</p>
     ) : (
       <div className="watch-grid">
-        {items.map((item) => (
-          <div className="watch-card" key={item.id}>
-            <p>
-              <strong>{item.assetCode}</strong>
-              <span className="muted"> · {item.network}</span>
-              {item.held ? <span className="pill">You hold this</span> : null}
-            </p>
-            <p><strong>{item.title.split("—")[1]?.trim() ?? item.title}</strong></p>
-            <p className="muted small">{item.description}</p>
-            <p className="muted small">{item.stateLabel}</p>
-            {item.campaign ? (
-              <p className="muted small">
-                Reward: {item.campaign.rewardPerCompletion ?? "?"} {item.campaign.rewardAsset} · {item.campaign.status}
-              </p>
-            ) : null}
-            {item.eligibilityNote ? <p className="muted small">{item.eligibilityNote}</p> : null}
-            <div className="row">
-              {item.href.startsWith("http") ? (
-                <a className="button button-outline button-small" href={item.href} target="_blank" rel="noreferrer">Open</a>
-              ) : (
-                <Link className="button button-outline button-small" href={item.href}>Open</Link>
-              )}
-              <Link className="button button-outline button-small" href={`/circles/${item.assetSlug}`}>Asset</Link>
-            </div>
-          </div>
+        {groups.map((group) => (
+          <AssetCard key={group.slug} group={group} />
         ))}
       </div>
     );
@@ -68,13 +113,13 @@ export function UseBrowser({ discovery }: { discovery: UtilityDiscovery }) {
         ))}
       </div>
       <section className="card">
-        <h2>On Stellar ({stellar.length})</h2>
-        {renderGroup(stellar, "No Stellar utility matches this intent right now.")}
+        <h2>On Stellar ({stellar.length} {stellar.length === 1 ? "asset" : "assets"})</h2>
+        {renderSection(stellar, "No Stellar assets match this intent right now.")}
       </section>
       <section className="card">
-        <h2>Beyond Stellar ({beyond.length})</h2>
+        <h2>Beyond Stellar ({beyond.length} {beyond.length === 1 ? "asset" : "assets"})</h2>
         <p className="muted small">Extensions through connected ecosystems — never equal homes.</p>
-        {renderGroup(beyond, "No connected-ecosystem utility matches this intent right now.")}
+        {renderSection(beyond, "No connected-ecosystem assets match this intent right now.")}
       </section>
     </>
   );

@@ -22,6 +22,8 @@ export type UtilityOpportunity = {
   assetSlug: string;
   assetCode: string;
   assetName: string;
+  assetClassLabel: string;
+  issuer: string;
   network: string;
   ecosystem: string;
   kind: string;
@@ -126,6 +128,8 @@ export async function getUtilityDiscovery(
         assetSlug: circle.slug,
         assetCode: circle.code,
         assetName: circle.name,
+        assetClassLabel: circle.assetClassLabel ?? circle.category,
+        issuer: circle.issuerSource,
         network: action.network,
         ecosystem: circle.ecosystem,
         kind: action.kind,
@@ -148,6 +152,8 @@ export async function getUtilityDiscovery(
         assetSlug: circle.slug,
         assetCode: circle.code,
         assetName: circle.name,
+        assetClassLabel: circle.assetClassLabel ?? circle.category,
+        issuer: circle.issuerSource,
         network: circle.network,
         ecosystem: circle.ecosystem,
         kind: "campaign-reward",

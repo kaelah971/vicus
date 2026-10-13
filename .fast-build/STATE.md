@@ -24,7 +24,9 @@
 - [x] 4. Conviction / Theses — DONE
 - [x] 5. Personalized Activity — DONE
 - [x] 6. Earn / Use Discovery — DONE
-- [x] 7. IA + Mobile Polish — DONE (this invocation)
+- [x] 6b. /use Asset-First UX Fix — DONE
+- [x] 6c. Rewards Nav Fix — DONE (this invocation)
+- [x] 7. IA + Mobile Polish — DONE
 
 ## Completed (Wave 3 Slice 7)
 - IA: mobile 5-destination nav (Discover/Use/Circles/Activity/You), desktop adds secondary Missions/Lab/Spaces/Rewards; new read-only /circles directory; profile links Positions/Watch/Activity/Contacts; circle tabs include Conviction; active states correct per page

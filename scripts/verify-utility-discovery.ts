@@ -8,6 +8,7 @@ import { getDatabase } from "../src/db";
 import { users } from "../src/db/schema";
 import { resolveAssetActions } from "../src/lib/asset-actions/service";
 import { getUtilityDiscovery, modeLabel } from "../src/lib/utility-discovery/service";
+import { groupByAsset } from "../src/lib/utility-discovery/grouping";
 import { LENDING_MARKET_URL } from "../src/lib/lending/config";
 
 config({ path: ".env.local" });
@@ -88,6 +89,33 @@ async function main() {
   const browser = readFileSync(join(ROOT, "src/components/use-browser.tsx"), "utf8");
   assert.ok(browser.includes("Filter by intent") && page.includes("Put tokenized assets to work"), "intent-first surface");
   assert.ok(!/<table/.test(browser), "stacked cards, mobile-safe");
+  assert.ok(!browser.includes(">Open</a>") && !browser.includes(">Asset</a>"), "ambiguous CTAs removed");
+  assert.ok(browser.includes("Open {group.code}"), "asset-named primary CTA");
+
+  // 9. Asset grouping: each asset once, actions nested, campaigns embedded.
+  const all = [...discovery.stellar, ...discovery.beyond];
+  const groups = groupByAsset(all);
+  assert.equal(new Set(groups.map((group) => group.slug)).size, groups.length, "each asset once");
+  const benji = groups.find((group) => group.slug === "benji-on-stellar")!;
+  assert.ok(benji && benji.actions.length >= 2, "BENJI actions grouped, not repeated");
+  assert.ok(!groups.some((group) => group.actions.some((action) => action.assetSlug !== group.slug)), "no cross-asset leakage");
+  const earnFiltered = groupByAsset(all.filter((item) => item.intent === "earn"));
+  for (const group of earnFiltered) {
+    assert.ok(group.actions.every((action) => action.intent === "earn"), `${group.slug}: filtered view shows only relevant actions`);
+    assert.equal(group.campaigns.length, 0, `${group.slug}: campaigns stay out of intent views`);
+  }
+  const everything = groupByAsset(all);
+  const liveCampaignItems = all.filter((item) => item.kind === "campaign-reward");
+  for (const item of liveCampaignItems) {
+    const group = everything.find((entry) => entry.slug === item.assetSlug)!;
+    assert.ok(group.campaigns.some((entry) => entry.id === item.id), `${item.assetSlug}: campaign embedded under its asset`);
+  }
+  for (const group of groups) {
+    const executable = group.actions.filter((action) => action.state === "available");
+    const gated = group.actions.filter((action) => action.state !== "available");
+    assert.ok(executable.every((action) => action.href.length > 0), `${group.slug}: executable keeps real href`);
+    void gated;
+  }
 
   console.log("utility-discovery:verified");
 }

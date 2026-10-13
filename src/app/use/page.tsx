@@ -42,11 +42,10 @@ export default async function UsePage() {
         <div className="shell circle-page-body">
           <div className="stack">
             <section className="card">
-              <p className="eyebrow">Use · verified utility only</p>
+              <p className="eyebrow">Use</p>
               <h1>Put tokenized assets to work</h1>
               <p className="muted">
-                Everything below is a real, currently resolvable action — Stellar first,
-                connected ecosystems below. No yields quoted, no winners picked.
+                See what you can actually do with tokenized assets — starting on Stellar.
               </p>
             </section>
             <UseBrowser discovery={discovery} />

@@ -5,7 +5,6 @@ import { AssetToken, Avatar, GlowField, MetricTile, Orb, SectionHead, StepFlow }
 import { AppShell } from "@/components/app-shell";
 import { ProfileEditor } from "@/components/profile-editor";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
-import { RewardClaimCard } from "@/components/reward-claim-card";
 import { ReceiveSettings } from "@/components/receive-settings";
 import { isDatabaseUnavailableError } from "@/db";
 import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session";
@@ -253,28 +252,21 @@ export default async function MyProfilePage() {
           </section>
 
           <section className="p-section" id="rewards" aria-labelledby="rewards-title">
-            <SectionHead eyebrow="Rewards" id="rewards-title" line="Native XLM only · network shown on every reward." title="Your rewards" />
-            {attentionRewards.length > 0 ? (
-              <div className="profile-reward-list">
-                {attentionRewards.map((reward) => <RewardClaimCard key={reward.submissionId} reward={reward} />)}
-              </div>
-            ) : null}
-            {confirmedRewards.length > 0 ? (
-              <div className="v-list">
-                {confirmedRewards.map((reward) => (
-                  <Link className="v-row" href={`/rewards/${reward.id}`} key={reward.id}>
-                    <Orb icon="gift" size="md" tone="white" />
-                    <span className="v-row-main">
-                      <strong>{reward.amount} XLM</strong>
-                      <small>{reward.missionTitle} · {reward.network === "testnet" ? "Stellar Testnet" : "Stellar Public Network"}</small>
-                    </span>
-                    <span className="v-text-link">Receipt</span>
-                  </Link>
-                ))}
-              </div>
-            ) : attentionRewards.length === 0 ? (
+            <SectionHead
+              eyebrow="Rewards"
+              id="rewards-title"
+              line="Native XLM only · network shown on every reward."
+              title="Your rewards"
+              action={<ButtonLink href="/rewards" variant="glass">Open rewards</ButtonLink>}
+            />
+            {attentionRewards.length > 0 || confirmedRewards.length > 0 ? (
+              <p className="muted">
+                {attentionRewards.length > 0 ? `${attentionRewards.length} awaiting action` : "Nothing awaiting action"}
+                {" · "}{confirmedRewards.length} confirmed
+              </p>
+            ) : (
               <EmptyState title="No rewards yet">Reward-enabled missions unlock XLM after approval.</EmptyState>
-            ) : null}
+            )}
           </section>
 
           <section className="p-section" aria-labelledby="watched-title">
