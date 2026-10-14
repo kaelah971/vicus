@@ -2361,6 +2361,132 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+/* Standalone labelled field: <label class="field"><span>Label</span><input … /></label>.
+   Used by the Send, Access, Exit, Contacts and Campaign forms. Mirrors
+   .field-group so every money-moving form shares one spaced surface. */
+form.content-panel {
+  align-content: start;
+  display: grid;
+  gap: 18px;
+}
+
+form.content-panel > p {
+  margin-top: 0;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.field > span {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: #050507;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+  color: var(--foreground);
+  font-size: 16px;
+  min-height: 48px;
+  padding: 0 14px;
+  width: 100%;
+}
+
+.field textarea {
+  line-height: 1.6;
+  padding: 13px 14px;
+  resize: vertical;
+}
+
+.field select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.field input::placeholder {
+  color: var(--subtle);
+  opacity: 1;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  border-color: var(--portal);
+}
+
+.field input:disabled,
+.field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-error {
+  border-left: 2px solid rgba(255, 170, 169, 0.7);
+  color: #ffaaa9;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin-top: 0;
+  padding: 2px 0 2px 12px;
+}
+
+.field-error {
+  color: #ffaaa9;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  margin: -10px 0 0;
+}
+
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"] {
+  border-color: rgba(255, 170, 169, 0.8);
+}
+
+.field select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffffff' stroke-opacity='.55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 14px center;
+  background-repeat: no-repeat;
+  padding-right: 38px;
+}
+
+.field select option {
+  background-color: #0a0a0d;
+  color: var(--foreground);
+}
+
+.send-review-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.send-review-amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .send-review-amount {
+    font-size: 1.35rem;
+  }
+
+  .send-review-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* Position Center (pos-): scoped to /positions only. These classes are used
    solely by src/app/positions/page.tsx and src/components/connected-positions.tsx.
    Shared primitives (.button, .content-panel, .empty-state, v-*) are reused

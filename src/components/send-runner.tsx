@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { Networks } from "@stellar/stellar-sdk";
 import * as FreighterApi from "@stellar/freighter-api";
 import { ActionTray, SectionHead } from "@/components/vicus-ui";
+import { StatusPill } from "@/components/vicus";
 
 type SendAsset = { slug: string; code: string; permissioned: boolean };
 type Contact = { id: string; displayName: string; handle: string | null };
@@ -55,6 +56,7 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ recipient?: string; amount?: string }>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +131,14 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
   async function handleReview(event: FormEvent) {
     event.preventDefault();
     setBusy("review");
+    const problems: { recipient?: string; amount?: string } = {};
+    if (!recipient.trim()) problems.recipient = "Enter the recipient's @handle, or pick a saved contact.";
+    if (!amount.trim()) problems.amount = "Enter an amount to send.";
+    setFieldErrors(problems);
+    if (problems.recipient || problems.amount) {
+      fail("Complete the highlighted fields before reviewing.");
+      return;
+    }
     setError("");
     setNotice("Checking the recipient and balances on Stellar Mainnet…");
     const prepared = await post<{ preparation?: Preparation }>("/api/send/prepare", {
@@ -201,6 +211,7 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
           eyebrow="Send"
           title="Transfer confirmed."
           line={`${transfer.amount} ${transfer.assetCode} sent on Stellar Mainnet.`}
+          action={<StatusPill tone="green">Confirmed</StatusPill>}
         />
         <div className="content-panel">
           <p style={{ fontSize: 28, fontWeight: 700 }}>
@@ -251,9 +262,9 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
 
       {!preparation ? (
         <form className="content-panel" onSubmit={handleReview}>
-          <label className="field">
+          <label className="field" htmlFor="send-asset">
             <span>Asset</span>
-            <select onChange={(event) => setAsset(event.target.value)} value={asset}>
+            <select id="send-asset" onChange={(event) => setAsset(event.target.value)} value={asset}>
               {assets.map((entry) => (
                 <option key={entry.slug} value={entry.slug}>
                   {entry.code}{entry.permissioned ? " · permissioned" : ""}
@@ -264,12 +275,18 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
           {activeAsset?.permissioned ? (
             <p className="field-help">Permissioned transfer — the recipient needs an authorized trustline.</p>
           ) : null}
-          <label className="field">
+          <label className="field" htmlFor="send-recipient">
             <span>To (@handle)</span>
             <input
+              id="send-recipient"
               list="send-contacts"
-              onChange={(event) => setRecipient(event.target.value)}
-              placeholder="@ada"
+              autoComplete="off"
+              aria-invalid={fieldErrors.recipient ? true : undefined}
+              onChange={(event) => {
+                setRecipient(event.target.value);
+                setFieldErrors((prev) => ({ ...prev, recipient: undefined }));
+              }}
+              placeholder="@handle"
               value={recipient}
             />
             <datalist id="send-contacts">
@@ -282,13 +299,19 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
                 ))}
             </datalist>
           </label>
-          <label className="field">
+          {fieldErrors.recipient ? <p className="field-error" role="alert">{fieldErrors.recipient}</p> : null}
+          <p className="field-help">Type a contact @handle or pick from your saved contacts. Never send to an address you cannot verify.</p>
+          <label className="field" htmlFor="send-amount">
             <span>Amount</span>
-            <input inputMode="decimal" onChange={(event) => setAmount(event.target.value)} placeholder="5" value={amount} />
+            <input id="send-amount" inputMode="decimal" autoComplete="off" aria-invalid={fieldErrors.amount ? true : undefined} onChange={(event) => {
+              setAmount(event.target.value);
+              setFieldErrors((prev) => ({ ...prev, amount: undefined }));
+            }} placeholder="0.00" value={amount} />
           </label>
+          {fieldErrors.amount ? <p className="field-error" role="alert">{fieldErrors.amount}</p> : null}
           <p className="field-help">Up to 7 decimals. The recipient must already hold a trustline for this asset — Vicus never creates one for them.</p>
           <p>
-            <button className="button button-small" disabled={busy === "review"} type="submit">
+            <button className="button button-violet button-small" disabled={busy === "review"} type="submit">
               {busy === "review" ? "Checking…" : "Review transfer"}
             </button>
           </p>
@@ -298,6 +321,13 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
       ) : (
         <div>
           <div className="content-panel">
+            <div className="send-review-head">
+              <div>
+                <p className="send-review-amount">{preparation.amount} {preparation.assetCode}</p>
+                <p className="control-note">to {preparation.destinationHandle ? `@${preparation.destinationHandle}` : abbreviate(preparation.destinationAddress)} · {preparation.networkLabel}</p>
+              </div>
+              <StatusPill tone="violet">Review</StatusPill>
+            </div>
             <dl className="mission-meta">
               <div><dt>Amount</dt><dd>{preparation.amount} {preparation.assetCode}</dd></div>
               <div><dt>To</dt><dd>{preparation.destinationHandle ? `@${preparation.destinationHandle}` : abbreviate(preparation.destinationAddress)}</dd></div>
@@ -308,7 +338,7 @@ export function SendRunner({ initialAsset }: { initialAsset: string | null }) {
             <p className="control-note">No bridge · No conversion</p>
           </div>
           <p>
-            <button className="button button-small" disabled={busy === "sign"} onClick={handleSign} type="button">
+            <button className="button button-violet button-small" disabled={busy === "sign"} onClick={handleSign} type="button">
               {busy === "sign" ? "Waiting for signature…" : "Sign with Freighter"}
             </button>{" "}
             <button
