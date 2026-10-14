@@ -2361,6 +2361,199 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+/* Position Center (pos-): scoped to /positions only. These classes are used
+   solely by src/app/positions/page.tsx and src/components/connected-positions.tsx.
+   Shared primitives (.button, .content-panel, .empty-state, v-*) are reused
+   as-is; nothing here retargets them. */
+.pos-hero {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(139, 43, 255, 0.16), transparent 60%),
+    var(--surface);
+  border-color: rgba(139, 43, 255, 0.35);
+  overflow: hidden;
+}
+
+.pos-hero h1 {
+  margin-top: 10px;
+}
+
+.pos-lede {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-top: 10px;
+  max-width: 640px;
+}
+
+.pos-wallet-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.pos-section {
+  display: grid;
+  gap: 4px;
+}
+
+.pos-hold-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin-top: 18px;
+}
+
+.pos-hold {
+  align-content: start;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.pos-hold:hover {
+  border-color: rgba(139, 43, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.pos-hold-top {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.pos-hold-id {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pos-hold-code {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pos-hold-net {
+  color: var(--subtle);
+  font-size: 0.72rem;
+}
+
+.pos-hold-chip {
+  margin-left: auto;
+}
+
+.pos-balance {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.pos-balance small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.pos-issuer {
+  color: var(--subtle);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-actions-line {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.pos-lending {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+.pos-lending a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pos-connect {
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 16px;
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.pos-tone-violet {
+  border-left: 2px solid var(--portal);
+}
+
+.pos-tone-blue {
+  border-left: 2px solid #5aa9ff;
+}
+
+.pos-connect-head {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.pos-connect-head h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pos-connect-head p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin-top: 4px;
+  max-width: 560px;
+}
+
+.pos-connect-action {
+  display: flex;
+}
+
+.pos-note {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .pos-hold-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-balance {
+    font-size: 1.3rem;
+  }
+
+  .pos-connect-head {
+    align-items: flex-start;
+  }
+}
+
 .role-verification-form .button:disabled,
 .mission-response-form .button:disabled,
 .review-action-buttons .button:disabled {
