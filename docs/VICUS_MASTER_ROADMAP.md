@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.4 (P2 Compass complete; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.5 (P3.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.4 sync (2026-10-14): `Complete` (P0.1, P2.1, P2.2, P2.3), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.5 sync (2026-10-14): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -229,11 +229,11 @@ Milestone IDs are stable. Statuses at v2.4 sync (2026-10-14): `Complete` (P0.1, 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
 | P3.1 | Send/Lab/reward completion | All three witnessed E2E with receipts (links P0.2–P0.3, records completion here for Stellar-utility scope) | Manual E2E §§A,G,H receipts | Planned |
-| P3.2 | Stellar swap/yield investigation | Written verdict per candidate venue: routable or not, with quote evidence or honest negative | Quote-evidence log; no unverified venue shipped | Planned |
+| P3.2 | Stellar swap/yield investigation | Written verdict per candidate venue: routable or not, with quote evidence or honest negative | Quote-evidence log; no unverified venue shipped | Complete 2026-10-14 (docs-only): `docs/P3.2_Stellar_Swap_Yield_Verdicts.md` — 9 verdicts (S1–S6 swaps/CCTP, Y1–Y3 yield) with tiered claims (quote-verified vs implemented-unverified vs witnessed); fresh Jupiter quotes (AAPLx 0.07236993, TSLAx 0.06809039 per 25 USDC; exit 17.248047 USDC per 0.05 AAPLx) + Horizon USDC/XLM orderbook; raw-unit canon resolves manifest units ambiguity; no Stellar-native swap adapter (P3 follow-up proposed); no yield integration anywhere (correctly out of scope); no venue shipped or enabled; no code/config touched. |
 | P3.3 | Permissioned-asset boundaries | BENJI-class assets require issuer-authorized recipients; unauthorized attempts fail closed with clear copy | Allowlist negative tests | Planned |
 | P3.4 | Utility discovery surface | `/use` Earn/Borrow/Redeem reflect verified availability only | `utility-discovery:verify` + surface audit | Planned |
 
-**Dependencies:** P0 reliability; verified Stellar execution pathways.
+**Dependencies:** P0 reliability; verified Stellar execution pathways. P3.2 complete (investigation only); P3.1/P3.3/P3.4 outstanding.
 **Blockers/risks:** Venue liquidity; issuer cooperation for permissioned assets; Testnet/Mainnet confusion (must label).
 **Status:** Planned.
 
@@ -595,10 +595,11 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P3.2 Stellar swap/yield investigation** (written routable-or-not verdicts with quote evidence; research-only, no spend, no signatures).
-- P1.1 logo/card system is the parallel-safe alternative (needs licensed/curated artwork first).
+- **Next buildable product milestone: P3.3 Permissioned-asset boundaries** (allowlist negative tests + fail-closed copy; no funds, no signatures).
+- P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
+- P3.2 investigation complete 2026-10-14 (docs-only verdicts artifact, no code touched).
 
 ---
 
@@ -647,7 +648,8 @@ After each completed milestone:
 | 2026-10-14 | v2.1 sync: §C.3/§H.1 evidence corrections, §J active-work rewrite, log rows; next buildable P2.1 | Commit `2d1ff8c` |
 | 2026-10-14 | P2.1 complete (eligibility-context model live; P2.2/P2.3 remain; 43 IDs intact) | Commit `7b8ebb3` + v2.2 sync |
 | 2026-10-14 | P2.2 complete (next steps + verified alternatives live; P2.3 remains; 43 IDs intact) | Commit `56130f6` + v2.3 sync |
-| 2026-10-14 | P2.3 complete (Compass ordering live; P2 phase complete; 43 IDs intact) | Commit `5684ae8` + this sync |
+| 2026-10-14 | P2.3 complete (Compass ordering live; P2 phase complete; 43 IDs intact) | Commit `5684ae8` + v2.4 sync |
+| 2026-10-14 | P3.2 complete (swap/yield verdicts; docs-only, no code touched; 43 IDs intact) | This sync |
 
 ---
 
