@@ -11,6 +11,7 @@ import {
   ACTION_ADAPTERS,
   resolveAssetActions,
 } from "../src/lib/asset-actions/service";
+import { resolveEligibility } from "../src/lib/asset-actions/eligibility";
 import {
   ACTION_KINDS,
   ACTION_STATES,
@@ -162,7 +163,83 @@ async function main() {
   // 12. Canonical ordering holds on a representative asset.
   assert.deepEqual(kinds(benjiActions), ["access", "send", "earn", "redeem"], "BENJI canonical order");
 
-  console.log("asset-actions:verify ok — 12 groups, all assertions passed.");
+  // 13. P2.1 Compass: deterministic eligibility contexts over fixed
+  // fixtures (USDC / BENJI / AAPLx shapes). No wallets, no network calls —
+  // UNKNOWN must stay explicitly unknown and never resolve as available.
+  const compassCtx = (
+    assetSlug: string,
+    actionKind: string,
+    actionState: "available" | "permissioned" | "coming_soon" | "unavailable",
+    executionMode: "vicus" | "connected" | "official" | "guide",
+    extra: Partial<Parameters<typeof resolveEligibility>[0]> = {},
+  ): Parameters<typeof resolveEligibility>[0] => ({
+    assetSlug,
+    actionKind,
+    actionState,
+    executionMode,
+    network: "Stellar Mainnet",
+    eligibilityNote: null,
+    href: `/circles/${assetSlug}`,
+    session: null,
+    roleStatus: null,
+    ...extra,
+  });
+  const signedOut = null;
+  const signedIn = { signedIn: true, walletPublicKey: null };
+  // USDC Send signed-out: live route, but unknown FOR THIS visitor.
+  const usdcSendOut = resolveEligibility(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedOut }));
+  assert.equal(usdcSendOut.state, "unknown", "USDC send signed-out is unknown");
+  assert.ok(/Unknown/i.test(usdcSendOut.explanation), "USDC send signed-out says unknown");
+  assert.ok((usdcSendOut.requiresWallet ?? "").includes("Freighter"), "USDC send names the Stellar wallet");
+  // USDC Send signed-in, no role check: available without inventing holdings.
+  const usdcSendIn = resolveEligibility(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn }));
+  assert.equal(usdcSendIn.state, "available", "USDC send signed-in is available");
+  assert.ok(/sign/i.test(usdcSendIn.explanation), "USDC send still requires signature");
+  assert.ok(/nothing.*assumed|assumed/i.test(usdcSendIn.explanation), "USDC send disclaims assumed holdings");
+  assert.ok(!/verified-holder|positive balance/i.test(usdcSendIn.explanation), "USDC send invents no holder proof without a role check");
+  // BENJI Send is permissioned: restricted with the issuer note.
+  const benjiSend = resolveEligibility(
+    compassCtx("benji-on-stellar", "send", "permissioned", "vicus", {
+      session: signedIn,
+      eligibilityNote: "Recipient wallets must be authorized by the issuer.",
+    }),
+  );
+  assert.equal(benjiSend.state, "unavailable", "BENJI send is unavailable");
+  assert.ok((benjiSend.restriction ?? "").includes("authorized by the issuer"), "BENJI restriction carried");
+  // AAPLx swap signed-out: connected execution stays unknown.
+  const aaplxSwapOut = resolveEligibility(compassCtx("aaplx-on-solana", "swap", "available", "connected", { session: signedOut }));
+  assert.equal(aaplxSwapOut.state, "unknown", "AAPLx swap signed-out is unknown");
+  assert.ok((aaplxSwapOut.requiresWallet ?? "").includes("Solana"), "AAPLx swap names Solana");
+  // AAPLx access with only a Stellar session: still unknown, never available.
+  const aaplxAccessIn = resolveEligibility(compassCtx("aaplx-on-solana", "access", "available", "connected", { session: signedIn }));
+  assert.equal(aaplxAccessIn.state, "unknown", "AAPLx access with Stellar-only session is unknown");
+  // Unsupported engine states can never enable.
+  const gated = resolveEligibility(compassCtx("x", "earn", "unavailable", "guide", { session: signedIn }));
+  assert.equal(gated.state, "unavailable", "unavailable stays unavailable");
+  assert.ok(gated.nextAction?.href === "/discover", "unavailable points at discovery");
+  const soon = resolveEligibility(compassCtx("x", "earn", "coming_soon", "guide", { session: signedIn }));
+  assert.equal(soon.state, "unknown", "coming_soon stays unknown");
+  assert.ok(/Unknown/i.test(soon.explanation), "coming_soon says unknown");
+  // Live role evidence refines Stellar wallet-gated actions honestly.
+  const holder = resolveEligibility(
+    compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn, roleStatus: "verified-holder" }),
+  );
+  assert.equal(holder.state, "available", "verified holder is available");
+  const noTrust = resolveEligibility(
+    compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn, roleStatus: "not-qualified" }),
+  );
+  assert.equal(noTrust.state, "unavailable", "not-qualified is unavailable");
+  const rpcDown = resolveEligibility(
+    compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn, roleStatus: "verification-unavailable" }),
+  );
+  assert.equal(rpcDown.state, "unknown", "unreachable network is unknown");
+  // Every verdict explains itself and never leaks secrets-shaped content.
+  for (const verdict of [usdcSendOut, usdcSendIn, benjiSend, aaplxSwapOut, aaplxAccessIn, gated, soon, holder, noTrust, rpcDown]) {
+    assert.ok(verdict.explanation.length > 20, `${verdict.assetSlug}/${verdict.actionKind}: explanation present`);
+    assert.ok(!/privateKey|seed phrase/i.test(JSON.stringify(verdict)), "no secret-shaped fields");
+  }
+
+  console.log("asset-actions:verify ok — 13 groups, all assertions passed.");
 }
 
 main().catch((error) => {

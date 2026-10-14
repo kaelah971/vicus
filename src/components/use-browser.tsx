@@ -46,6 +46,8 @@ function toSheetActions(actions: UtilityOpportunity[]) {
     external: action.href.startsWith("http"),
     eligibilityNote: action.eligibilityNote,
     sourceUrl: action.sourceUrl,
+    eligibilityState: action.eligibilityState,
+    eligibilityExplanation: action.eligibilityExplanation,
   }));
 }
 

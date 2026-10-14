@@ -15,6 +15,8 @@ export type SheetAction = {
   external: boolean;
   eligibilityNote: string | null;
   sourceUrl?: string;
+  eligibilityState?: "available" | "unavailable" | "unknown";
+  eligibilityExplanation?: string | null;
 };
 
 export type SheetAsset = {
@@ -163,8 +165,7 @@ export function AssetSheet({
                     {open ? (
                       <div className="v-sheet-action-detail">
                         <p className="v-sheet-state">
-                          {action.state === "available" ? "Available" : "Permissioned"}
-                          {action.eligibilityNote ? ` · ${action.eligibilityNote}` : ""}
+                          {action.eligibilityExplanation ?? `${action.state === "available" ? "Available" : "Permissioned"}${action.eligibilityNote ? ` · ${action.eligibilityNote}` : ""}`}
                         </p>
                         {action.description ? <p>{action.description}</p> : null}
                         {action.external ? (

@@ -2,6 +2,7 @@ import "server-only";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
 import { UTILITY_INTENTS, type UtilityIntent } from "@/lib/utility-discovery/intents";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
+import { eligibilityForSheetAction } from "@/lib/asset-actions/eligibility";
 import { listLiveCampaigns } from "@/lib/campaigns/service";
 import { getStellarPositions } from "@/lib/positions/service";
 
@@ -36,6 +37,8 @@ export type UtilityOpportunity = {
   href: string;
   sourceUrl: string;
   eligibilityNote: string | null;
+  eligibilityState: "available" | "unavailable" | "unknown";
+  eligibilityExplanation: string | null;
   /** Private holding flag — true only for the signed-in owner's assets. */
   held: boolean;
   campaign: {
@@ -117,12 +120,26 @@ export async function getUtilityDiscovery(
 
   const stellar: UtilityOpportunity[] = [];
   const beyond: UtilityOpportunity[] = [];
+  const viewerSession = { signedIn: !!userId, walletPublicKey: sessionStellarWallet ?? null };
   circles.forEach((circle, index) => {
     const actions = engineLists[index] ?? [];
     const bucket = circle.ecosystem === "stellar" ? stellar : beyond;
     for (const action of actions) {
       // Engine truth only: every row below is a resolved action or a live
       // campaign. Gated states render with their real labels, never hidden.
+      // P2.1 Compass: one deterministic eligibility annotation per action.
+      const eligibility = eligibilityForSheetAction(
+        {
+          assetSlug: circle.slug,
+          kind: action.kind,
+          state: action.state,
+          executionMode: action.executionMode,
+          network: action.network,
+          eligibilityNote: action.eligibilityNote,
+          href: action.href,
+        },
+        viewerSession,
+      );
       bucket.push({
         id: `${circle.slug}:${action.kind}`,
         assetSlug: circle.slug,
@@ -142,6 +159,8 @@ export async function getUtilityDiscovery(
         href: action.href,
         sourceUrl: action.sourceUrl,
         eligibilityNote: action.eligibilityNote,
+        eligibilityState: eligibility.state,
+        eligibilityExplanation: eligibility.explanation,
         held: heldSlugs.has(circle.slug),
         campaign: null,
       });
@@ -166,6 +185,9 @@ export async function getUtilityDiscovery(
         href: `/campaigns/${campaign.id}`,
         sourceUrl: "",
         eligibilityNote: null,
+        eligibilityState: "unknown",
+        eligibilityExplanation:
+          "Unknown until you open the campaign — rewards pay only after verified completion of its mission. Nothing is pre-approved.",
         held: heldSlugs.has(circle.slug),
         campaign: {
           rewardAsset: campaign.rewardAsset,

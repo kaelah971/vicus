@@ -10,6 +10,7 @@ import { getCurrentSession, isSessionUnavailableError } from "@/lib/auth/session
 import { listCircles } from "@/lib/data/circles";
 import { isAssetCircle } from "@/lib/data/circles";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
+import { eligibilityForSheetAction } from "@/lib/asset-actions/eligibility";
 import { getSubjectForAsset } from "@/lib/subjects/config";
 import type { SheetAction, SheetSubject } from "@/components/asset-sheet";
 import { listActiveCampaignCircles } from "@/lib/campaigns/service";
@@ -25,9 +26,11 @@ export const metadata: Metadata = {
 export default async function DiscoverPage() {
   let circleData: Awaited<ReturnType<typeof listCircles>> = [];
   let databaseUnavailable = false;
+  let signedIn = false;
 
   try {
     const session = await getCurrentSession();
+    signedIn = session !== null;
     const allCircles = await listCircles(session?.user.id);
     // Discover means real tokenized assets: education-only content without an
     // underlying asset stays reachable directly but leaves the directory.
@@ -63,7 +66,20 @@ export default async function DiscoverPage() {
       const resolved = engineLists[index] ?? [];
       const available = resolved.filter((action) => action.state === "available");
       if (available.length > 0) usableSlugs.push(circle.slug);
-      actionsBySlug[circle.slug] = resolved.map((action) => ({
+      actionsBySlug[circle.slug] = resolved.map((action) => {
+        const eligibility = eligibilityForSheetAction(
+          {
+            assetSlug: circle.slug,
+            kind: action.kind,
+            state: action.state,
+            executionMode: action.executionMode,
+            network: action.network,
+            eligibilityNote: action.eligibilityNote,
+            href: action.href,
+          },
+          { signedIn, walletPublicKey: null },
+        );
+        return {
         kind: action.kind,
         title: action.title,
         description: action.description,
@@ -73,7 +89,10 @@ export default async function DiscoverPage() {
         external: action.external,
         eligibilityNote: action.eligibilityNote,
         sourceUrl: action.sourceUrl,
-      }));
+        eligibilityState: eligibility.state,
+        eligibilityExplanation: eligibility.explanation,
+        };
+      });
       const subject = getSubjectForAsset(circle.slug);
       subjectMap[circle.slug] = subject
         ? { name: subject.name, slug: subject.slug, type: subject.type, siblingSlugs: [...subject.representations] }
