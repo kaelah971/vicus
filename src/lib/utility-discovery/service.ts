@@ -39,6 +39,8 @@ export type UtilityOpportunity = {
   eligibilityNote: string | null;
   eligibilityState: "available" | "unavailable" | "unknown";
   eligibilityExplanation: string | null;
+  eligibilityNextStep: { label: string; href: string } | null;
+  eligibilityAlternative: { title: string; href: string; why: string } | null;
   /** Private holding flag — true only for the signed-in owner's assets. */
   held: boolean;
   campaign: {
@@ -137,6 +139,13 @@ export async function getUtilityDiscovery(
           network: action.network,
           eligibilityNote: action.eligibilityNote,
           href: action.href,
+          siblings: actions.map((sibling) => ({
+            kind: sibling.kind,
+            title: sibling.title,
+            state: sibling.state,
+            executionMode: sibling.executionMode,
+            href: sibling.href,
+          })),
         },
         viewerSession,
       );
@@ -161,6 +170,14 @@ export async function getUtilityDiscovery(
         eligibilityNote: action.eligibilityNote,
         eligibilityState: eligibility.state,
         eligibilityExplanation: eligibility.explanation,
+        eligibilityNextStep: eligibility.nextAction,
+        eligibilityAlternative: eligibility.alternative
+          ? {
+              title: eligibility.alternative.title,
+              href: eligibility.alternative.href,
+              why: eligibility.alternative.whySupported,
+            }
+          : null,
         held: heldSlugs.has(circle.slug),
         campaign: null,
       });
@@ -188,6 +205,8 @@ export async function getUtilityDiscovery(
         eligibilityState: "unknown",
         eligibilityExplanation:
           "Unknown until you open the campaign — rewards pay only after verified completion of its mission. Nothing is pre-approved.",
+        eligibilityNextStep: null,
+        eligibilityAlternative: null,
         held: heldSlugs.has(circle.slug),
         campaign: {
           rewardAsset: campaign.rewardAsset,

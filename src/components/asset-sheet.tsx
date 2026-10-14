@@ -17,6 +17,8 @@ export type SheetAction = {
   sourceUrl?: string;
   eligibilityState?: "available" | "unavailable" | "unknown";
   eligibilityExplanation?: string | null;
+  eligibilityNextStep?: { label: string; href: string } | null;
+  eligibilityAlternative?: { title: string; href: string; why: string } | null;
 };
 
 export type SheetAsset = {
@@ -167,6 +169,33 @@ export function AssetSheet({
                         <p className="v-sheet-state">
                           {action.eligibilityExplanation ?? `${action.state === "available" ? "Available" : "Permissioned"}${action.eligibilityNote ? ` · ${action.eligibilityNote}` : ""}`}
                         </p>
+                        {action.eligibilityNextStep ? (
+                          <p className="v-sheet-copy small">
+                            Next step: {action.eligibilityNextStep.href.startsWith("http") ? (
+                              <a href={action.eligibilityNextStep.href} target="_blank" rel="noreferrer">
+                                {action.eligibilityNextStep.label} →
+                              </a>
+                            ) : (
+                              <Link href={action.eligibilityNextStep.href}>{action.eligibilityNextStep.label} →</Link>
+                            )}
+                          </p>
+                        ) : null}
+                        {action.eligibilityState && action.eligibilityState !== "available" ? (
+                          action.eligibilityAlternative ? (
+                            <p className="v-sheet-copy small">
+                              Verified alternative: {action.eligibilityAlternative.href.startsWith("http") ? (
+                                <a href={action.eligibilityAlternative.href} target="_blank" rel="noreferrer">
+                                  {action.eligibilityAlternative.title} →
+                                </a>
+                              ) : (
+                                <Link href={action.eligibilityAlternative.href}>{action.eligibilityAlternative.title} →</Link>
+                              )}{" "}
+                              <span>({action.eligibilityAlternative.why})</span>
+                            </p>
+                          ) : (
+                            <p className="v-sheet-copy small">No verified alternative for this action right now.</p>
+                          )
+                        ) : null}
                         {action.description ? <p>{action.description}</p> : null}
                         {action.external ? (
                           <a href={action.href} target="_blank" rel="noreferrer" className="v-sheet-cta">

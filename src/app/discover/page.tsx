@@ -76,6 +76,13 @@ export default async function DiscoverPage() {
             network: action.network,
             eligibilityNote: action.eligibilityNote,
             href: action.href,
+            siblings: resolved.map((sibling) => ({
+              kind: sibling.kind,
+              title: sibling.title,
+              state: sibling.state,
+              executionMode: sibling.executionMode,
+              href: sibling.href,
+            })),
           },
           { signedIn, walletPublicKey: null },
         );
@@ -91,6 +98,14 @@ export default async function DiscoverPage() {
         sourceUrl: action.sourceUrl,
         eligibilityState: eligibility.state,
         eligibilityExplanation: eligibility.explanation,
+        eligibilityNextStep: eligibility.nextAction,
+        eligibilityAlternative: eligibility.alternative
+          ? {
+              title: eligibility.alternative.title,
+              href: eligibility.alternative.href,
+              why: eligibility.alternative.whySupported,
+            }
+          : null,
         };
       });
       const subject = getSubjectForAsset(circle.slug);

@@ -239,7 +239,88 @@ async function main() {
     assert.ok(!/privateKey|seed phrase/i.test(JSON.stringify(verdict)), "no secret-shaped fields");
   }
 
-  console.log("asset-actions:verify ok — 13 groups, all assertions passed.");
+  // 14. P2.2 Compass: verified alternatives + next steps ride on the same
+  // verdicts. Alternatives come ONLY from caller-supplied same-asset
+  // siblings in `available` state; nothing is invented, and the own state
+  // never escalates because siblings exist.
+  const sib = (
+    kind: string,
+    title: string,
+    state: "available" | "permissioned" | "coming_soon" | "unavailable",
+    executionMode: "vicus" | "connected" | "official" | "guide",
+    href = `/circles/benji-on-stellar/use/${kind}`,
+  ) => ({ kind, title, state, executionMode, href });
+  const withSibs = (
+    base: Parameters<typeof resolveEligibility>[0],
+    siblings: ReturnType<typeof sib>[],
+  ): Parameters<typeof resolveEligibility>[0] => ({ ...base, siblingActions: siblings });
+  const benjiBase = compassCtx("benji-on-stellar", "send", "permissioned", "vicus", {
+    session: signedIn,
+    eligibilityNote: "Recipient wallets must be authorized by the issuer.",
+  });
+  // BENJI send (restricted) with verified siblings: next step names the
+  // issuer path, alternative is the first available sibling in canonical
+  // order (earn before redeem) with engine provenance.
+  const benjiAlt = resolveEligibility(
+    withSibs(benjiBase, [
+      sib("redeem", "Redeem", "available", "official", "https://issuer.example/redeem"),
+      sib("earn", "Earn", "available", "guide"),
+    ]),
+  );
+  assert.equal(benjiAlt.state, "unavailable", "BENJI send stays unavailable with siblings");
+  assert.ok((benjiAlt.nextAction?.label ?? "").length > 0, "BENJI send has a next step");
+  assert.ok(benjiAlt.alternative?.kind === "earn", "BENJI alternative is earn (canonical order)");
+  assert.ok((benjiAlt.alternative?.whySupported ?? "").includes("Verified"), "BENJI alternative carries provenance");
+  // USDC send signed-out: connect guidance + live-sibling alternative.
+  const usdcAlt = resolveEligibility(
+    withSibs(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedOut }), [
+      sib("move", "Move across networks", "available", "vicus", "/access"),
+    ]),
+  );
+  assert.equal(usdcAlt.state, "unknown", "USDC send stays unknown with siblings");
+  assert.equal(usdcAlt.nextAction?.label, "Connect a wallet", "USDC next step is auth guidance");
+  assert.equal(usdcAlt.alternative?.kind, "move", "USDC alternative is the live Move route");
+  assert.ok((usdcAlt.alternative?.whySupported ?? "").includes("live Vicus execution"), "USDC alternative provenance");
+  // AAPLx swap unknown: Solana connect step + connected-route alternative.
+  const aaplxAlt = resolveEligibility(
+    withSibs(compassCtx("aaplx-on-solana", "swap", "available", "connected", { session: signedOut }), [
+      sib("access", "Access AAPLx", "available", "connected", "/acquire/aaplx-on-solana"),
+    ]),
+  );
+  assert.equal(aaplxAlt.state, "unknown", "AAPLx swap stays unknown with siblings");
+  assert.equal(aaplxAlt.nextAction?.label, "Open the route to connect", "AAPLx next step is wallet guidance");
+  assert.ok((aaplxAlt.alternative?.whySupported ?? "").includes("connected route"), "AAPLx alternative provenance");
+  // No verified sibling: explicit null, never an invented fallback.
+  const lonely = resolveEligibility(
+    withSibs(compassCtx("aaplx-on-solana", "swap", "available", "connected", { session: signedOut }), [
+      sib("exit", "Exit", "permissioned", "connected", "/exit/aaplx-on-solana"),
+    ]),
+  );
+  assert.equal(lonely.alternative, null, "no available sibling means null alternative");
+  assert.equal(lonely.state, "unknown", "null alternative does not escalate state");
+  // Missing-source fallback: title/href-less siblings are skipped.
+  const scrubbed = resolveEligibility(
+    withSibs(benjiBase, [
+      sib("earn", "", "available", "guide", ""),
+      sib("redeem", "Redeem", "available", "official", "https://issuer.example/redeem"),
+    ]),
+  );
+  assert.equal(scrubbed.alternative?.kind, "redeem", "sourceless siblings skipped");
+  // Provenance rule: every alternative kind must exist in the provided
+  // sibling list in `available` state — sampled across all verdicts above.
+  for (const verdict of [benjiAlt, usdcAlt, aaplxAlt]) {
+    assert.ok(verdict.alternative, "verdict has an alternative");
+    assert.ok(["earn", "move", "access"].includes(verdict.alternative.kind), "alternative kind is list-sourced");
+    assert.ok(verdict.alternative.href.trim().length > 0, "alternative href present");
+  }
+  // Missing trustline refines to wallet guidance, not a fake flow.
+  const noTrustStep = resolveEligibility(
+    withSibs(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn, roleStatus: "not-qualified" }), []),
+  );
+  assert.equal(noTrustStep.nextAction?.label, "Re-check the trustline on the asset page", "trustline next step is guidance");
+  assert.ok(/never adds it for you/i.test(noTrustStep.explanation), "no invented trustline flow");
+
+  console.log("asset-actions:verify ok — 14 groups, all assertions passed.");
 }
 
 main().catch((error) => {

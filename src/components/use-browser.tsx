@@ -48,6 +48,8 @@ function toSheetActions(actions: UtilityOpportunity[]) {
     sourceUrl: action.sourceUrl,
     eligibilityState: action.eligibilityState,
     eligibilityExplanation: action.eligibilityExplanation,
+    eligibilityNextStep: action.eligibilityNextStep ?? null,
+    eligibilityAlternative: action.eligibilityAlternative ?? null,
   }));
 }
 

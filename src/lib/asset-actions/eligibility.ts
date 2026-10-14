@@ -1,14 +1,21 @@
 import "server-only";
-import type { ActionExecutionMode, ActionState } from "@/lib/asset-actions/config";
+import {
+  ACTION_DISPLAY_ORDER,
+  type ActionExecutionMode,
+  type ActionState,
+} from "@/lib/asset-actions/config";
 
 /**
  * P2.1 Action Compass — eligibility-context model.
+ * P2.2 adds verified alternatives + sharpened next steps on the same
+ * verdicts. No second engine: alternatives are selected ONLY from
+ * caller-supplied, engine-resolved sibling actions on the same asset.
  *
  * Pure, deterministic annotation over the EXISTING Action Engine. This module
- * performs no I/O: callers supply the resolved action, the wallet session,
- * and (optionally) a role-check result. It never invents balances, holdings,
- * approvals, or eligibility — anything unverifiable resolves to UNKNOWN,
- * and UNKNOWN never silently becomes AVAILABLE.
+ * performs no I/O: callers supply the resolved action, its siblings, the
+ * wallet session, and (optionally) a role-check result. It never invents
+ * balances, holdings, approvals, or eligibility — anything unverifiable
+ * resolves to UNKNOWN, and UNKNOWN never silently becomes AVAILABLE.
  */
 
 export const ELIGIBILITY_STATES = ["available", "unavailable", "unknown"] as const;
@@ -46,6 +53,18 @@ export type EligibilityContext = {
   href: string;
   session: EligibilitySession;
   /**
+   * Engine-resolved sibling actions on the SAME asset, used ONLY to pick
+   * verified alternatives. Entries missing kind/title/href or not in
+   * `available` state are skipped; an empty list means no alternative.
+   */
+  siblingActions?: Array<{
+    kind: string;
+    title: string;
+    state: ActionState;
+    executionMode: ActionExecutionMode;
+    href: string;
+  }>;
+  /**
    * Result of a live Stellar role check for THIS asset/wallet, when the
    * caller performed one. Null means no check was run — never infer one.
    */
@@ -55,6 +74,14 @@ export type EligibilityContext = {
 export type EligibilityNextAction = {
   label: string;
   href: string;
+};
+
+export type EligibilityAlternative = {
+  kind: string;
+  title: string;
+  href: string;
+  /** Provenance: why Vicus considers this supported (engine state + mode). */
+  whySupported: string;
 };
 
 export type EligibilityVerdict = {
@@ -67,6 +94,11 @@ export type EligibilityVerdict = {
   /** Verified role or capability restriction, when applicable. */
   restriction: string | null;
   nextAction: EligibilityNextAction | null;
+  /**
+   * One verified same-asset alternative, or null with no invented fallback.
+   * Null on `available` verdicts (nothing to work around).
+   */
+  alternative: EligibilityAlternative | null;
 };
 
 const WALLET_GATED_VICUS_KINDS = new Set(["send", "move"]);
@@ -79,6 +111,41 @@ function requiresWalletFor(kind: string, executionMode: ActionExecutionMode): st
   if (kind === "access") return "Solana wallet or Stellar USDC route";
   if (kind === "borrow") return "Base wallet (Morpho app)";
   return null;
+}
+
+function modeProvenance(executionMode: ActionExecutionMode): string {
+  if (executionMode === "vicus") return "live Vicus execution";
+  if (executionMode === "connected") return "verified connected route";
+  if (executionMode === "official") return "official issuer flow";
+  return "verified guide";
+}
+
+/**
+ * P2.2: pick at most one alternative from engine-verified siblings on the
+ * same asset. Deterministic (canonical display order), provenance-carrying,
+ * and incapable of invention: only `available` siblings with real titles
+ * and hrefs qualify, never the action itself.
+ */
+function selectAlternative(ctx: EligibilityContext): EligibilityAlternative | null {
+  const siblings = ctx.siblingActions ?? [];
+  const order = new Map(ACTION_DISPLAY_ORDER.map((kind, index) => [kind as string, index]));
+  const candidates = siblings
+    .filter(
+      (sibling) =>
+        sibling.kind !== ctx.actionKind &&
+        sibling.state === "available" &&
+        sibling.title.trim().length > 0 &&
+        sibling.href.trim().length > 0,
+    )
+    .sort((a, b) => (order.get(a.kind) ?? ACTION_DISPLAY_ORDER.length) - (order.get(b.kind) ?? ACTION_DISPLAY_ORDER.length));
+  const pick = candidates[0];
+  if (!pick) return null;
+  return {
+    kind: pick.kind,
+    title: pick.title,
+    href: pick.href,
+    whySupported: `Verified ${modeProvenance(pick.executionMode)} on this asset`,
+  };
 }
 
 function unavailable(
@@ -95,6 +162,7 @@ function unavailable(
     requiresWallet: requiresWalletFor(ctx.actionKind, ctx.executionMode),
     restriction,
     nextAction,
+    alternative: selectAlternative(ctx),
   };
 }
 
@@ -111,6 +179,7 @@ function unknown(
     requiresWallet: requiresWalletFor(ctx.actionKind, ctx.executionMode),
     restriction: null,
     nextAction,
+    alternative: selectAlternative(ctx),
   };
 }
 
@@ -180,6 +249,7 @@ export function resolveEligibility(ctx: EligibilityContext): EligibilityVerdict 
         requiresWallet: requiresWalletFor(ctx.actionKind, ctx.executionMode),
         restriction: null,
         nextAction: { label: "Continue", href: ctx.href },
+        alternative: null,
       };
     }
     if (
@@ -195,9 +265,9 @@ export function resolveEligibility(ctx: EligibilityContext): EligibilityVerdict 
             : "the checked address was not a valid Stellar address";
       return unavailable(
         ctx,
-        `Unavailable for the checked wallet — ${reason}. The route stays live for qualified wallets.`,
+        `Unavailable for the checked wallet — ${reason}. The route stays live for qualified wallets. Add the trustline in your Stellar wallet (e.g. Freighter), then re-check here — Vicus never adds it for you.`,
         `Stellar role check: ${ctx.roleStatus}`,
-        { label: "Check another wallet", href: `/circles/${ctx.assetSlug}` },
+        { label: "Re-check the trustline on the asset page", href: `/circles/${ctx.assetSlug}` },
       );
     }
     if (ctx.roleStatus === "verification-unavailable") {
@@ -216,6 +286,7 @@ export function resolveEligibility(ctx: EligibilityContext): EligibilityVerdict 
       requiresWallet: requiresWalletFor(ctx.actionKind, ctx.executionMode),
       restriction: null,
       nextAction: { label: "Continue", href: ctx.href },
+      alternative: null,
     };
   }
 
@@ -226,7 +297,7 @@ export function resolveEligibility(ctx: EligibilityContext): EligibilityVerdict 
     return unknown(
       ctx,
       `Unknown until the relevant wallet connects — availability depends on your ${requiresWalletFor(ctx.actionKind, ctx.executionMode) ?? "execution wallet"}. Vicus routes this action but cannot check it without that wallet.`,
-      { label: "Review the route", href: ctx.href },
+      { label: "Open the route to connect", href: ctx.href },
     );
   }
 
@@ -242,6 +313,7 @@ export function resolveEligibility(ctx: EligibilityContext): EligibilityVerdict 
     requiresWallet: null,
     restriction: ctx.eligibilityNote,
     nextAction: { label: "Continue", href: ctx.href },
+    alternative: null,
   };
 }
 
@@ -253,18 +325,26 @@ export type SheetEligibilityInput = {
   network: string;
   eligibilityNote: string | null;
   href: string;
+  siblings: Array<{
+    kind: string;
+    title: string;
+    state: ActionState;
+    executionMode: ActionExecutionMode;
+    href: string;
+  }>;
 };
 
 /**
  * Thin adapter for sheet/feed pipelines: builds the context from already
  * resolved engine data plus session presence, with no role check (callers
  * that run per-asset Horizon checks may pass roleStatus explicitly via
- * resolveEligibility instead).
+ * resolveEligibility instead). Returns the display slice of the verdict:
+ * state, explanation, next step, and at most one verified alternative.
  */
 export function eligibilityForSheetAction(
   action: SheetEligibilityInput,
   session: EligibilitySession,
-): Pick<EligibilityVerdict, "state" | "explanation"> {
+): Pick<EligibilityVerdict, "state" | "explanation" | "nextAction" | "alternative"> {
   const verdict = resolveEligibility({
     assetSlug: action.assetSlug,
     actionKind: action.kind,
@@ -275,8 +355,14 @@ export function eligibilityForSheetAction(
     href: action.href,
     session,
     roleStatus: null,
+    siblingActions: action.siblings,
   });
-  return { state: verdict.state, explanation: verdict.explanation };
+  return {
+    state: verdict.state,
+    explanation: verdict.explanation,
+    nextAction: verdict.nextAction,
+    alternative: verdict.alternative,
+  };
 }
 
 export function eligibilityStateLabel(state: EligibilityState): string {
