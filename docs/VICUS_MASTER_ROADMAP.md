@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.2 (P2.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.3 (P2.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.2 sync (2026-10-14): `Complete` (P0.1, P2.1), `Planned` (everything else). Two shipped UI slices (Position Center `9b02ec9`, Send form `45cca5c`) and the P2.1 engine slice (`7b8ebb3`) are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.3 sync (2026-10-14): `Complete` (P0.1, P2.1, P2.2), `Planned` (everything else). Shipped slices (`9b02ec9`, `45cca5c`, `7b8ebb3`, P2.2 commit below) are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -209,10 +209,10 @@ Milestone IDs are stable. Statuses at v2.2 sync (2026-10-14): `Complete` (P0.1, 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
 | P2.1 | Eligibility-context model | Compass consumes wallet session + role checks + asset capabilities to annotate each action (why available/gated) | `asset-actions:verify` + new targeted gate; matrix test across 3+ assets | Complete 2026-10-14 (`7b8ebb3`): `src/lib/asset-actions/eligibility.ts` (pure AVAILABLE/UNAVAILABLE/UNKNOWN model + role/session rules); wired into Discover + `/use` sheet payloads (`eligibilityState`/`eligibilityExplanation`); sheet detail renders the explanation with legacy fallback; `asset-actions:verify` 13/13 incl. USDC/BENJI/AAPLx signed-out/signed-in/role fixtures; tsc/lint/build green; desktop+mobile screenshots; live payload verified (40 explanation fields on production `/use`). No engine fork; signed-out flow preserved. |
-| P2.2 | Alternatives + next steps | Gated actions show source-backed alternatives and one concrete next step (e.g. trustline, endpoint, eligibility doc) | Copy/source audit; no invented alternatives | Planned |
+| P2.2 | Alternatives + next steps | Gated actions show source-backed alternatives and one concrete next step (e.g. trustline, endpoint, eligibility doc) | Copy/source audit; no invented alternatives | Complete 2026-10-14 (`56130f6`): `alternative` + sharpened `nextAction` on P2.1 verdicts, selected ONLY from engine-resolved same-asset `available` siblings (canonical order, provenance string, null when none); trustline guidance without inventing a flow; wired through Discover + `/use` payloads into the sheet detail (`Next step:` / `Verified alternative:` / explicit `No verified alternative…` lines, legacy fallback intact); `asset-actions:verify` 14/14 incl. USDC/BENJI/AAPLx alternative, provenance, missing-source and no-escalation fixtures; tsc/lint/build green; desktop+mobile expanded-detail screenshots; live payload verified (40 next-step fields + provenance copy on production `/use`). No second engine; no invented assets, liquidity, or approvals. |
 | P2.3 | Compass surface in `/use` | Personalized ordering with stable fallback for signed-out users; no balance/ownership claims from signed-message auth alone | E2E: signed-in vs signed-out parity check | Planned |
 
-**Dependencies:** P0 auth/role reliability; Action Engine as-is (extended, not forked — `eligibility.ts` annotates `resolveAssetActions` output). P2.1 complete; P2.2/P2.3 planned.
+**Dependencies:** P0 auth/role reliability; Action Engine as-is (extended, not forked — `eligibility.ts` annotates `resolveAssetActions` output). P2.1–P2.2 complete; P2.3 planned.
 **Blockers/risks:** Over-inference from role checks (must not claim ownership from auth alone); privacy (no balances to browser).
 **Status:** Planned.
 
@@ -595,9 +595,9 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P2.2 Alternatives + next steps** (source-backed alternatives + one concrete next step per gated action; builds on the P2.1 verdict model).
+- **Next buildable product milestone: P2.3 Compass surface in `/use`** (personalized ordering on the P2.1/P2.2 verdicts with stable signed-out fallback; no balance/ownership claims).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside it (human wallets, Testnet funding, witnessed receipts).
-- P2.1 complete 2026-10-14 (`7b8ebb3`, live — see log). P2.3 Compass surface follows P2.2.
+- P2.1–P2.2 complete 2026-10-14 (`7b8ebb3`, `56130f6`, both live — see log).
 
 ---
 
@@ -644,7 +644,8 @@ After each completed milestone:
 | 2026-10-14 | Position Center UI shipped live (visual only; P4 incomplete) | Commit `9b02ec9` (`feat: redesign Vicus Position Center`) |
 | 2026-10-14 | Send transfer-form UI shipped live (visual only; P0.2 incomplete) | Commit `45cca5c` (`fix: redesign Stellar Send transfer form`) |
 | 2026-10-14 | v2.1 sync: §C.3/§H.1 evidence corrections, §J active-work rewrite, log rows; next buildable P2.1 | Commit `2d1ff8c` |
-| 2026-10-14 | P2.1 complete (eligibility-context model live; P2.2/P2.3 remain; 43 IDs intact) | Commit `7b8ebb3` + this sync |
+| 2026-10-14 | P2.1 complete (eligibility-context model live; P2.2/P2.3 remain; 43 IDs intact) | Commit `7b8ebb3` + v2.2 sync |
+| 2026-10-14 | P2.2 complete (next steps + verified alternatives live; P2.3 remains; 43 IDs intact) | Commit `56130f6` + this sync |
 
 ---
 
