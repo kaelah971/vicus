@@ -325,7 +325,57 @@ async function main() {
   assert.deepEqual(receiptKeys, ["amount", "assetCode", "circleSlug", "confirmedAt", "createdAt", "destinationAddress", "destinationHandle", "failureReason", "id", "lastError", "ledger", "network", "networkLabel", "permissioned", "status", "transactionHash"]);
   assert(!JSON.stringify(confirmed).toLowerCase().includes("cctp"), "USDC Send never invokes CCTP");
 
-  console.log("send:verify ok — 10 groups, all assertions passed.");
+  // 11. P3.3 Permissioned-asset boundaries: grant vs deny distinguished on
+  // live Horizon evidence at the single prepare choke point (every UI entry
+  // — form, ?asset= deep link — funnels through prepareSend; cross-chain is
+  // USDC-only by pinned config so BENJI-class assets cannot enter there).
+  // Sender-side denial: authorized recipient, locked sender trustline.
+  const benjiSender = Keypair.random();
+  const benjiSenderUser = await createUser("send-benji-sender");
+  await enableStellarReceiveEndpoint(benjiRecipientUser.id, benjiRecipient.publicKey(), { enabled: true });
+  await saveUserContact(benjiSenderUser.id, benjiRecipientUser.handle);
+  const senderLockedAccounts: MockAccounts = new Map([
+    [benjiSender.publicKey(), fundedAccount("12", BENJI.code, BENJI.issuer, "10.0000000", false)],
+    [benjiRecipient.publicKey(), fundedAccount("3", BENJI.code, BENJI.issuer, "0.0000000", true)],
+  ]);
+  await expectCode(
+    prepareSend(benjiSenderUser.id, benjiSender.publicKey(), { circleSlug: "benji-on-stellar", handle: benjiRecipientUser.handle, amount: "1" }, mockHorizon(senderLockedAccounts, { submitted: [] })),
+    "invalid-request",
+    "sender authorization denied fails closed",
+  );
+  // Permission granted: both trustlines authorized → prepare succeeds and
+  // marks the transfer permissioned. No submit: preparation is the read
+  // gate; settlement stays a human-signed step outside this verifier.
+  const grantedAccounts: MockAccounts = new Map([
+    [benjiSender.publicKey(), fundedAccount("12", BENJI.code, BENJI.issuer, "10.0000000", true)],
+    [benjiRecipient.publicKey(), fundedAccount("3", BENJI.code, BENJI.issuer, "0.0000000", true)],
+  ]);
+  const granted = await prepareSend(benjiSenderUser.id, benjiSender.publicKey(), { circleSlug: "benji-on-stellar", handle: benjiRecipientUser.handle, amount: "1" }, mockHorizon(grantedAccounts, { submitted: [] }));
+  assert.equal(granted.permissioned, true, "granted transfer marked permissioned");
+  assert.equal(granted.amount, "1.0000000", "granted transfer carries the exact amount");
+  // RPC failure fails closed with a retryable code, never a silent pass.
+  const failingHorizon = {
+    ...mockHorizon(new Map(), { submitted: [] }),
+    getAccount: async () => {
+      throw new Error("simulated Horizon outage");
+    },
+  };
+  await expectCode(
+    prepareSend(sender.id, senderKeys.publicKey(), { circleSlug: "usdc-on-stellar", handle: recipient.handle, amount: "1" }, failingHorizon),
+    "verification-unavailable",
+    "Horizon outage fails closed",
+  );
+  // Client-claimed permission is ignored: extra fields cannot authorize.
+  await expectCode(
+    prepareSend(sender.id, senderKeys.publicKey(), { circleSlug: "usdc-on-stellar", handle: recipient.handle, amount: "1", isAuthorized: true } as unknown as Parameters<typeof prepareSend>[2], mockHorizon(lockedAccounts, { submitted: [] })),
+    "invalid-request",
+    "client permission claim ignored",
+  );
+  // Policy flag drives every entry point identically.
+  assert.equal(getSendableAsset("benji-on-stellar")?.permissioned, true, "BENJI policy is permissioned everywhere");
+  assert.equal(getSendableAsset("usdc-on-stellar")?.permissioned, false, "USDC policy stays unrestricted");
+
+  console.log("send:verify ok — 11 groups, all assertions passed.");
 }
 
 main()
