@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.0
+**Version:** v2.1 (progress sync; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -108,14 +108,14 @@ Status legend: **Shipped** = live in product with evidence · **Implemented** = 
 | Stellar Asset Universe (discover, home-layer ordering, issuer marks) | **Shipped** | Production `/discover`, README walkthrough, `docs/screenshots/` | Premium logos/cards/mobile polish → P1 | `src/lib/stellar/`, `src/lib/data/`, `src/app/discover/` |
 | Discover + representation comparison (`/subjects/apple`, `/compare`) | **Shipped** | AAPLx vs AAPLc comparison, “no verified Stellar representation” disclosure | Price/chart only where real feeds exist → P1 | `src/app/subjects/`, `src/app/compare/`, `src/components/asset-tile.tsx`, `src/components/asset-sheet.tsx` |
 | Asset Action Engine (per-asset available/gated actions) | **Shipped (UI + routing); execution per-route varies** | `/use`, action sheets, `asset-actions:verify` | Compass personalization → P2; swap/lending completion → P3 | `src/lib/asset-actions/` |
-| Stellar Send + wallet auth (Freighter, signed-message sessions) | **Implemented, awaiting real E2E** | `send:verify`, `auth:verify`, `/send`, manual E2E §A PENDING HUMAN | Human-signed Mainnet Send + reload/dedupe proof → P0 | `src/lib/send/`, `src/lib/auth/`, `src/components/send-runner.tsx`, `src/components/wallet-auth.tsx` |
+| Stellar Send + wallet auth (Freighter, signed-message sessions) | **Implemented, awaiting real E2E** | `send:verify`, `auth:verify`, `/send`, manual E2E §A PENDING HUMAN | Human-signed Mainnet Send + reload/dedupe proof → P0 (transfer-form UI redesigned + live 2026-10-14 via `45cca5c`; money E2E still pending) | `src/lib/send/`, `src/lib/auth/`, `src/components/send-runner.tsx`, `src/components/wallet-auth.tsx` |
 | Freighter / SEP-53 sessions | **Shipped** | `docs/Vicus_Slice_5A_Auth.md`, `auth:verify` | Browser/wallet matrix E2E → P0 | `src/app/api/auth/` |
 | Tokenization Lab (define/trust/issue/verify) | **Implemented, Testnet-only, awaiting real E2E** | `lab:verify`, `/lab`, manual E2E §H PENDING HUMAN | Funded Testnet issuer + one witnessed issuance → P0/P3 | `src/lib/lab/`, `src/components/lab-runner.tsx` |
 | Rewards / mission settlement (native XLM) | **Implemented, Testnet-only, funding-gated; one historical Testnet settlement verified** | `reward:verify`, `docs/Vicus_Slice_5B_Rewards.md`, Appendix 2 | Funded distributor + claim E2E → P0; Drops hardening → P6 | `src/lib/rewards/`, `src/lib/missions/`, `src/lib/campaigns/` |
 | External AAPLx/TSLAx access (Solana/Jupiter) | **Connected (quote-proven), execution awaiting human signature** | Live quotes 2026-10-13 (25 USDC → 7.297164 AAPLx, 6.659698 TSLAx), `external-assets:verify`, `broader-access:verify` | Human-signed swap + delta verification → P0 | `src/lib/external-utility/`, `src/app/swap/`, `src/components/swap-runner.tsx` |
 | Asset Exit Router (AAPLx exit) | **Implemented, awaiting human signature** | `exit:verify`, `/exit`, manual E2E §E PENDING HUMAN | Human-signed exit + receipt → P0 | `src/lib/asset-access/`, `src/components/exit-runner.tsx` |
 | CCTP access + cross-chain transfers | **Implemented, restricted (Testnet)** | `crosschain-send:verify`, manual E2E §B PENDING HUMAN, gated Mainnet CCTP | Burn-sign → attestation → delivered E2E → P0; inbound Stellar + Routes → P9 | `src/lib/crosschain-send/`, `src/components/crosschain-send-runner.tsx` |
-| Position Center (connected positions) | **Implemented, awaiting chain re-read proof** | `positions:verify`, `/positions`, `src/lib/positions/` | Live holding + exit-update proof → P0/P4 | `src/lib/positions/`, `src/components/connected-positions.tsx` |
+| Position Center (connected positions) | **Implemented, awaiting chain re-read proof** | `positions:verify`, `/positions`, `src/lib/positions/` | Live holding + exit-update proof → P0/P4 (Center UI redesigned + live 2026-10-14 via `9b02ec9`; unified receipts/states still pending) | `src/lib/positions/`, `src/components/connected-positions.tsx` |
 | Watch + Activity (watchlist, personalized activity) | **Shipped / Implemented** | `watch:verify`, `watch-center:verify`, `personalized-activity:verify` | Portfolio-grade history → P4 | `src/lib/watch-center/`, `src/app/watch/` |
 | Circles, community, Conviction | **Shipped (social) / Implemented (conviction)** | `social:verify`, `community:verify`, `asset-circles:verify`, `conviction:verify` | Evidence-backed reputation, holding roles → P7 | `src/lib/circles-social/`, `src/lib/conviction/`, `src/lib/community/` |
 | Missions + project-funded campaigns | **Implemented, funding-gated** | `mission:verify`, `campaign-funding:verify`, manual E2E §G PENDING HUMAN | Funded Testnet campaign fund+claim E2E → P0; Drops → P6 | `src/lib/missions/`, `src/lib/campaigns/` |
@@ -139,9 +139,11 @@ Historical settlement (NOT current Mainnet enablement):
 
 0.1 native XLM, Stellar Testnet, ledger 5066878, tx `36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc` — independently verified on Horizon Testnet. See Appendix 2.
 
-### C.3 Config and deploy truth (from `docs/production-readiness.md`)
+### C.3 Config and deploy truth (P0.1-corrected 2026-10-14; values never printed)
 
-Production blockers (all open at v2 creation): production `DATABASE_URL` + migrations 0001→0026 (now 0027 in tree) · `VICUS_APP_URL=https://…` · campaign/reward distributor secrets + caps · `VICUS_ENABLE_MAINNET_REWARDS` must remain unset · production `db:verify` + manual E2E.
+Scopes: **(A)** local dev (`.env.local` holds 11 keys incl. `VICUS_APP_URL` — values never inspected) · **(B)** live Vercel preview `explorevicus.vercel.app` (project `vicus`) serving browse + honest gates · **(C)** Neon QA database, historically migrated · **(D)** future financial-production. Blockers below refer to **(D)** unless noted.
+
+(D) blockers (all open): (D) `DATABASE_URL` + migrations `0000→0027` (28 files) not run in (D) · `VICUS_APP_URL=https://…` + `VICUS_HOME_DOMAIN` to verify for (D) · reward-distributor + Lab-issuer keys PRESENT in (A, funding unknown), campaign-secret keys NOT PRESENT in (A) — (D) needs dedicated funded treasury keys + explicit caps · `VICUS_ENABLE_MAINNET_REWARDS` must remain unset · (D) `db:verify` + manual E2E.
 
 Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc execution gated · Return-to-Stellar gated · Solana Send destination gated · TSLAx/NVDAc limited to verified routes.
 
@@ -151,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2 publication: `Active` (only P0.1 — investigation only, separate session), `Planned` (everything else). No milestone is marked complete by this document.
+Milestone IDs are stable. Statuses at v2.1 sync (2026-10-14): `Complete` (P0.1 only), `Planned` (P0.2–P0.4, P1–P11). Two shipped UI slices (Position Center `9b02ec9`, Send form `45cca5c`) are recorded as evidence without milestone IDs — neither completes a money-movement milestone.
 
 ---
 
@@ -165,14 +167,14 @@ Milestone IDs are stable. Statuses at v2 publication: `Active` (only P0.1 — in
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P0.1 | Existing functionality & E2E gap inventory (read-only, separate Pi session) | Truthful list: working flows / implemented-unverified / config blockers / wallet-browser issues / missing providers-quotes / reusable modules / smallest slice recommendation | Deliverable doc reviewed against repo truth; no code changes | Active (next session only) |
-| P0.2 | Wallet/auth + Stellar Send E2E | Freighter connect → challenge → SEP-53 verify → session; Mainnet Send review → sign → Horizon confirm → receipt with tx+ledger; reload resumes; duplicate submit safe | `auth:verify`, `send:verify`, manual E2E §A witnessed + explorer link + durable receipt | Planned |
+| P0.1 | Existing functionality & E2E gap inventory (read-only, separate Pi session) | Truthful list: working flows / implemented-unverified / config blockers / wallet-browser issues / missing providers-quotes / reusable modules / smallest slice recommendation | Deliverable doc reviewed against repo truth; no code changes | Complete 2026-10-14 (inventory + route-triage delivered; P0.2a evidence kept with P0.2) |
+| P0.2 | Wallet/auth + Stellar Send E2E | Freighter connect → challenge → SEP-53 verify → session; Mainnet Send review → sign → Horizon confirm → receipt with tx+ledger; reload resumes; duplicate submit safe | `auth:verify`, `send:verify`, manual E2E §A witnessed + explorer link + durable receipt | Planned — P0.2a triage done 2026-10-14 (suspect routes all 200, `auth:verify` pass, owner checklist issued); human-signed Mainnet Send + receipt still outstanding. Send form UI shipped live via `45cca5c` (visual only, not E2E). |
 | P0.3 | Rewards + campaign funding E2E (Testnet) | Funded Testnet distributor; mission approve → claim → payout → Horizon verify; campaign create → fund → activate → claim with exact budget math, duplicates rejected | `reward:verify`, `campaign-funding:verify`, `mission:verify`, manual E2E §§G–H + explorer links | Planned |
 | P0.4 | External access/exit + CCTP + recoverability | AAPLx/TSLAx swap with delta checks; AAPLx exit; Testnet CCTP burn → attestation → delivered with no reburn on refresh; completed receipts immutable; Testnet labeled everywhere | `external-utility:verify`, `exit:verify`, `crosschain-send:verify`, `positions:verify`, manual E2E §§B–E | Planned |
 
 **Dependencies:** None (first priority). Needs funded Testnet wallets/distributors + human signers.
 **External blockers/risks:** Human-signer availability; Testnet funding (Friendbot/distributor); Solana/Mainnet wallet balances; Jupiter/horizon RPC outages (fail-closed, retryable).
-**Status:** In progress (P0.1 active as investigation; P0.2–P0.4 planned).
+**Status:** In progress (P0.1 complete 2026-10-14; P0.2a triage done — routes healthy, `auth:verify` pass; P0.2–P0.4 planned and owner-blocked; Position Center UI live via `9b02ec9`, Send form UI live via `45cca5c` — both visual only, money E2E still pending).
 
 ---
 
@@ -499,9 +501,9 @@ Exit signal: cross-chain routes tracked with recovery; basket execution with con
 
 | # | Blocker | Impact | Owner / next step |
 |---|---|---|---|
-| 1 | No production `DATABASE_URL`; migrations 0001→0027 not run in prod | Cannot deploy honestly | Provision Neon prod → migrate → `db:verify` |
-| 2 | `VICUS_APP_URL` unset (defaults localhost; prod build rejects non-https) | Auth/session scope + boot failure | Set `https://…` origin + `VICUS_HOME_DOMAIN` |
-| 3 | Campaign/reward distributor secrets test-only; caps review pending | No funded payouts | Issue dedicated treasury keys; set `VICUS_CAMPAIGN_MAX_USDC`, `VICUS_REWARD_MAX_XLM`; never reuse keys |
+| 1 | No financial-production (D) `DATABASE_URL`; migrations `0000→0027` (28 files) not run in (D); (C) QA historically migrated | Cannot deploy (D) honestly | Provision Neon (D) → migrate → `db:verify` |
+| 2 | `VICUS_APP_URL` value/binding unverified from shell: key PRESENT in (A), contents NOT ACCESSIBLE in (B); `https://…` origin + `VICUS_HOME_DOMAIN` still required for (D) (prod build rejects non-https) | Auth/session scope + boot failure risk in (D) | Verify origin binding; set (D) origin + home domain |
+| 3 | Reward-distributor + Lab-issuer keys PRESENT in (A, funding unknown); campaign-secret keys NOT PRESENT in (A); no funded (D) treasury | No funded payouts | Issue dedicated funded (D) treasury keys; set `VICUS_CAMPAIGN_MAX_USDC`, `VICUS_REWARD_MAX_XLM`; never reuse test keys |
 | 4 | `VICUS_ENABLE_MAINNET_REWARDS` must remain unset | Mainnet rewards stay off (correct) | Confirm unset pre-deploy; separate payout ceremony before ever setting |
 | 5 | All manual-E2E money flows PENDING HUMAN | Implemented ≠ verified | Schedule human-signer sessions with funded wallets (P0.2–P0.4) |
 | 6 | CCTP Mainnet off (code-constant `false`); inbound-Stellar dependency | Cross-chain Mainnet + Return Home limited | P9.4 verdict; no env-flip shortcut |
@@ -565,28 +567,36 @@ Inspect exact failure → inspect only implicated code → smallest corrective e
 
 ---
 
-## J. Current active milestone
+## J. Current active work (synced 2026-10-14)
 
 ### P0.1 — EXISTING FUNCTIONALITY & E2E GAP INVENTORY
 
-**State:** Active (investigation only).
-**Must run in its own subsequent Pi session. Do NOT run it inside this documentation session.**
+**State:** Complete 2026-10-14 (was Active at v2.0 publication; ran in its own session per plan).
 
-Bounded, read-only investigation. No code changes. No config changes. No Mainnet enablement.
+Delivered (all checked against repository truth):
 
-Deliverable (truthful list):
+- [x] Genuinely working flows (live routes 200, session endpoint, gated labels verified)
+- [x] Implemented but unverified flows (verifier status + manual-E2E §§A–H mapping)
+- [x] Production configuration blockers (scoped A/B/C/D; §C.3/§H.1 corrected above)
+- [x] Wallet/browser issues (Freighter Mainnet requirement, untested version matrix)
+- [x] Missing providers/quotes (venue-by-venue fail-closed log)
+- [x] Existing reusable modules (path + responsibility; `access` vs `asset-access` split named)
+- [x] Recommended smallest executable vertical slice (delivered; P2.1 selected below)
 
-- [ ] Genuinely working flows (with evidence links)
-- [ ] Implemented but unverified flows (with verifier status + which manual-E2E section each maps to)
-- [ ] Production configuration blockers (env, DB, secrets, origins)
-- [ ] Wallet/browser issues (Freighter versions, Mainnet requirement, session edge cases)
-- [ ] Missing providers/quotes (which venues, what was tried, what failed closed)
-- [ ] Existing reusable modules (path + responsibility, no new abstractions proposed)
-- [ ] Recommended smallest executable vertical slice (one thin path with acceptance criteria)
+### P0.2a — ROUTE-HEALTH + AUTH-READINESS TRIAGE (preliminary verification, not P0.2)
 
-Entry context for that session: this document + `git status` + `docs/manual-e2e.md` + `docs/production-readiness.md` + `docs/demo-proof-manifest.md` + `package.json` scripts.
+**State:** Complete 2026-10-14. `/positions`, `/subjects/apple`, `/swap/aaplx-on-solana` all return 200 with correct content (P0.1 timeouts = Pi-shell network path); `auth:verify` passed against local DB; owner Freighter checklist issued. **No wallet signature witnessed; P0.2 stays Planned.**
 
-Completion: deliverable reviewed against repository truth, then §K update applied and next milestone (P0.2 or P1 slice, per findings) activated.
+### Shipped UI (visual only — not financial E2E)
+
+- Position Center redesign — `9b02ec9`, live on production (pos- CSS verified in served bundle). P4 remains incomplete (receipts/states/ownership rules outstanding).
+- Stellar Send transfer-form redesign — `45cca5c`, live on production (send CSS verified in served bundle). P0.2 remains incomplete (human-signed Mainnet Send + receipt outstanding).
+- P0.3 funded Testnet reward/campaign E2E and P0.4 external/CCTP E2E remain outstanding (owner funding + signatures).
+
+### Next active work
+
+- **Next buildable product milestone: P2.1 Eligibility-context Model** (extends `src/lib/asset-actions`, no funding or signatures required).
+- **P0.2–P0.4 owner-dependent E2E stays pending** alongside it (human wallets, Testnet funding, witnessed receipts).
 
 ---
 
@@ -628,8 +638,11 @@ After each completed milestone:
 
 | Date | Change | Session/commit |
 |---|---|---|
-| 2026-10-14 | v2.0 established as canonical roadmap (P0–P11, 43 milestones, P0.1 active) | This session (see commit `docs: establish Vicus master product roadmap v2`) |
-| — | _Next entry after P0.1 inventory lands_ | — |
+| 2026-10-14 | v2.0 established as canonical roadmap (P0–P11, 43 milestones, P0.1 active) | Commit `679859a` (`docs: establish Vicus master product roadmap v2`) |
+| 2026-10-14 | P0.1 complete (gap inventory + env-scope corrections); P0.2a triage complete (routes 200, `auth:verify` pass) — P0.2–P0.4 stay planned/owner-blocked | Inventory sessions (no code changes) |
+| 2026-10-14 | Position Center UI shipped live (visual only; P4 incomplete) | Commit `9b02ec9` (`feat: redesign Vicus Position Center`) |
+| 2026-10-14 | Send transfer-form UI shipped live (visual only; P0.2 incomplete) | Commit `45cca5c` (`fix: redesign Stellar Send transfer form`) |
+| 2026-10-14 | v2.1 sync: §C.3/§H.1 evidence corrections, §J active-work rewrite, log rows; next buildable P2.1 | This commit |
 
 ---
 
