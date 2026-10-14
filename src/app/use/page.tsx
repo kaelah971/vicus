@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { DataState } from "@/components/vicus";
 import { UseBrowser } from "@/components/use-browser";
@@ -59,6 +60,15 @@ export default async function UsePage() {
             <section className="card u-page-head">
               <p className="eyebrow">Use</p>
               <h1>Put tokenized assets to work</h1>
+              {session ? (
+                <p className="control-note">
+                  Ordered for your connected wallet — availability reflects your session, never assumed holdings.
+                </p>
+              ) : (
+                <p className="control-note">
+                  Browsing as guest with a stable order. <Link href="/profile/me">Connect a wallet</Link> to check actions against your account.
+                </p>
+              )}
             </section>
             <Suspense>
               <UseBrowser discovery={discovery} subjectMap={buildUseSubjectMap(discovery)} />

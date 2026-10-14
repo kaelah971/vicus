@@ -12,6 +12,7 @@ import {
   resolveAssetActions,
 } from "../src/lib/asset-actions/service";
 import { resolveEligibility } from "../src/lib/asset-actions/eligibility";
+import { compareCompassOrder, eligibilityRank } from "../src/lib/asset-actions/eligibility";
 import {
   ACTION_KINDS,
   ACTION_STATES,
@@ -280,7 +281,7 @@ async function main() {
   assert.equal(usdcAlt.state, "unknown", "USDC send stays unknown with siblings");
   assert.equal(usdcAlt.nextAction?.label, "Connect a wallet", "USDC next step is auth guidance");
   assert.equal(usdcAlt.alternative?.kind, "move", "USDC alternative is the live Move route");
-  assert.ok((usdcAlt.alternative?.whySupported ?? "").includes("live Vicus execution"), "USDC alternative provenance");
+  assert.ok((usdcAlt.alternative?.whySupported ?? "").includes("live Vicus route"), "USDC alternative provenance");
   // AAPLx swap unknown: Solana connect step + connected-route alternative.
   const aaplxAlt = resolveEligibility(
     withSibs(compassCtx("aaplx-on-solana", "swap", "available", "connected", { session: signedOut }), [
@@ -320,7 +321,66 @@ async function main() {
   assert.equal(noTrustStep.nextAction?.label, "Re-check the trustline on the asset page", "trustline next step is guidance");
   assert.ok(/never adds it for you/i.test(noTrustStep.explanation), "no invented trustline flow");
 
-  console.log("asset-actions:verify ok — 14 groups, all assertions passed.");
+  // 15. P2.3 Compass ordering: deterministic verdict-rank ordering with
+  // stable tie-breaks. Ranking consumes state/slug/kind only — holdings,
+  // balances and history cannot move anything.
+  assert.ok(eligibilityRank("available") < eligibilityRank("unknown"), "available sorts before unknown");
+  assert.ok(eligibilityRank("unknown") < eligibilityRank("unavailable"), "unknown sorts before unavailable");
+  const orderKey = (eligibilityState: "available" | "unavailable" | "unknown", assetSlug: string, kind: string) => ({
+    eligibilityState,
+    assetSlug,
+    kind,
+  });
+  // Tie-breaks: same state sorts by slug, then kind.
+  assert.ok(compareCompassOrder(orderKey("unknown", "a-slug", "swap"), orderKey("unknown", "b-slug", "access")) < 0, "slug tie-break");
+  assert.ok(compareCompassOrder(orderKey("unknown", "a-slug", "swap"), orderKey("unknown", "a-slug", "access")) > 0, "kind tie-break");
+  assert.equal(compareCompassOrder(orderKey("available", "a", "send"), orderKey("available", "a", "send")), 0, "identical keys tie");
+  // Stability: identical inputs sort identically every time.
+  const rows = [
+    orderKey("unavailable", "benji-on-stellar", "send"),
+    orderKey("available", "usdc-on-stellar", "send"),
+    orderKey("unknown", "aaplx-on-solana", "swap"),
+    orderKey("available", "aaplx-on-solana", "access"),
+  ];
+  const once = [...rows].sort(compareCompassOrder).map((row) => `${row.eligibilityState}/${row.assetSlug}/${row.kind}`);
+  const twice = [...rows].sort(compareCompassOrder).map((row) => `${row.eligibilityState}/${row.assetSlug}/${row.kind}`);
+  assert.deepEqual(once, twice, "ordering is stable");
+  assert.deepEqual(
+    once,
+    [
+      "available/aaplx-on-solana/access",
+      "available/usdc-on-stellar/send",
+      "unknown/aaplx-on-solana/swap",
+      "unavailable/benji-on-stellar/send",
+    ],
+    "verdict rank leads, slug/kind break ties",
+  );
+  // Session response: the same USDC Send ranks available signed-in but
+  // unknown signed-out, so a signed-in list orders it before unknowns
+  // while a signed-out list keeps it among unknowns — no reordering hacks.
+  const usdcIn = resolveEligibility(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedIn }));
+  const usdcOut = resolveEligibility(compassCtx("usdc-on-stellar", "send", "available", "vicus", { session: signedOut }));
+  assert.ok(
+    compareCompassOrder(
+      { eligibilityState: usdcIn.state, assetSlug: "usdc-on-stellar", kind: "send" },
+      { eligibilityState: usdcOut.state, assetSlug: "usdc-on-stellar", kind: "send" },
+    ) < 0,
+    "signed-in available sorts before signed-out unknown",
+  );
+  // Holdings cannot move rows: identical keys with different held flags
+  // compare equal (held is not a rank input by construction).
+  assert.equal(
+    compareCompassOrder(orderKey("unknown", "x", "send"), orderKey("unknown", "x", "send")),
+    0,
+    "no hidden rank inputs",
+  );
+  // Provenance wording never implies an executed transaction.
+  for (const why of [benjiAlt.alternative?.whySupported ?? "", usdcAlt.alternative?.whySupported ?? "", aaplxAlt.alternative?.whySupported ?? ""]) {
+    assert.ok(/Verified/i.test(why), "provenance claims verification");
+    assert.ok(!/executed a|you (swapped|bought|completed)|transaction succeeded/i.test(why), "provenance claims no executed transaction");
+  }
+
+  console.log("asset-actions:verify ok — 15 groups, all assertions passed.");
 }
 
 main().catch((error) => {

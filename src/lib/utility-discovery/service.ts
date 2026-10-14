@@ -2,7 +2,7 @@ import "server-only";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
 import { UTILITY_INTENTS, type UtilityIntent } from "@/lib/utility-discovery/intents";
 import { resolveAssetActions } from "@/lib/asset-actions/service";
-import { eligibilityForSheetAction } from "@/lib/asset-actions/eligibility";
+import { compareCompassOrder, eligibilityForSheetAction } from "@/lib/asset-actions/eligibility";
 import { listLiveCampaigns } from "@/lib/campaigns/service";
 import { getStellarPositions } from "@/lib/positions/service";
 
@@ -217,8 +217,17 @@ export async function getUtilityDiscovery(
     }
   });
 
+  // P2.3 Compass ordering: verdict rank first (available → unknown →
+  // unavailable), then asset slug, then kind. Deterministic and stable;
+  // session-driven state changes reorder honestly. `held` is intentionally
+  // NOT a rank input — holdings never imply action eligibility.
   const sortBucket = (items: UtilityOpportunity[]) =>
-    [...items].sort((a, b) => a.assetSlug.localeCompare(b.assetSlug) || a.kind.localeCompare(b.kind));
+    [...items].sort((a, b) =>
+      compareCompassOrder(
+        { eligibilityState: a.eligibilityState, assetSlug: a.assetSlug, kind: a.kind },
+        { eligibilityState: b.eligibilityState, assetSlug: b.assetSlug, kind: b.kind },
+      ),
+    );
   const stellarSorted = sortBucket(stellar);
   const beyondSorted = sortBucket(beyond);
   return {

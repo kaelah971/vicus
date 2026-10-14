@@ -114,10 +114,10 @@ function requiresWalletFor(kind: string, executionMode: ActionExecutionMode): st
 }
 
 function modeProvenance(executionMode: ActionExecutionMode): string {
-  if (executionMode === "vicus") return "live Vicus execution";
-  if (executionMode === "connected") return "verified connected route";
+  if (executionMode === "vicus") return "live Vicus route";
+  if (executionMode === "connected") return "connected route";
   if (executionMode === "official") return "official issuer flow";
-  return "verified guide";
+  return "guide";
 }
 
 /**
@@ -369,4 +369,38 @@ export function eligibilityStateLabel(state: EligibilityState): string {
   if (state === "available") return "Available";
   if (state === "unavailable") return "Unavailable";
   return "Unknown";
+}
+
+/**
+ * P2.3 Compass ordering rank. Lower sorts first. Genuinely available
+ * actions lead; explicitly unknown ones stay discoverable in the middle;
+ * unavailable ones sort last but are never hidden or enabled by position.
+ * Ranking consumes ONLY the verdict state — never balances, holdings,
+ * or execution history — so a signed message alone cannot promote anything
+ * that evidence does not support.
+ */
+export function eligibilityRank(state: EligibilityState): number {
+  if (state === "available") return 0;
+  if (state === "unknown") return 1;
+  return 2;
+}
+
+export type CompassOrderKey = {
+  eligibilityState: EligibilityState;
+  assetSlug: string;
+  kind: string;
+};
+
+/**
+ * Deterministic Compass ordering with stable tie-breaks: verdict rank,
+ * then asset slug, then action kind. Pure — identical inputs always yield
+ * identical order (signed-out stability), while session-driven state
+ * changes (unknown ↔ available) move rows honestly (signed-in response).
+ */
+export function compareCompassOrder(a: CompassOrderKey, b: CompassOrderKey): number {
+  const rank = eligibilityRank(a.eligibilityState) - eligibilityRank(b.eligibilityState);
+  if (rank !== 0) return rank;
+  const slug = a.assetSlug.localeCompare(b.assetSlug);
+  if (slug !== 0) return slug;
+  return a.kind.localeCompare(b.kind);
 }
