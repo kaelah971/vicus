@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.8 (P4.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.9 (P4.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.8 sync (2026-10-15): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.9 sync (2026-10-15): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -250,7 +250,7 @@ Milestone IDs are stable. Statuses at v2.8 sync (2026-10-15): `Complete` (P0.1, 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
 | P4.1 | Connected-holdings truth | Holdings re-read from chain on view; stale/cache clearly labeled; no fabricated balances | `positions:verify` + live re-read demo (e.g. post-exit update) | Complete 2026-10-15 (`04b29c6`): `readAt` evidence timestamps on all three chain readers; `src/lib/positions/freshness.ts` (fresh <5min / stale / unknown, formatters); wallet-keyed client state with per-chain Refresh (failed refresh retains + labels stale, account switch replaces, disconnect clears); Stellar SSR read receipt; `positions:verify` green incl. new group-11 (timestamps, boundaries, isolation, receipt helpers, wiring); tsc/lint/build green; desktop+mobile screenshots; live bundle verified (`pos-fresh` in production CSS). Known limitation: age-based staleness labels at render time (failure-driven staleness is always current). |
-| P4.2 | Unified receipt model | Every financial action yields a durable receipt: state, tx hash, ledger, network, explorer link, recovery metadata | Receipt-schema audit across send/reward/campaign/exit/crosschain | Planned |
+| P4.2 | Unified receipt model | Every financial action yields a durable receipt: state, tx hash, ledger, network, explorer link, recovery metadata | Receipt-schema audit across send/reward/campaign/exit/crosschain | Complete 2026-10-15: `src/lib/receipts/receipts.ts` (canonical `initiated/prepared/signed/submitted/settled/failed/unknown` contract + 6 flow adapters preserving original statuses; settled requires a reference, unknown statuses pass through, explorer links allowlisted per network, per-leg evidence for cross-chain/access); `receipts:verify` green (12 groups: lifecycle truth, no-false-success, duplicates, legacy rows, isolation); additive only, no consumer rewiring, no UI change. Known limitation: adapters consume rows, not live re-verification (P4.3 owns liveness/transitions). |
 | P4.3 | Action history + states | Consistent pending/submitted/confirmed/failed states; reload-safe; completed immutable | State-transition tests + reload tests | Planned |
 | P4.4 | Wallet-ownership rules | Signed-message auth ≠ ownership; ownership only from chain reads on linked wallets; pasted addresses never create roles | `role:verify` + negative tests | Planned |
 
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P4.2 Unified receipt model** (receipt-schema audit across send/reward/campaign/exit/crosschain; no funds, no signatures).
+- **Next buildable product milestone: P4.3 Action history + states** (state-transition + reload tests over existing flows; no funds, no signatures).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -603,6 +603,7 @@ Delivered (all checked against repository truth):
 - P3.3 boundaries complete 2026-10-14 (test-only negative suite, no behavior change).
 - P3.4 surface audit complete 2026-10-14 (audit + group-10 tests, no behavior change).
 - P4.1 holdings truth complete 2026-10-15 (freshness states + wallet isolation + refresh, live).
+- P4.2 receipt model complete 2026-10-15 (canonical contract + adapters + receipts:verify, additive).
 
 ---
 
@@ -655,7 +656,8 @@ After each completed milestone:
 | 2026-10-14 | P3.2 complete (swap/yield verdicts; docs-only, no code touched; 43 IDs intact) | v2.5 sync |
 | 2026-10-14 | P3.3 complete (permissioned boundaries; test-only, no behavior change; 43 IDs intact) | v2.6 sync |
 | 2026-10-14 | P3.4 complete (utility surface audit; tests only, no behavior change; 43 IDs intact) | v2.7 sync |
-| 2026-10-15 | P4.1 complete (holdings truth + freshness; live; 43 IDs intact) | This sync |
+| 2026-10-15 | P4.1 complete (holdings truth + freshness; live; 43 IDs intact) | v2.8 sync |
+| 2026-10-15 | P4.2 complete (unified receipt model; additive, no rewiring; 43 IDs intact) | This sync |
 
 ---
 
