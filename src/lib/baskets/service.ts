@@ -61,9 +61,9 @@ export type BasketSummary = {
 
 export class BasketsError extends Error {
   constructor(
-    public readonly code: "not-found" | "invalid-definition",
+    public readonly code: "not-found" | "invalid-definition" | "invalid-input" | "unauthorized",
     message: string,
-    public readonly httpStatus = code === "not-found" ? 404 : 500,
+    public readonly httpStatus = code === "not-found" ? 404 : code === "invalid-input" || code === "unauthorized" ? 400 : 500,
   ) {
     super(message);
   }
@@ -101,6 +101,11 @@ export async function resolveBasket(slug: string): Promise<ResolvedBasket> {
   if (!def) {
     throw new BasketsError("not-found", "That basket could not be found.", 404);
   }
+  return resolveBasketDef(def);
+}
+
+/** Resolve any validated def (curated or user-owned) against the registry. */
+export async function resolveBasketDef(def: BasketDef): Promise<ResolvedBasket> {
   const validated = validateBasketDef(def);
   if (!validated.ok) {
     throw new BasketsError("invalid-definition", "That basket definition is invalid.", 500);

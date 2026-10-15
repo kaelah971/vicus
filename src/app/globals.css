@@ -2678,6 +2678,65 @@ form.content-panel > p {
   margin: 0;
 }
 
+fieldset.field {
+  border: 0;
+  min-inline-size: 0;
+}
+
+.field > legend {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0;
+}
+
+.pos-weight {
+  background: #050507;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+  color: var(--foreground);
+  font-size: 16px;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  width: 96px;
+}
+
+.pos-weight::placeholder {
+  color: var(--subtle);
+  opacity: 1;
+}
+
+.pos-weight:focus-visible {
+  border-color: var(--portal);
+}
+
+/* Basket picker rows reuse pos-hold surfaces: keep native checkboxes compact
+   against .field input sizing, let labels take the free space, and force
+   the weight input width above .field input width. */
+.pos-hold input[type="checkbox"] {
+  accent-color: var(--portal);
+  flex: 0 0 auto;
+  min-height: 20px;
+  width: 20px;
+}
+
+.pos-hold .pos-hold-id {
+  flex: 1;
+  min-width: 0;
+}
+
+.pos-hold .pos-hold-net {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field input.pos-weight {
+  width: 96px;
+}
+
 @media (max-width: 640px) {
   .pos-hold-grid {
     grid-template-columns: 1fr;

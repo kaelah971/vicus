@@ -5,7 +5,11 @@ import { AppShell } from "@/components/app-shell";
 import { ButtonLink, DataState, EmptyState, StatusPill } from "@/components/vicus";
 import { AssetToken, Chip, GlowField, SectionHead } from "@/components/vicus-ui";
 import { isDatabaseUnavailableError } from "@/db";
-import { BasketsError, resolveBasket } from "@/lib/baskets/service";
+import { BasketsError, resolveBasket, type ResolvedBasket } from "@/lib/baskets/service";
+import { resolveMyBasket } from "@/lib/baskets/user";
+import { isBasketWatched } from "@/lib/baskets/watch";
+import { getCurrentSession } from "@/lib/auth/session";
+import { BasketWatchButton } from "@/components/basket-watch-button";
 import { DISCOVERY_ONLY_DISCLOSURE } from "@/lib/baskets/config";
 
 export const dynamic = "force-dynamic";
@@ -27,17 +31,42 @@ export async function generateMetadata({ params }: RouteProps): Promise<Metadata
 
 export default async function BasketDetailPage({ params }: RouteProps) {
   const { slug } = await params;
-  let basket: Awaited<ReturnType<typeof resolveBasket>> | null = null;
+  let basket: ResolvedBasket | null = null;
   let unavailable = false;
+  let kind: "curated" | "user" = "curated";
+  let watched = false;
+  let userId: string | null = null;
+  try {
+    userId = (await getCurrentSession())?.user.id ?? null;
+  } catch {
+    userId = null;
+  }
   try {
     basket = await resolveBasket(slug);
   } catch (error) {
-    if (error instanceof BasketsError && error.code === "not-found") notFound();
-    if (isDatabaseUnavailableError(error)) {
+    if (error instanceof BasketsError && error.code === "not-found" && userId) {
+      // Fall through to the owner's personal basket before giving up.
+      try {
+        basket = await resolveMyBasket(userId, slug);
+        kind = "user";
+      } catch (inner) {
+        if (inner instanceof BasketsError && inner.code === "not-found") notFound();
+        if (isDatabaseUnavailableError(inner)) {
+          unavailable = true;
+        } else {
+          throw inner;
+        }
+      }
+    } else if (error instanceof BasketsError && error.code === "not-found") {
+      notFound();
+    } else if (isDatabaseUnavailableError(error)) {
       unavailable = true;
     } else {
       throw error;
     }
+  }
+  if (basket && userId && !unavailable) {
+    watched = await isBasketWatched(userId, kind, kind === "curated" ? slug : basket.def.slug).catch(() => false);
   }
 
   return (
@@ -46,7 +75,7 @@ export default async function BasketDetailPage({ params }: RouteProps) {
         <header className="v-page-head">
           <GlowField tones={["violet", "blue"]} />
           <div className="shell">
-            <span className="v-eyebrow">Basket · Discovery only</span>
+            <span className="v-eyebrow">{kind === "user" ? "Your basket · Discovery only" : "Basket · Discovery only"}</span>
             <h1>{basket?.def.name ?? "Baskets"}</h1>
             <p>{basket?.def.theme ?? "Themed sets of real tokenized assets."}</p>
           </div>
@@ -67,6 +96,20 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                   {DISCOVERY_ONLY_DISCLOSURE}
                 </p>
                 <p className="control-note">Rationale: {basket.def.rationale}</p>
+                <div className="pos-actions" style={{ marginTop: 12 }}>
+                  {kind === "user" ? <Chip tone="violet">Yours</Chip> : null}
+                  {userId ? (
+                    <BasketWatchButton
+                      basketKind={kind}
+                      basketRef={kind === "curated" ? slug : basket.def.slug}
+                      initialWatched={watched}
+                    />
+                  ) : (
+                    <Link className="button button-outline button-small" href="/profile/me">
+                      Sign in to watch
+                    </Link>
+                  )}
+                </div>
               </section>
 
               <section className="pos-section" aria-label="Basket composition">

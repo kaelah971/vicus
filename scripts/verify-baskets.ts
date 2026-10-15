@@ -1,7 +1,11 @@
 import { strict as assert } from "node:assert";
+import { randomUUID } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { inArray } from "drizzle-orm";
 import { config } from "dotenv";
+import { getDatabase } from "../src/db";
+import { basketWatches, userBaskets, users } from "../src/db/schema";
 import { resolveAssetActions } from "../src/lib/asset-actions/service";
 import {
   BASKETS,
@@ -13,6 +17,8 @@ import {
   weightPercent,
 } from "../src/lib/baskets/config";
 import { BasketsError, listBaskets, resolveBasket } from "../src/lib/baskets/service";
+import { createUserBasket, getMyBasket, listMyBaskets, resolveMyBasket } from "../src/lib/baskets/user";
+import { isBasketWatched, listWatchedBaskets, unwatchBasket, watchBasket } from "../src/lib/baskets/watch";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -95,6 +101,137 @@ async function main() {
   assert.ok(!/Buy|Invest(able)?|Allocate|Purchase|Checkout|swap|Swap/i.test(detail.replace(/Open asset|Open theme|Open USDC|openHref|Not investable/g, "")), "no execution affordances");
   const list = readFileSync(join(ROOT, "src/app/baskets/page.tsx"), "utf8");
   assert.ok(list.includes("DISCOVERY_ONLY_DISCLOSURE"), "list carries the disclosure");
+
+  // 8. P5.2 personal baskets: create → save → revisit → watch → reload →
+  // unwatch, with owner isolation throughout. No execution anywhere.
+  const database = getDatabase();
+  const tempUsers: string[] = [];
+  async function tempUser(prefix: string): Promise<string> {
+    const id = randomUUID();
+    await database.insert(users).values({
+      id,
+      handle: `${prefix}-${id.slice(0, 8)}`,
+      displayName: `${prefix} basket tester`,
+      avatarUrl: null,
+      role: "member",
+    });
+    tempUsers.push(id);
+    return id;
+  }
+  const alice = await tempUser("p52-alice");
+  const bob = await tempUser("p52-bob");
+  const mine = await createUserBasket(alice, {
+    name: "My income themes",
+    theme: "Income-oriented Stellar funds I want to compare.",
+    rationale: "BENJI and WTGXX side by side for learning.",
+    constituents: [
+      { slug: "benji-on-stellar", weightBps: 5000 },
+      { slug: "wtgxx-on-stellar", weightBps: 5000 },
+    ],
+  });
+  assert.ok(mine.id && mine.slug.length > 0, "saved basket has a stable reference");
+  assert.deepEqual(
+    mine.constituents.map((c) => c.slug).sort(),
+    ["benji-on-stellar", "wtgxx-on-stellar"],
+    "constituents preserved",
+  );
+  const revisit = await getMyBasket(alice, mine.slug);
+  assert.equal(revisit?.id, mine.id, "owner revisits by slug after save");
+  const revisitById = await getMyBasket(alice, mine.id);
+  assert.equal(revisitById?.slug, mine.slug, "owner revisits by id");
+  const resolvedMine = await resolveMyBasket(alice, mine.slug);
+  assert.equal(resolvedMine.complete, true, "owned basket resolves complete");
+  assert.equal(resolvedMine.members.length, 2, "owned members enriched from registry");
+  // Duplicate names get stable suffixed slugs, never collisions.
+  const twin = await createUserBasket(alice, {
+    name: "My income themes",
+    theme: "A second theme with the same name.",
+    rationale: "Slug collision handling.",
+    constituents: [{ slug: "benji-on-stellar", weightBps: 10000 }],
+  });
+  assert.notEqual(twin.slug, mine.slug, "duplicate names get distinct slugs");
+  // Invalid submissions rejected with reasons, nothing persisted.
+  const shortWeights = await createUserBasket(alice, {
+    name: "Bad weights", theme: "Theme with enough words here.", rationale: "Rationale with enough words here.",
+    constituents: [{ slug: "benji-on-stellar", weightBps: 5000 }],
+  }).then(() => null, (error: unknown) => error);
+  assert.ok(shortWeights instanceof BasketsError, "partial weights rejected");
+  const dupes = await createUserBasket(alice, {
+    name: "Dupes", theme: "Theme with enough words here.", rationale: "Rationale with enough words here.",
+    constituents: [
+      { slug: "benji-on-stellar", weightBps: 5000 },
+      { slug: "benji-on-stellar", weightBps: 5000 },
+    ],
+  }).then(() => null, (error: unknown) => error);
+  assert.ok(dupes instanceof BasketsError, "duplicates rejected");
+  const ghost = await createUserBasket(alice, {
+    name: "Ghost", theme: "Theme with enough words here.", rationale: "Rationale with enough words here.",
+    constituents: [{ slug: "no-such-asset", weightBps: 10000 }],
+  }).then(() => null, (error: unknown) => error);
+  assert.ok(ghost instanceof BasketsError && /Unknown catalogue assets/.test(ghost.message), "unknown assets rejected with names");
+  const badName = await createUserBasket(alice, {
+    name: "x", theme: "Theme with enough words here.", rationale: "Rationale with enough words here.",
+    constituents: [{ slug: "benji-on-stellar", weightBps: 10000 }],
+  }).then(() => null, (error: unknown) => error);
+  assert.ok(badName instanceof BasketsError, "short names rejected");
+  const anon = await createUserBasket(null, {
+    name: "Anon", theme: "Theme with enough words here.", rationale: "Rationale with enough words here.",
+    constituents: [{ slug: "benji-on-stellar", weightBps: 10000 }],
+  }).then(() => null, (error: unknown) => error);
+  assert.ok(anon instanceof BasketsError, "signed-out creation rejected");
+  // Owner isolation: Bob sees nothing of Alice's, and cannot watch hers.
+  assert.equal(await getMyBasket(bob, mine.slug), null, "stranger cannot read another's basket");
+  assert.deepEqual(await listMyBaskets(bob), [], "stranger lists nothing");
+  assert.equal(await watchBasket(bob, "user", mine.slug), null, "stranger cannot watch another's basket");
+  assert.deepEqual((await listMyBaskets(alice)).map((b) => b.slug).sort(), [mine.slug, twin.slug].sort(), "owner lists both");
+  // Watch lifecycle: curated + own, reload persistence, unwatch, unknown refs.
+  assert.equal(await watchBasket(alice, "curated", "stellar-money-funds"), true, "watch curated");
+  assert.equal(await watchBasket(alice, "user", mine.slug), true, "watch own");
+  assert.equal(await isBasketWatched(alice, "curated", "stellar-money-funds"), true, "watched state reads back");
+  const watchedOnce = await listWatchedBaskets(alice);
+  assert.equal(watchedOnce.length, 2, "both watches persist across reads (reload-safe)");
+  assert.equal(await watchBasket(alice, "curated", "stellar-money-funds"), true, "re-watch is idempotent");
+  assert.equal((await listWatchedBaskets(alice)).length, 2, "no duplicate watch rows");
+  assert.equal(await unwatchBasket(alice, "curated", "stellar-money-funds"), false, "unwatch");
+  assert.equal(await isBasketWatched(alice, "curated", "stellar-money-funds"), false, "unwatch persists");
+  assert.equal(await isBasketWatched(alice, "user", mine.slug), true, "other watch unaffected");
+  assert.equal(await watchBasket(alice, "curated", "no-such-basket"), null, "unknown curated ref rejected");
+  assert.equal(await watchBasket(alice, "bogus" as never, "stellar-money-funds"), null, "unknown kind rejected");
+  assert.equal(await isBasketWatched(bob, "curated", "stellar-money-funds"), false, "watches never leak across users");
+  // Missing-asset fallback degrades honestly at read time.
+  const degraded = await (await import("../src/lib/baskets/service")).resolveBasketDef({
+    slug: "degraded",
+    name: "Degraded",
+    theme: "A theme with a removed member.",
+    rationale: "Fallback honesty.",
+    constituents: [
+      { slug: "benji-on-stellar", weightBps: 5000 },
+      { slug: "retired-asset", weightBps: 5000 },
+    ],
+    sourceUrl: "",
+    version: 1,
+  });
+  assert.equal(degraded.complete, false, "removed member marks incomplete");
+  assert.equal(degraded.unresolved.length, 1, "removed member reported, not invented");
+  assert.equal(degraded.members.length, 1, " surviving member still resolves");
+  // No execution affordances anywhere in the basket stack.
+  for (const file of [
+    "src/lib/baskets/user.ts",
+    "src/lib/baskets/watch.ts",
+    "src/app/api/baskets/route.ts",
+    "src/app/api/baskets/[ref]/watch/route.ts",
+    "src/components/basket-create-form.tsx",
+    "src/components/basket-watch-button.tsx",
+  ]) {
+    const text = readFileSync(join(ROOT, file), "utf8");
+    assert.ok(
+      !/submitTransaction|signTransaction|TransactionBuilder|allocate|rebalanc|Buy now|Purchase/i.test(text),
+      `${file}: no execution surface`,
+    );
+  }
+  await database.delete(basketWatches).where(inArray(basketWatches.userId, tempUsers));
+  await database.delete(userBaskets).where(inArray(userBaskets.ownerUserId, tempUsers));
+  await database.delete(users).where(inArray(users.id, tempUsers));
 
   console.log("baskets:verified");
 }

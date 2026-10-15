@@ -58,6 +58,7 @@ Status key: **Live** = usable in production · **Implemented** = built + tested,
 | Cross-chain exploration (CCTP) | **Implemented** | Testnet-only burn → attestation → delivery flow; Mainnet off by design pending the inbound-Stellar verdict |
 | Unified receipt infrastructure | **Live** | Canonical `initiated → prepared → signed → submitted → settled → failed → unknown` contract across flows; settled requires a transaction reference; source-leg success never proves destination delivery |
 | Curated baskets (discovery only) | **Live** | Four editorial themes of real assets with illustrative weights, issuer/network context, and live eligibility per member — explicitly not investable, no holdings or execution |
+| Personal baskets + watching (discovery only) | **Live** | Signed-in users save personal themes from catalogue assets and watch themes across visits; private by default, owner-isolated, validated server-side |
 | Soroban vaults, basket execution/tokens, Stellar-native swaps, Mainnet payouts | **Planned** | Researched, not built — see [the roadmap](docs/VICUS_MASTER_ROADMAP.md) |
 
 > Explicit non-claims: Jupiter quotes do not prove completed swaps. External utility links do not mean Vicus executes those actions. No Stellar-native swap integration and no Vicus yield execution exist. Mainnet rewards are not enabled; no CCTP Mainnet settlement is claimed.

@@ -905,3 +905,42 @@ export const theses = pgTable(
     index("theses_author_idx").on(table.authorUserId),
   ],
 );
+
+export const userBaskets = pgTable(
+  "user_baskets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerUserId: uuid("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 80 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
+    theme: text("theme").notNull(),
+    rationale: text("rationale").notNull(),
+    constituents: jsonb("constituents").$type<{ slug: string; weightBps: number }[]>().notNull().default([]),
+    source: varchar("source", { length: 16 }).notNull().default("user"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("user_baskets_owner_slug_unique").on(table.ownerUserId, table.slug),
+    index("user_baskets_owner_idx").on(table.ownerUserId),
+  ],
+);
+
+export const basketWatches = pgTable(
+  "basket_watches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    basketKind: varchar("basket_kind", { length: 16 }).notNull(),
+    basketRef: varchar("basket_ref", { length: 80 }).notNull(),
+    leftAt: timestamp("left_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("basket_watches_user_kind_ref_unique").on(table.userId, table.basketKind, table.basketRef),
+    index("basket_watches_user_idx").on(table.userId),
+  ],
+);

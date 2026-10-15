@@ -4,8 +4,11 @@ import { AppShell } from "@/components/app-shell";
 import { DataState } from "@/components/vicus";
 import { Chip, GlowField, SectionHead } from "@/components/vicus-ui";
 import { isDatabaseUnavailableError } from "@/db";
-import { DISCOVERY_ONLY_DISCLOSURE } from "@/lib/baskets/config";
+import { DISCOVERY_ONLY_DISCLOSURE, getBasketDef } from "@/lib/baskets/config";
 import { listBaskets } from "@/lib/baskets/service";
+import { getMyBasket, listMyBaskets } from "@/lib/baskets/user";
+import { listWatchedBaskets } from "@/lib/baskets/watch";
+import { getCurrentSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,7 @@ export const metadata: Metadata = {
 export default async function BasketsPage() {
   let baskets: Awaited<ReturnType<typeof listBaskets>> = [];
   let unavailable = false;
+  let userId: string | null = null;
   try {
     baskets = await listBaskets();
   } catch (error) {
@@ -24,6 +28,47 @@ export default async function BasketsPage() {
       unavailable = true;
     } else {
       throw error;
+    }
+  }
+  try {
+    userId = (await getCurrentSession())?.user.id ?? null;
+  } catch {
+    userId = null;
+  }
+  type PersonalEntry = { key: string; name: string; detail: string; href: string | null };
+  let mine: PersonalEntry[] = [];
+  let watched: PersonalEntry[] = [];
+  if (userId && !unavailable) {
+    try {
+      const [myBaskets, watchedRefs] = await Promise.all([
+        listMyBaskets(userId).catch(() => []),
+        listWatchedBaskets(userId).catch(() => []),
+      ]);
+      mine = myBaskets.map((basket) => ({
+        key: `user:${basket.id}`,
+        name: basket.name,
+        detail: `${basket.constituents.length} assets · yours`,
+        href: `/baskets/${basket.slug}`,
+      }));
+      watched = (
+        await Promise.all(
+          watchedRefs.map(async (ref) => {
+            if (ref.kind === "curated") {
+              const def = getBasketDef(ref.ref);
+              if (!def) return null;
+              return { key: `curated:${ref.ref}`, name: def.name, detail: "Curated theme", href: `/baskets/${ref.ref}` };
+            }
+            const own = await getMyBasket(userId, ref.ref).catch(() => null);
+            if (!own) {
+              return { key: `user:${ref.ref}`, name: "Unavailable basket", detail: "No longer available.", href: null };
+            }
+            return { key: `user:${own.id}`, name: own.name, detail: `${own.constituents.length} assets · yours`, href: `/baskets/${own.slug}` };
+          }),
+        )
+      ).filter((entry): entry is PersonalEntry => entry !== null);
+    } catch {
+      mine = [];
+      watched = [];
     }
   }
 
@@ -82,6 +127,74 @@ export default async function BasketsPage() {
               </div>
             </section>
           )}
+          {userId && !unavailable ? (
+            <section className="directory-section" aria-label="Your baskets">
+              <SectionHead
+                eyebrow="Yours"
+                title="Saved baskets"
+                line="Personal discovery themes. Watching tracks a theme — it is not ownership."
+                action={
+                  <Link className="button button-outline button-small" href="/baskets/new">
+                    Create a basket
+                  </Link>
+                }
+              />
+              {mine.length === 0 && watched.length === 0 ? (
+                <p className="field-help pos-note">
+                  Nothing saved yet. Create a basket from real catalogue assets, or watch a curated theme to find it here after reload.
+                </p>
+              ) : (
+                <div className="pos-hold-grid">
+                  {mine.map((entry) => (
+                    <article className="pos-hold" key={entry.key}>
+                      <div className="pos-hold-top">
+                        <div className="pos-hold-id">
+                          <strong className="pos-hold-code">{entry.name}</strong>
+                          <span className="pos-hold-net">{entry.detail}</span>
+                        </div>
+                      </div>
+                      <div className="pos-actions">
+                        <Link className="button button-outline button-small" href={entry.href ?? "/baskets"}>
+                          Open basket
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                  {watched.map((entry) => (
+                    <article className="pos-hold" key={entry.key}>
+                      <div className="pos-hold-top">
+                        <div className="pos-hold-id">
+                          <strong className="pos-hold-code">{entry.name}</strong>
+                          <span className="pos-hold-net">Watching · {entry.detail}</span>
+                        </div>
+                      </div>
+                      <div className="pos-actions">
+                        {entry.href ? (
+                          <Link className="button button-outline button-small" href={entry.href}>
+                            Open basket
+                          </Link>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+          {!userId && !unavailable ? (
+            <section className="directory-section" aria-label="Your baskets">
+              <SectionHead
+                eyebrow="Yours"
+                title="Saved baskets"
+                line="Sign in to create personal themes and watch baskets across visits."
+                action={
+                  <Link className="button button-outline button-small" href="/baskets/new">
+                    Create a basket
+                  </Link>
+                }
+              />
+            </section>
+          ) : null}
         </div>
       </main>
     </AppShell>
