@@ -7,6 +7,7 @@ import {
   missions,
   missionSubmissions,
   stellarRoleVerifications,
+  stellarWallets,
 } from "@/db/schema";
 import { getCircleVerificationConfig } from "@/lib/data/circles";
 import {
@@ -186,6 +187,35 @@ export async function verifyLinkedWalletForCircle(
       result: unsupportedVerificationResult(config.stellarAssetCode, config.stellarNetwork),
       persisted: null,
     };
+  }
+
+  // Ownership boundary FIRST (before any network call): the wallet row must
+  // belong to the requesting user. Callers pass session values today, but
+  // persistence must never hinge on caller honesty — a mismatched walletId
+  // persists nothing, by construction, without touching Horizon.
+  try {
+    const database = getDatabase();
+    const [link] = await database
+      .select({ id: stellarWallets.id })
+      .from(stellarWallets)
+      .where(and(eq(stellarWallets.id, input.walletId), eq(stellarWallets.userId, input.userId)))
+      .limit(1);
+    if (!link) {
+      return {
+        result: {
+          status: "unsupported",
+          role: "none",
+          qualified: false,
+          reason: "That wallet is not linked to your account.",
+          assetCode: config.stellarAssetCode ?? null,
+          network: config.stellarNetwork ?? null,
+          checkedAt: new Date().toISOString(),
+        },
+        persisted: null,
+      };
+    }
+  } catch {
+    throw toDatabaseUnavailableError("verify wallet link");
   }
 
   const result = await verifyClassicAssetRole(input.walletPublicKey, {

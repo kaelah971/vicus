@@ -1,10 +1,13 @@
 import { strict as assert } from "node:assert";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { config } from "dotenv";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { Keypair } from "@stellar/stellar-sdk";
 import { getDatabase } from "../src/db";
 import {
+  assets,
   circles,
   stellarRoleVerifications,
   stellarWallets,
@@ -22,6 +25,7 @@ config({ path: ".env.local" });
 config({ path: ".env" });
 
 const database = getDatabase();
+const ROOT = join(__dirname, "..");
 const temporaryUserIds: string[] = [];
 
 async function createUserWithWallet() {
@@ -175,12 +179,70 @@ async function verify() {
   const list = await getVerifiedRolesForUser(first.userId);
   assert.equal(list.length, 1);
 
+  // P4.4 Wallet-ownership rules: the link check runs before any network
+  // call, so mismatches are provable deterministically (no Horizon).
+  // Another user's wallet row can never mint this user a role.
+  const rowsBeforeMismatch = await verificationRowCount();
+  const mismatch = await verifyLinkedWalletForCircle({
+    userId: first.userId,
+    walletId: second.walletId,
+    walletPublicKey: second.publicKey,
+    circleSlug: "usdc-on-stellar",
+  });
+  assert.equal(mismatch.persisted, null, "mismatched wallet persists nothing");
+  assert.equal(mismatch.result.qualified, false, "mismatch is not qualified");
+  assert.equal(await verificationRowCount(), rowsBeforeMismatch, "mismatch writes nothing");
+  // A wallet row that does not exist cannot authorize anything either.
+  const ghost = await verifyLinkedWalletForCircle({
+    userId: first.userId,
+    walletId: randomUUID(),
+    walletPublicKey: first.publicKey,
+    circleSlug: "usdc-on-stellar",
+  });
+  assert.equal(ghost.persisted, null, "ghost wallet persists nothing");
+  assert.equal(await verificationRowCount(), rowsBeforeMismatch, "ghost writes nothing");
+  // The legitimate link still verifies its own boundary afterwards.
+  const [stillLinked] = await database
+    .select({ walletId: stellarRoleVerifications.walletId })
+    .from(stellarRoleVerifications)
+    .where(
+      and(
+        eq(stellarRoleVerifications.userId, first.userId),
+        eq(stellarRoleVerifications.circleId, usdc.id),
+      ),
+    )
+    .limit(1);
+  assert.equal(stillLinked?.walletId, first.walletId, "denials never disturb the real link");
+  // Single-network trust boundary: every configured verification network
+  // is Stellar mainnet; anything else is structurally unsupported.
+  const configured = await database
+    .select({ network: assets.stellarNetwork })
+    .from(assets)
+    .where(isNotNull(assets.stellarNetwork));
+  const networks = new Set(configured.map((row) => row.network));
+  assert.ok(networks.size > 0, "verification configs exist to audit");
+  assert.ok([...networks].every((network) => network === "mainnet"), "all role checks are mainnet-scoped");
+  // Route contracts: the role endpoint binds the session wallet and never
+  // reads the body; connected-wallet reads grant no roles anywhere.
+  const roleRoute = readFileSync(join(ROOT, "src/app/api/circles/[slug]/verify-role/route.ts"), "utf8");
+  assert.ok(!roleRoute.includes("request.json"), "role route never reads the request body");
+  assert.ok(roleRoute.includes("session.wallet.publicKey") && roleRoute.includes("session.wallet.id"), "role route binds the session wallet");
+  assert.ok(roleRoute.includes("401"), "missing session is rejected");
+  for (const file of ["src/app/api/positions/solana/route.ts", "src/app/api/positions/base/route.ts"]) {
+    const text = readFileSync(join(ROOT, file), "utf8");
+    assert.ok(
+      !text.includes("stellarRoleVerifications") && !text.includes("verifyLinkedWalletForCircle") && !/grantRole|persistRole/i.test(text),
+      `${file}: connected reads grant no roles`,
+    );
+  }
+
   console.log("Role verification passed", {
     unsupportedNotPersisted: true,
     linkedWalletPersists: true,
     reverifyNoDuplicates: true,
     pastedAddressReadOnly: true,
     ownershipBoundary: true,
+    ownershipLinkEnforced: true,
     noBalancePersisted: true,
     profileReadback: true,
   });
