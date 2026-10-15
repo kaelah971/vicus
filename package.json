@@ -30,6 +30,7 @@
     "classification:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-classification.ts",
     "stellar-assets:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-stellar-assets.ts",
     "send:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-send.ts",
+    "transitions:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-transitions.ts",
     "asset-access:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-asset-access.ts",
     "asset-actions:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-asset-actions.ts",
     "campaign-funding:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-campaign-funding.ts",
