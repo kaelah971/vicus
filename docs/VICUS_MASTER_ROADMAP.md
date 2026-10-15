@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.11 (P4.4 shipped, P4 phase complete; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.12 (P5.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.11 sync (2026-10-15): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.12 sync (2026-10-15): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -270,7 +270,7 @@ Milestone IDs are stable. Statuses at v2.11 sync (2026-10-15): `Complete` (P0.1,
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P5.1 | Basket model + curated themes | Basket = named set with weights, rationale, issuer/representation links; 3+ seeded curated themes | Schema review + seeded list | Planned |
+| P5.1 | Basket model + curated themes | Basket = named set with weights, rationale, issuer/representation links; 3+ seeded curated themes | Schema review + seeded list | Complete 2026-10-15: `src/lib/baskets/{config,service}.ts` (typed defs, bps weights totaling exactly 10_000, pure validation, live-registry resolution with unresolved reporting, no migration); 4 seeded themes (stellar-money-funds, stellar-short-duration, apple-representations, stellar-dollar-liquidity) fully resolving with issuer/network/category/eligibility context; `/baskets` + `/baskets/[slug]` discovery-only pages with disclosure banner and member deep-links; Discover entry strip; BENJI send stays permissioned inside themes; `baskets:verify` green; tsc/lint/build green; desktop+mobile screenshots; live verified. No execution, holdings, returns, or purchasability anywhere. |
 | P5.2 | Create/save/watch baskets | Signed-in users create/save/watch; signed-out browse; no execution affordances in V1 | E2E create→save→watch; negative test: no trade path | Planned |
 | P5.3 | Compositional transparency | Every basket shows weights, venue/eligibility notes, “discovery only — not investable” label | Copy audit; legal-safe language | Planned |
 
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P5.1 Basket model + curated themes** (named sets with weights and issuer context, discovery only; no funds, no signatures).
+- **Next buildable product milestone: P5.2 Create/save/watch baskets** (signed-in persistence + watch integration, discovery only, no execution).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -606,6 +606,7 @@ Delivered (all checked against repository truth):
 - P4.2 receipt model complete 2026-10-15 (canonical contract + adapters + receipts:verify, additive).
 - P4.3 history states complete 2026-10-15 (transitions:verify, no behavior change).
 - P4.4 ownership rules complete 2026-10-15 (link check hardened + role:verify P4.4 group, live).
+- P5.1 baskets complete 2026-10-15 (model + 4 themes + pages, discovery only, live).
 
 ---
 
@@ -661,7 +662,8 @@ After each completed milestone:
 | 2026-10-15 | P4.1 complete (holdings truth + freshness; live; 43 IDs intact) | v2.8 sync |
 | 2026-10-15 | P4.2 complete (unified receipt model; additive, no rewiring; 43 IDs intact) | v2.9 sync |
 | 2026-10-15 | P4.3 complete (history + states; tests only, no behavior change; 43 IDs intact) | v2.10 sync |
-| 2026-10-15 | P4.4 complete (ownership rules; link check + negatives; 43 IDs intact) | This sync |
+| 2026-10-15 | P4.4 complete (ownership rules; link check + negatives; 43 IDs intact) | v2.11 sync |
+| 2026-10-15 | P5.1 complete (basket model + 4 themes; discovery only; 43 IDs intact) | This sync |
 
 ---
 

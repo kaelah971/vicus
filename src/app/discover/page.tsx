@@ -13,6 +13,7 @@ import { resolveAssetActions } from "@/lib/asset-actions/service";
 import { eligibilityForSheetAction } from "@/lib/asset-actions/eligibility";
 import { getSubjectForAsset } from "@/lib/subjects/config";
 import type { SheetAction, SheetSubject } from "@/components/asset-sheet";
+import { listBaskets } from "@/lib/baskets/service";
 import { listActiveCampaignCircles } from "@/lib/campaigns/service";
 import { listSpaces } from "@/lib/organizations/service";
 
@@ -52,8 +53,9 @@ export default async function DiscoverPage() {
   const subjectMap: Record<string, SheetSubject> = {};
   let campaignSlugs: string[] = [];
   let spaces: Awaited<ReturnType<typeof listSpaces>> = [];
+  let baskets: Awaited<ReturnType<typeof listBaskets>> = [];
   if (!databaseUnavailable) {
-    const [spaceList, engineLists, campaigned] = await Promise.all([
+    const [spaceList, engineLists, campaigned, basketList] = await Promise.all([
       listSpaces().catch(() => []),
       Promise.all(
         circleData.map((circle) =>
@@ -61,6 +63,7 @@ export default async function DiscoverPage() {
         ),
       ),
       listActiveCampaignCircles().catch(() => [] as string[]),
+      listBaskets().catch(() => []),
     ]);
     circleData.forEach((circle, index) => {
       const resolved = engineLists[index] ?? [];
@@ -115,6 +118,7 @@ export default async function DiscoverPage() {
     });
     campaignSlugs = campaigned;
     spaces = spaceList;
+    baskets = basketList;
   }
   return (
     <AppShell active="discover">
@@ -146,6 +150,31 @@ export default async function DiscoverPage() {
               />
             </Suspense>
           )}
+
+          {baskets.length > 0 ? (
+            <section aria-labelledby="explore-baskets-title" className="x-spaces">
+              <div className="x-block-head">
+                <h2 id="explore-baskets-title">Curated baskets · discovery only</h2>
+                <Link href="/baskets">
+                  All baskets <Icon name="arrow-right" size={15} />
+                </Link>
+              </div>
+              <div className="x-rail">
+                {baskets.map((basket) => (
+                  <Link className="space-mini" href={`/baskets/${basket.slug}`} key={basket.slug}>
+                    <span className="space-monogram space-monogram-sm">{basket.name.slice(0, 1)}</span>
+                    <span>
+                      <strong>{basket.name}</strong>
+                      <small>
+                        {basket.memberCodes.join(" · ")}
+                      </small>
+                    </span>
+                    <Icon name="arrow-right" size={15} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {spaces.length > 0 ? (
             <section aria-labelledby="explore-spaces-title" className="x-spaces">

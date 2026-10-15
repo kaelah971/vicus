@@ -42,6 +42,7 @@
     "crosschain-send:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-crosschain-send.ts",
     "watch-center:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-watch-center.ts",
     "positions:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-positions.ts",
+    "baskets:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-baskets.ts",
     "receipts:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-receipts.ts",
     "lending:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-lending.ts",
     "return-stellar:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-return-stellar.ts",
