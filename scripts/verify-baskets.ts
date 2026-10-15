@@ -233,6 +233,58 @@ async function main() {
   await database.delete(userBaskets).where(inArray(userBaskets.ownerUserId, tempUsers));
   await database.delete(users).where(inArray(users.id, tempUsers));
 
+  // 9. P5.3 compositional transparency: totals, routes, provenance.
+  // Totals are exact across complete and partial baskets alike.
+  for (const def of BASKETS) {
+    const resolved = await resolveBasket(def.slug);
+    const total = resolved.members.reduce((sum, m) => sum + m.weightBps, 0);
+    assert.equal(total, 10000, `${def.slug}: members total exactly 100%`);
+    for (const member of resolved.members) {
+      assert.ok(/%$/.test(member.weightLabel), `${member.slug}: human weight label`);
+      if (member.sourceUrl !== null) {
+        assert.ok(member.sourceUrl.startsWith("http"), `${member.slug}: source is a real URL or null`);
+      }
+    }
+  }
+  // BENJI (permissioned-only) exposes no execution routes; AAPLx does.
+  // Membership never upgrades either member's engine verdicts.
+  const money = await resolveBasket("stellar-money-funds");
+  const benjiMember = money.members.find((m) => m.slug === "benji-on-stellar")!;
+  assert.ok(benjiMember, "BENJI resolves in its theme");
+  assert.deepEqual(benjiMember.routes, [], "permissioned-only member lists no routes");
+  const apple = await resolveBasket("apple-representations");
+  const aaplxMember = apple.members.find((m) => m.slug === "aaplx-on-solana")!;
+  assert.ok(aaplxMember.routes.length > 0, "AAPLx lists verified routes");
+  assert.ok(aaplxMember.routes.every((r) => /Send|Move|Access|Swap|Exit|Borrow/.test(r)), "routes use the verified vocabulary");
+  const usdc = (await resolveBasket("stellar-dollar-liquidity")).members.find((m) => m.slug === "usdc-on-stellar")!;
+  assert.ok(usdc.routes.includes("Stellar Send"), "USDC lists its live route");
+  // Disclosure copy carries the execution boundary explicitly.
+  assert.ok(/not investable/i.test(DISCOVERY_ONLY_DISCLOSURE), "disclosure states not-investable");
+  assert.ok(/no basket tokens/i.test(DISCOVERY_ONLY_DISCLOSURE), "disclosure denies basket tokens");
+  assert.ok(/never implies/i.test(DISCOVERY_ONLY_DISCLOSURE), "disclosure denies implied eligibility");
+  // Personal basket parity: same totals, routes, disclosure, honesty.
+  const carol = await tempUser("p53-carol");
+  const personal = await createUserBasket(carol, {
+    name: "Apple watch",
+    theme: "Both Apple representations side by side.",
+    rationale: "Comparing issuers for learning.",
+    constituents: [
+      { slug: "aaplx-on-solana", weightBps: 5000 },
+      { slug: "aaplc-on-base", weightBps: 5000 },
+    ],
+  });
+  const resolvedPersonal = await resolveMyBasket(carol, personal.slug);
+  assert.equal(resolvedPersonal.disclosure, DISCOVERY_ONLY_DISCLOSURE, "personal baskets carry the disclosure");
+  assert.equal(resolvedPersonal.members.reduce((s, m) => s + m.weightBps, 0), 10000, "personal total exact");
+  assert.ok(resolvedPersonal.members.every((m) => Array.isArray(m.routes)), "personal members carry routes");
+  // Detail page labels user rationale as unverified author content.
+  const detailSource = readFileSync(join(ROOT, "src/app/baskets/[slug]/page.tsx"), "utf8");
+  assert.ok(detailSource.includes("author's words, not Vicus-verified"), "user rationale labeled as author content");
+  assert.ok(detailSource.includes("of ${basket.def.constituents.length}"), "partial totals shown honestly");
+  await database.delete(basketWatches).where(inArray(basketWatches.userId, tempUsers));
+  await database.delete(userBaskets).where(inArray(userBaskets.ownerUserId, tempUsers));
+  await database.delete(users).where(inArray(users.id, tempUsers));
+
   console.log("baskets:verified");
 }
 

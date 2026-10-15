@@ -1,6 +1,7 @@
 import "server-only";
 import { isDatabaseUnavailableError } from "@/db";
 import { listCircles } from "@/lib/data/circles";
+import { resolveAssetActions } from "@/lib/asset-actions/service";
 import {
   BASKETS,
   DISCOVERY_ONLY_DISCLOSURE,
@@ -31,6 +32,9 @@ export type BasketMember = {
   eligibilityNote: string;
   state: string;
   stateLabel: string;
+  /** Verified execution routes (engine-available vicus/connected actions). Empty means discovery only. */
+  routes: string[];
+  sourceUrl: string | null;
   weightBps: number;
   weightLabel: string;
   openHref: string;
@@ -58,6 +62,30 @@ export type BasketSummary = {
   memberCodes: string[];
   version: number;
 };
+
+/** Short labels for engine-verified execution. Official/guide flows are
+ * information or issuer flows, not Vicus execution — excluded by design. */
+const ROUTE_LABELS: Record<string, string> = {
+  send: "Stellar Send",
+  move: "CCTP Move",
+  access: "Access route",
+  swap: "Swap",
+  exit: "Exit",
+  borrow: "Borrow",
+};
+
+/** Verified execution routes for one member, or [] (discovery only). */
+async function memberRoutes(slug: string, network: string): Promise<string[]> {
+  const actions = await resolveAssetActions(slug, network).catch(() => []);
+  const routes: string[] = [];
+  for (const action of actions) {
+    if (action.state !== "available") continue;
+    if (action.executionMode !== "vicus" && action.executionMode !== "connected") continue;
+    const label = ROUTE_LABELS[action.kind];
+    if (label && !routes.includes(label)) routes.push(label);
+  }
+  return routes;
+}
 
 export class BasketsError extends Error {
   constructor(
@@ -139,6 +167,8 @@ export async function resolveBasketDef(def: BasketDef): Promise<ResolvedBasket> 
       eligibilityNote: circle.eligibilityNote,
       state: circle.state,
       stateLabel: circle.stateLabel,
+      routes: await memberRoutes(circle.slug, circle.network),
+      sourceUrl: circle.sourceUrl || null,
       weightBps: constituent.weightBps,
       weightLabel: weightPercent(constituent.weightBps),
       openHref: `/circles/${circle.slug}`,

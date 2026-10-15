@@ -10,7 +10,7 @@ import { resolveMyBasket } from "@/lib/baskets/user";
 import { isBasketWatched } from "@/lib/baskets/watch";
 import { getCurrentSession } from "@/lib/auth/session";
 import { BasketWatchButton } from "@/components/basket-watch-button";
-import { DISCOVERY_ONLY_DISCLOSURE } from "@/lib/baskets/config";
+import { DISCOVERY_ONLY_DISCLOSURE, weightPercent } from "@/lib/baskets/config";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +95,7 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                 <p className="control-note" style={{ marginTop: 12 }}>
                   {DISCOVERY_ONLY_DISCLOSURE}
                 </p>
-                <p className="control-note">Rationale: {basket.def.rationale}</p>
+                <p className="control-note">Rationale{basket && kind === "user" ? " (author's words, not Vicus-verified)" : ""}: {basket.def.rationale}</p>
                 <div className="pos-actions" style={{ marginTop: 12 }}>
                   {kind === "user" ? <Chip tone="violet">Yours</Chip> : null}
                   {userId ? (
@@ -116,7 +116,7 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                 <SectionHead
                   eyebrow={`Composition · v${basket.def.version}`}
                   title={`${basket.members.length} constituents`}
-                  line="Illustrative weights. Each member keeps its own live eligibility — membership implies nothing."
+                  line={`Illustrative weights totaling ${weightPercent(basket.members.reduce((sum, m) => sum + m.weightBps, 0))} across ${basket.members.length} of ${basket.def.constituents.length}. Each member keeps its own live eligibility — membership implies nothing.`}
                   action={
                     basket.complete ? (
                       <StatusPill tone="green">Complete</StatusPill>
@@ -148,6 +148,18 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                           {member.eligibilityNote}
                         </p>
                         <p className="pos-actions-line">{member.stateLabel}</p>
+                        <p className="pos-actions-line">
+                          {member.routes.length > 0
+                            ? `Verified routes: ${member.routes.join(" · ")}`
+                            : "No execution routes — discovery only."}
+                        </p>
+                        {member.sourceUrl ? (
+                          <p className="pos-actions-line">
+                            <a href={member.sourceUrl} target="_blank" rel="noreferrer">
+                              Official source →
+                            </a>
+                          </p>
+                        ) : null}
                         <div className="pos-actions">
                           <ButtonLink className="button-small" href={member.openHref} variant="outline">
                             Open {member.code}

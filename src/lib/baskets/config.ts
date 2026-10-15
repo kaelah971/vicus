@@ -15,7 +15,7 @@ import "server-only";
 export const BASKET_WEIGHT_TOTAL_BPS = 10_000 as const;
 
 export const DISCOVERY_ONLY_DISCLOSURE =
-  "Discovery only — not investable. Vicus baskets are editorial themes for exploring real assets, not holdings, allocations, or investment advice. Inclusion never implies you can acquire, transfer, redeem, or hold a constituent." as const;
+  "Discovery only — not investable through Vicus. Vicus baskets are editorial themes for exploring real assets, not holdings, allocations, or investment advice. There are no basket tokens and no purchase flow. Inclusion never implies you can acquire, transfer, redeem, or hold a constituent." as const;
 
 export type BasketConstituentDef = {
   /** Exact circle slug; resolved against the live registry (missing = skipped). */
