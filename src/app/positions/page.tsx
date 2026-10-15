@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { isDatabaseUnavailableError } from "@/db";
 import { ButtonLink, DataState, EmptyState, StatusPill } from "@/components/vicus";
 import { AssetToken, Chip, SectionHead } from "@/components/vicus-ui";
+import { formatReadTime } from "@/lib/positions/freshness";
 import { getStellarPositions } from "@/lib/positions/service";
 
 export const dynamic = "force-dynamic";
@@ -98,7 +99,11 @@ export default async function PositionsPage() {
               {stellarError ? (
                 <DataState title="Stellar balances unavailable">{stellarError}</DataState>
               ) : holdings.length > 0 ? (
-                <div className="pos-hold-grid">
+                <>
+                  <p className="field-help pos-note">
+                    Updated {formatReadTime(stellar?.readAt)} · re-read live on every visit.
+                  </p>
+                  <div className="pos-hold-grid">
                   {holdings.map((position) => (
                     <article className="pos-hold" key={position.assetSlug}>
                       <div className="pos-hold-top">
@@ -131,6 +136,7 @@ export default async function PositionsPage() {
                     </article>
                   ))}
                 </div>
+                </>
               ) : (
                 <EmptyState
                   title="No Stellar holdings detected"

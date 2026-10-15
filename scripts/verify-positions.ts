@@ -9,6 +9,11 @@ import {
   getSolanaPositions,
   getStellarPositions,
 } from "../src/lib/positions/service";
+import {
+  abbreviateWallet,
+  formatReadTime,
+  getFreshness,
+} from "../src/lib/positions/freshness";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -131,7 +136,11 @@ async function main() {
       { assetCode: "BENJI", assetIssuer: BENJI_ISSUER, balance: "1.0000000" },
     ]),
   );
-  assert.deepEqual(repeat2, repeat, "order-independent");
+  const { readAt: _readAtA, ...repeatCore } = repeat;
+  const { readAt: _readAtB, ...repeatCore2 } = repeat2;
+  assert.deepEqual(repeatCore2, repeatCore, "order-independent (read timestamps excluded by design)");
+  void _readAtA;
+  void _readAtB;
 
   // 10. Routes: auth-gated, session-owned wallets, no public surface.
   for (const file of ["src/app/api/positions/stellar/route.ts", "src/app/api/positions/solana/route.ts", "src/app/api/positions/base/route.ts", "src/app/positions/page.tsx"]) {
@@ -141,6 +150,45 @@ async function main() {
   assert.ok(stellarRoute.includes("session.wallet.publicKey"), "stellar reads the session wallet");
   const page = readFileSync(join(ROOT, "src/app/positions/page.tsx"), "utf8");
   assert.ok(page.includes("session.wallet.publicKey"), "page reads the session wallet");
+
+  // 11. P4.1 holdings truth: every successful read carries a trustworthy
+  // timestamp; freshness is deterministic; readers stay wallet-isolated.
+  const now = Date.now();
+  const isoNow = new Date(now).toISOString();
+  const iso = (ms: number) => new Date(ms).toISOString();
+  assert.ok(stellar.readAt && Math.abs(now - Date.parse(stellar.readAt)) < 120_000, "stellar read carries a fresh timestamp");
+  assert.ok(solana.readAt && Math.abs(now - Date.parse(solana.readAt)) < 120_000, "solana read carries a fresh timestamp");
+  assert.ok(base.readAt && Math.abs(now - Date.parse(base.readAt)) < 120_000, "base read carries a fresh timestamp");
+  assert.ok(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(stellar.readAt!), "readAt is UTC ISO, never a bare clock time");
+  // Fresh / stale / unknown boundaries.
+  assert.equal(getFreshness(now, iso(now - 60_000), false), "fresh", "recent read is fresh");
+  assert.equal(getFreshness(now, iso(now - 10 * 60_000), false), "stale", "old read is stale");
+  assert.equal(getFreshness(now, isoNow, true), "stale", "failed refresh is stale, never fresh");
+  assert.equal(getFreshness(now, null, false), "unknown", "missing timestamp is unknown");
+  assert.equal(getFreshness(now, "not-a-date", false), "unknown", "garbage timestamp is unknown");
+  assert.equal(getFreshness(now, iso(now + 10 * 60_000), false), "unknown", "future timestamp is unknown");
+  // Zero holdings is fresh-empty evidence, not unknown.
+  const emptyFresh = await getStellarPositions(WALLET, mockHorizon([]));
+  assert.equal(emptyFresh.positions.length, 0, "empty stays empty");
+  assert.ok(emptyFresh.readAt, "empty read still timestamped");
+  assert.equal(getFreshness(Date.now(), emptyFresh.readAt, false), "fresh", "empty can be fresh");
+  // Wallet/network isolation: sources never mix.
+  assert.ok(solana.positions.every((p) => p.walletSource === "connected-solana"), "solana-only source");
+  assert.ok(base.positions.every((p) => p.walletSource === "connected-base"), "base-only source");
+  assert.ok(stellar.positions.every((p) => p.walletSource === "vicus-stellar"), "stellar-only source");
+  // Receipt helpers never fabricate.
+  assert.equal(formatReadTime(null), "—", "missing time renders as em-dash, not a guess");
+  assert.ok(formatReadTime(isoNow).length > 0 && formatReadTime(isoNow) !== isoNow, "time is formatted, not raw");
+  assert.equal(abbreviateWallet(SOL), `${SOL.slice(0, 4)}…${SOL.slice(-4)}`, "address abbreviated with identity kept");
+  assert.equal(abbreviateWallet(null), "—", "missing address renders as em-dash");
+  // UI wiring: wallet-keyed state, stale marking, refresh affordance.
+  const connected = readFileSync(join(ROOT, "src/components/connected-positions.tsx"), "utf8");
+  assert.ok(connected.includes("getFreshness") && connected.includes("abbreviateWallet"), "freshness helpers wired");
+  assert.ok(/address/.test(connected) && connected.includes("stale: true"), "wallet-keyed stale marking");
+  assert.ok(connected.includes("Refresh") && connected.includes("refreshSolana") && connected.includes("refreshBase"), "per-chain refresh");
+  assert.ok(connected.includes("prev.address !== address") || connected.includes("prev && prev.address"), "account switch replaces state");
+  const positionsPage = readFileSync(join(ROOT, "src/app/positions/page.tsx"), "utf8");
+  assert.ok(positionsPage.includes("formatReadTime") && positionsPage.includes("stellar?.readAt"), "stellar read receipt shown");
 
   console.log("positions:verified");
 }

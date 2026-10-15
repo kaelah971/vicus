@@ -83,6 +83,8 @@ export type PositionResult = {
   positions: Position[];
   /** True when at least one registry read failed — the list may be partial. */
   partial: boolean;
+  /** ISO timestamp of the successful chain read. Absent only when nothing could be read. */
+  readAt: string | null;
 };
 
 export class PositionsError extends Error {
@@ -165,6 +167,11 @@ function sortPositions(positions: Position[]): Position[] {
   return [...positions].sort((a, b) => a.code.localeCompare(b.code) || a.assetSlug.localeCompare(b.assetSlug));
 }
 
+/** Server time of a completed chain read — evidence timestamp, never invented. */
+function readTimestamp(): string {
+  return new Date().toISOString();
+}
+
 /**
  * Stellar holdings for the authenticated Vicus wallet. One Horizon account
  * read; registry comes from the DB assets table (exact code+issuer); only
@@ -187,7 +194,7 @@ export async function getStellarPositions(
     } catch {
       throw new PositionsError("unavailable", "Stellar Horizon is unreachable. Balances could not be read — nothing was assumed.", 503);
     }
-    if (!account) return { positions: [], partial: false };
+    if (!account) return { positions: [], partial: false, readAt: readTimestamp() };
     const database = getDatabase();
     const rows = await database
       .select({
@@ -226,7 +233,7 @@ export async function getStellarPositions(
         actions: await actionsFor(match.slug, "Stellar"),
       });
     }
-    return { positions: sortPositions(positions), partial: false };
+    return { positions: sortPositions(positions), partial: false, readAt: readTimestamp() };
   } catch (error) {
     if (error instanceof PositionsError || isDatabaseUnavailableError(error)) throw error;
     throw toDatabaseUnavailableError("read stellar positions");
@@ -282,7 +289,7 @@ export async function getSolanaPositions(
       actions: await actionsFor(entry.slug, "Solana"),
     });
   }
-  return { positions: sortPositions(positions), partial };
+  return { positions: sortPositions(positions), partial, readAt: readTimestamp() };
 }
 
 export type BaseBalanceTransport = {
@@ -392,5 +399,5 @@ export async function getBasePositions(
     }
     positions.push(position);
   }
-  return { positions: sortPositions(positions), partial };
+  return { positions: sortPositions(positions), partial, readAt: readTimestamp() };
 }

@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { ButtonLink, EmptyState, StatusPill } from "@/components/vicus";
 import { AssetToken, Chip, Orb, SectionHead } from "@/components/vicus-ui";
+import {
+  abbreviateWallet,
+  formatReadTime,
+  getFreshness,
+} from "@/lib/positions/freshness";
 
 type Position = {
   assetSlug: string;
@@ -25,7 +30,27 @@ type Position = {
   };
 };
 
-type ChainResult = { ok: boolean; positions?: Position[]; partial?: boolean; code?: string; message?: string };
+type ChainResult = {
+  ok: boolean;
+  positions?: Position[];
+  partial?: boolean;
+  readAt?: string | null;
+  code?: string;
+  message?: string;
+};
+
+/**
+ * One wallet's read evidence. The address travels WITH the data so a stale
+ * read can never be mistaken for another account, and a failed refresh
+ * marks (never silently refreshes) what is shown.
+ */
+type ChainState = {
+  address: string;
+  positions: Position[];
+  readAt: string | null;
+  partial: boolean;
+  stale: boolean;
+} | null;
 
 type SolanaProvider = {
   connect(): Promise<{ publicKey: { toString(): string } }>;
@@ -103,14 +128,48 @@ function HoldingCard({
   );
 }
 
+function FreshnessLine({
+  chainState,
+  refreshing,
+  nowMs,
+  onRefresh,
+}: {
+  chainState: NonNullable<ChainState>;
+  refreshing: boolean;
+  nowMs: number;
+  onRefresh: () => void;
+}) {
+  const freshness = getFreshness(nowMs, chainState.readAt, chainState.stale);
+  return (
+    <div className="pos-fresh">
+      <p className="field-help">
+        {freshness === "stale" ? "Stale — " : ""}
+        Updated {formatReadTime(chainState.readAt)} · wallet{" "}
+        {abbreviateWallet(chainState.address)}
+        {chainState.partial ? " · some balances unread" : ""}
+      </p>
+      {freshness === "stale" ? <Chip tone="orange">Stale</Chip> : null}
+      <button
+        className="button button-outline button-small"
+        disabled={refreshing}
+        onClick={onRefresh}
+        type="button"
+      >
+        {refreshing ? "Refreshing…" : "Refresh"}
+      </button>
+    </div>
+  );
+}
+
 function ChainSection({
   chain,
   tone,
   icon,
-  positions,
+  chainState,
   note,
   busy,
   onConnect,
+  onRefresh,
   connectLabel,
   readingLabel,
   connectCopy,
@@ -120,17 +179,23 @@ function ChainSection({
   chain: "solana" | "base";
   tone: "violet" | "blue";
   icon: "bolt" | "globe";
-  positions: Position[] | null;
+  chainState: ChainState;
   note: string | null;
   busy: boolean;
   onConnect: () => void;
+  onRefresh: () => void;
   connectLabel: string;
   readingLabel: string;
   connectCopy: string;
   emptyTitle: string;
   emptyCopy: string;
 }) {
-  const connected = positions !== null;
+  const connected = chainState !== null;
+  const positions = chainState?.positions ?? [];
+  // Snapshot at mount: freshness labels reflect the last render without
+  // impure clock reads during render. Failure-driven staleness is state
+  // and always current; age-based staleness refreshes on re-render.
+  const [nowMs] = useState(() => Date.now());
   return (
     <section className="pos-section" aria-label={`${chain === "solana" ? "Solana" : "Base"} positions`}>
       <SectionHead
@@ -138,15 +203,18 @@ function ChainSection({
         title={chain === "solana" ? "Solana positions" : "Base positions"}
         line={
           connected
-            ? "Execution-wallet assets, read live at connect time."
+            ? "Execution-wallet assets, re-read from chain on demand."
             : connectCopy
         }
         action={
-          connected && positions.length > 0 ? (
+          connected && positions.length > 0 && !chainState.stale ? (
             <StatusPill tone="green">Live onchain</StatusPill>
           ) : undefined
         }
       />
+      {connected ? (
+        <FreshnessLine chainState={chainState} refreshing={busy} nowMs={nowMs} onRefresh={onRefresh} />
+      ) : null}
       {!connected ? (
         <div className={`pos-connect pos-tone-${tone}`}>
           <div className="pos-connect-head">
@@ -197,7 +265,7 @@ function ChainSection({
               <HoldingCard
                 key={position.assetSlug}
                 chainTone={tone}
-                liveLabel="Live onchain"
+                liveLabel={chainState.stale ? "Stale read" : "Live onchain"}
                 position={position}
               />
             ))}
@@ -213,12 +281,50 @@ function ChainSection({
   );
 }
 
+const PARTIAL_COPY = "One or more balances could not be read — the list may be partial.";
+
 export function ConnectedPositions() {
-  const [solana, setSolana] = useState<Position[] | null>(null);
+  const [solana, setSolana] = useState<ChainState>(null);
   const [solanaNote, setSolanaNote] = useState<string | null>(null);
-  const [base, setBase] = useState<Position[] | null>(null);
+  const [base, setBase] = useState<ChainState>(null);
   const [baseNote, setBaseNote] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
+
+  function staleNote(readAt: string | null): string {
+    return `Couldn't refresh just now — showing the ${formatReadTime(readAt)} read. Old data is never presented as fresh.`;
+  }
+
+  async function readSolana(address: string, setState: typeof setSolana, setNote: typeof setSolanaNote) {
+    const result = await postJson("/api/positions/solana", { wallet: address });
+    if (result.ok) {
+      setState({
+        address,
+        positions: result.positions ?? [],
+        readAt: typeof result.readAt === "string" ? result.readAt : new Date().toISOString(),
+        partial: result.partial === true,
+        stale: false,
+      });
+      setNote(result.partial ? PARTIAL_COPY : null);
+      return;
+    }
+    throw new Error(result.message ?? "Solana balances could not be read.");
+  }
+
+  async function readBase(address: string) {
+    const result = await postJson("/api/positions/base", { wallet: address });
+    if (result.ok) {
+      setBase({
+        address,
+        positions: result.positions ?? [],
+        readAt: typeof result.readAt === "string" ? result.readAt : new Date().toISOString(),
+        partial: result.partial === true,
+        stale: false,
+      });
+      setBaseNote(result.partial ? PARTIAL_COPY : null);
+      return;
+    }
+    throw new Error(result.message ?? "Base balances could not be read.");
+  }
 
   async function connectSolana() {
     setSolanaNote(null);
@@ -232,15 +338,32 @@ export function ConnectedPositions() {
     try {
       const { publicKey } = await provider.connect();
       const address = publicKey.toString();
-      const result = await postJson("/api/positions/solana", { wallet: address });
-      if (result.ok) {
-        setSolana(result.positions ?? []);
-        setSolanaNote(result.partial ? "One or more balances could not be read — the list may be partial." : null);
-      } else {
-        setSolanaNote(result.message ?? "Solana balances could not be read.");
-      }
+      // A different account replaces everything — holdings never bleed
+      // across wallets. A failed read keeps prior data only if it belongs
+      // to this same address, marked stale.
+      setSolana((prev) => (prev && prev.address !== address ? null : prev));
+      await readSolana(address, setSolana, setSolanaNote);
+    } catch (error) {
+      setSolana((prev) => {
+        if (prev) {
+          setSolanaNote(staleNote(prev.readAt));
+          return { ...prev, stale: true };
+        }
+        setSolanaNote(error instanceof Error ? error.message : "Solana balances could not be read.");
+        return null;
+      });
+    }
+    setBusy("");
+  }
+
+  async function refreshSolana() {
+    if (busy || !solana) return;
+    setBusy("solana-refresh");
+    try {
+      await readSolana(solana.address, setSolana, setSolanaNote);
     } catch {
-      setSolanaNote("The wallet request was dismissed. Nothing was read.");
+      setSolana((prev) => (prev ? { ...prev, stale: true } : prev));
+      setSolanaNote(staleNote(solana.readAt));
     }
     setBusy("");
   }
@@ -263,15 +386,29 @@ export function ConnectedPositions() {
         setBusy("");
         return;
       }
-      const result = await postJson("/api/positions/base", { wallet: address });
-      if (result.ok) {
-        setBase(result.positions ?? []);
-        setBaseNote(result.partial ? "One or more balances could not be read — the list may be partial." : null);
-      } else {
-        setBaseNote(result.message ?? "Base balances could not be read.");
-      }
+      setBase((prev) => (prev && prev.address.toLowerCase() !== (address ?? "").toLowerCase() ? null : prev));
+      await readBase(address);
+    } catch (error) {
+      setBase((prev) => {
+        if (prev) {
+          setBaseNote(staleNote(prev.readAt));
+          return { ...prev, stale: true };
+        }
+        setBaseNote(error instanceof Error ? error.message : "Base balances could not be read.");
+        return null;
+      });
+    }
+    setBusy("");
+  }
+
+  async function refreshBase() {
+    if (busy || !base) return;
+    setBusy("base-refresh");
+    try {
+      await readBase(base.address);
     } catch {
-      setBaseNote("The wallet request was dismissed. Nothing was read.");
+      setBase((prev) => (prev ? { ...prev, stale: true } : prev));
+      setBaseNote(staleNote(base.readAt));
     }
     setBusy("");
   }
@@ -282,10 +419,11 @@ export function ConnectedPositions() {
         chain="solana"
         tone="violet"
         icon="bolt"
-        positions={solana}
+        chainState={solana}
         note={solanaNote}
         busy={busy !== ""}
         onConnect={connectSolana}
+        onRefresh={refreshSolana}
         connectLabel="Connect Solana wallet"
         readingLabel="Reading…"
         connectCopy="Connect your Solana execution wallet to view current positions."
@@ -296,10 +434,11 @@ export function ConnectedPositions() {
         chain="base"
         tone="blue"
         icon="globe"
-        positions={base}
+        chainState={base}
         note={baseNote}
         busy={busy !== ""}
         onConnect={connectBase}
+        onRefresh={refreshBase}
         connectLabel="Connect Base wallet"
         readingLabel="Reading…"
         connectCopy="Connect your Base execution wallet to view current positions."
