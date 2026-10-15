@@ -130,6 +130,47 @@ async function main() {
     void gated;
   }
 
+  // 10. P3.4 Earn/Borrow/Redeem audit: discovery honesty per intent.
+  // Earn rows are guidance or official flows — Vicus executes no yield.
+  for (const item of all.filter((i) => i.intent === "earn")) {
+    assert.ok(
+      item.executionMode === "guide" || item.executionMode === "official" || item.executionMode === "connected",
+      `${item.id}: earn never vicus-executed`,
+    );
+    assert.ok(
+      !/guaranteed|fixed\s+\S*%|earn\s+up\s+to|risk-free/i.test(`${item.title} ${item.description}`),
+      `${item.id}: no return promises`,
+    );
+    if (item.executionMode === "guide") {
+      assert.ok(/guide/i.test(item.stateLabel), `${item.id}: guide rows labeled as guides`);
+    }
+  }
+  // Borrow is exactly the verified Morpho market, connected discovery only.
+  const borrows = all.filter((i) => i.intent === "borrow");
+  assert.ok(borrows.length > 0, "borrow represented");
+  for (const item of borrows) {
+    assert.equal(item.assetSlug, "aaplc-on-base", "only the verified borrow market");
+    assert.equal(item.executionMode, "connected", "borrow is connected discovery, never Vicus execution");
+    assert.ok(
+      !/capacity|available\s+to\s+borrow|borrow\s+up\s+to/i.test(`${item.title} ${item.description}`),
+      `${item.id}: no invented borrowing capacity`,
+    );
+  }
+  // Redeem rows carry issuer sources; restricted ones carry the restriction.
+  for (const item of all.filter((i) => i.intent === "redeem")) {
+    assert.ok((item.sourceUrl ?? "").startsWith("http"), `${item.id}: redeem has an issuer source`);
+  }
+  const usdcRedeem = all.find((i) => i.assetSlug === "usdc-on-stellar" && i.intent === "redeem");
+  assert.ok(usdcRedeem && /business/i.test(usdcRedeem.eligibilityNote ?? usdcRedeem.description), "USDC redeem keeps the business-only restriction");
+  // P2.3 eligibility fields ride on every engine row (unknown stays unknown).
+  for (const item of all.filter((i) => i.kind !== "campaign-reward")) {
+    assert.ok(
+      ["available", "unavailable", "unknown"].includes(item.eligibilityState),
+      `${item.id}: eligibility state present`,
+    );
+    assert.ok((item.eligibilityExplanation ?? "").length > 20, `${item.id}: eligibility explained`);
+  }
+
   console.log("utility-discovery:verified");
 }
 

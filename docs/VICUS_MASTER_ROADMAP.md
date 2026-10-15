@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.6 (P3.3 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.7 (P3.4 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.6 sync (2026-10-14): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.7 sync (2026-10-14): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -231,9 +231,9 @@ Milestone IDs are stable. Statuses at v2.6 sync (2026-10-14): `Complete` (P0.1, 
 | P3.1 | Send/Lab/reward completion | All three witnessed E2E with receipts (links P0.2–P0.3, records completion here for Stellar-utility scope) | Manual E2E §§A,G,H receipts | Planned |
 | P3.2 | Stellar swap/yield investigation | Written verdict per candidate venue: routable or not, with quote evidence or honest negative | Quote-evidence log; no unverified venue shipped | Complete 2026-10-14 (docs-only): `docs/P3.2_Stellar_Swap_Yield_Verdicts.md` — 9 verdicts (S1–S6 swaps/CCTP, Y1–Y3 yield) with tiered claims (quote-verified vs implemented-unverified vs witnessed); fresh Jupiter quotes (AAPLx 0.07236993, TSLAx 0.06809039 per 25 USDC; exit 17.248047 USDC per 0.05 AAPLx) + Horizon USDC/XLM orderbook; raw-unit canon resolves manifest units ambiguity; no Stellar-native swap adapter (P3 follow-up proposed); no yield integration anywhere (correctly out of scope); no venue shipped or enabled; no code/config touched. |
 | P3.3 | Permissioned-asset boundaries | BENJI-class assets require issuer-authorized recipients; unauthorized attempts fail closed with clear copy | Allowlist negative tests | Complete 2026-10-14 (`e8ab2d0`, test-only, no behavior change): `send:verify` 11/11 — pre-existing recipient-trustline/authorization + BENJI-readiness guards plus new sender-denial (locked sender trustline), grant path (both authorized → prepared + `permissioned:true`, no submit), Horizon-outage → `verification-unavailable`, client permission-claim ignored, policy-flag parity (BENJI true/USDC false). Single server choke point (`prepareSend` re-reads Horizon; all UI entries + `?asset=` funnel through it; cross-chain is USDC-only by pinned config). Compass restriction copy already live since P2.1 (no UI change). Known limitation: authorization is read at prepare time; issuer revocation between prepare and submit fails closed on-chain (exact-XDR match + consensus) with a failure receipt — documented, not widened in this slice. |
-| P3.4 | Utility discovery surface | `/use` Earn/Borrow/Redeem reflect verified availability only | `utility-discovery:verify` + surface audit | Planned |
+| P3.4 | Utility discovery surface | `/use` Earn/Borrow/Redeem reflect verified availability only | `utility-discovery:verify` + surface audit | Complete 2026-10-14 (audit + tests, no behavior change): Earn rows are guide/official/connected only with factual copy and zero return promises; Borrow is exactly the verified Morpho market as connected discovery with no invented capacity; Redeem rows carry issuer sources with restrictions intact (USDC business-only); P2.3 eligibility fields verified on every engine row; `utility-discovery:verify` green incl. new group-10 audit; external references spot-checked (blend.capital 200, Morpho market link resolves with redirect); no UI change, no venue shipped or enabled. |
 
-**Dependencies:** P0 reliability; verified Stellar execution pathways. P3.2–P3.3 complete; P3.1/P3.4 outstanding (P3.1 is E2E-bound to P0.2–P0.3).
+**Dependencies:** P0 reliability; verified Stellar execution pathways. P3.2–P3.4 complete; P3.1 outstanding (E2E-bound to P0.2–P0.3).
 **Blockers/risks:** Venue liquidity; issuer cooperation for permissioned assets; Testnet/Mainnet confusion (must label).
 **Status:** Planned.
 
@@ -595,12 +595,13 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P3.4 Utility discovery surface audit** (`utility-discovery:verify` + Earn/Borrow/Redeem surface audit; no funds, no signatures).
+- **Next buildable product milestone: P4.1 Connected-holdings truth** (chain re-read holdings with stale/cache labels; read-only, no funds, no signatures).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
 - P3.2 investigation complete 2026-10-14 (docs-only verdicts artifact, no code touched).
 - P3.3 boundaries complete 2026-10-14 (test-only negative suite, no behavior change).
+- P3.4 surface audit complete 2026-10-14 (audit + group-10 tests, no behavior change).
 
 ---
 
@@ -651,7 +652,8 @@ After each completed milestone:
 | 2026-10-14 | P2.2 complete (next steps + verified alternatives live; P2.3 remains; 43 IDs intact) | Commit `56130f6` + v2.3 sync |
 | 2026-10-14 | P2.3 complete (Compass ordering live; P2 phase complete; 43 IDs intact) | Commit `5684ae8` + v2.4 sync |
 | 2026-10-14 | P3.2 complete (swap/yield verdicts; docs-only, no code touched; 43 IDs intact) | v2.5 sync |
-| 2026-10-14 | P3.3 complete (permissioned boundaries; test-only, no behavior change; 43 IDs intact) | This sync |
+| 2026-10-14 | P3.3 complete (permissioned boundaries; test-only, no behavior change; 43 IDs intact) | v2.6 sync |
+| 2026-10-14 | P3.4 complete (utility surface audit; tests only, no behavior change; 43 IDs intact) | This sync |
 
 ---
 
