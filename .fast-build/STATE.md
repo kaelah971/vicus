@@ -151,3 +151,11 @@
 - Presentation: object-fit:contain on tile/sheet/basket/onboarding imagery + stage-matching radii; proportions never cropped. BrandMark/AssetTile/AssetSheet/basket cards pick the files up via asset-visuals with no logic changes.
 - Verification: stellar-home/baskets/prices verifiers green; tsc clean; lint 0 errors; build green; Playwright+Edge 390/1440 (discover, 3 sheets, apple basket): 0 broken images, 0 overflow; card-level screenshots confirm crisp marks + issuer hierarchy.
 - Ship: pushed main, Vercel Ready, alias moved; live serves all three owner files on Discover sheets + basket 200. No milestone changed.
+
+## Mobile UI Recovery — Slice 5: P1.2 Mobile UX + Progressive Disclosure (2026-10-16, commit 32b7397)
+- Audit: 24 page captures (Discover/Use/Positions/Baskets/2 baskets/Circle × 360/375/390/430) + short-height 360×600, 768, 1440 — zero page overflow and zero wide elements everywhere via DOM metrics.
+- Confirmed defect fixed (1): sheet hero scrolled away on expanded/long sheets, stranding identity + close. Fix is CSS-only — `.v-sheet-hero` sticky with sheet-bg fill (6 insertions). Verified: hero pinned + close reachable after expansion at 360px.
+- Non-defects documented: tile-tap no-op and slow router transitions reproduce ONLY on the local dev server (stale HMR session since 10-13); production opens sheets, closes via Escape/X/backdrop/back, and navigates correctly. Next dev overlay "Issue" pill is tooling, not product. Proposed About-disclosure reverted after catalogue data proved all summaries < 220 chars (would have been dead code).
+- Interactions green on production: tile-tap open, sheet ~66% viewport fit, action expand, Escape/X/backdrop close, onboarding (4 cards, adaptive CTA, persist, no-repeat), search 16→1, bottom-nav, hamburger menu + Escape, 4 circle tabs, keyboard focus, price + absence states.
+- Verification: stellar-home/baskets/prices verifiers green; tsc clean; lint 0 errors (3 pre-existing warnings); build green (stale Turbopack font-cache failure cleared via .next/cache removal — environmental, not code).
+- Ship: pushed main, Vercel Ready, alias moved, live 200s. Roadmap v2.18: P1.2 Complete, P1 phase closed (P1.1+P1.2+P1.3 live). 43 IDs intact. No milestone beyond P1 touched; no trading.
