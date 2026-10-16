@@ -144,3 +144,10 @@
 - PART 1 LOGOS — BLOCKED: no owner-supplied Apple/Tesla/NVIDIA files exist anywhere accessible (repo, Desktop, Downloads, /tmp searched). Nothing substituted. Drop-in path ready: add exact files under `public/assets/brands/` + set `localSrc` in `src/lib/asset-visuals.ts` (Tesla entry already shaped for this; stellar-home:verify enforces mapped files exist). Current: Apple official nav mark live, NVIDIA official brand PNG live, Tesla/BENJI honest monogram fallback.
 - Verification: baskets:verify green; tsc clean; lint 0 errors; build green; Playwright+Edge 390/1440 on all 4 curated baskets + index, zero overflow; live HTML confirms bsk cards + apple.svg serving.
 - Ship: pushed main, Vercel Ready, alias moved, live 200s verified. No milestone changed (P1.2 still open).
+
+## UI Correction — Owner Logo Wiring (2026-10-16, commit e3d0278)
+- Owner pack (vicus-owner-logo-assets.zip) extracted 1:1 to public/assets/brands/{apple,tesla,nvidia}-owner.jpeg; zip transport container removed. No substitutes, redraws, or fetched variants.
+- Mapping: apple-owner → AAPLx/AAPLc, tesla-owner → TSLAx, nvidia-owner → NVDAc; all light stages (dark-on-white JPEGs sit on intentional white tiles); issuers untouched (Backed/Coinbase). BENJI is now the sole ticker fallback.
+- Presentation: object-fit:contain on tile/sheet/basket/onboarding imagery + stage-matching radii; proportions never cropped. BrandMark/AssetTile/AssetSheet/basket cards pick the files up via asset-visuals with no logic changes.
+- Verification: stellar-home/baskets/prices verifiers green; tsc clean; lint 0 errors; build green; Playwright+Edge 390/1440 (discover, 3 sheets, apple basket): 0 broken images, 0 overflow; card-level screenshots confirm crisp marks + issuer hierarchy.
+- Ship: pushed main, Vercel Ready, alias moved; live serves all three owner files on Discover sheets + basket 200. No milestone changed.
