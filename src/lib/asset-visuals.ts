@@ -55,7 +55,7 @@ export const ASSET_VISUALS: Record<string, AssetVisualEntry> = {
     officialSource:
       "https://www.apple.com/ac/globalnav/7/en_US/images/be15095f-5a20-57d0-ad14-cf4c638e223a/globalnav_apple_image__b5er5ngrzxqq_large.svg",
     sourcePage: APPLE_PAGE,
-    issuerShort: "Apple · Backed",
+    issuerShort: "Backed",
     stage: "dark",
   },
   "aaplc-on-base": {
@@ -64,7 +64,7 @@ export const ASSET_VISUALS: Record<string, AssetVisualEntry> = {
     officialSource:
       "https://www.apple.com/ac/globalnav/7/en_US/images/be15095f-5a20-57d0-ad14-cf4c638e223a/globalnav_apple_image__b5er5ngrzxqq_large.svg",
     sourcePage: APPLE_PAGE,
-    issuerShort: "Apple · Coinbase",
+    issuerShort: "Coinbase",
     stage: "dark",
   },
   "tslax-on-solana": {
@@ -72,7 +72,7 @@ export const ASSET_VISUALS: Record<string, AssetVisualEntry> = {
     localSrc: null,
     officialSource: "https://ir.tesla.com/favicons/favicon-180.png",
     sourcePage: TESLA_PAGE,
-    issuerShort: "Tesla · Backed",
+    issuerShort: "Backed",
     stage: "light",
     unavailableNote: TESLA_BLOCKED,
   },
@@ -82,7 +82,7 @@ export const ASSET_VISUALS: Record<string, AssetVisualEntry> = {
     officialSource:
       "https://www.nvidia.com/content/dam/en-zz/Solutions/about-nvidia/logo-and-brand/01-nvidia-logo-vert-500x200-2c50-d@2x.png",
     sourcePage: NVIDIA_PAGE,
-    issuerShort: "NVIDIA · Coinbase",
+    issuerShort: "Coinbase",
     stage: "light",
   },
   "benji-on-stellar": {

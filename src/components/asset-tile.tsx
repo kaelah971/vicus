@@ -10,16 +10,37 @@ export type TileAsset = {
   name: string;
   issuer?: string | null;
   classLabel?: string | null;
+  /** Raw registry category (treasury_fund, equity_fund, stablecoin, …). */
+  category?: string | null;
   ecosystem?: string | null;
   ecosystemLabel?: string | null;
   network?: string | null;
   actionLabels?: string[];
 };
 
+export type TileVariant = "equity" | "fund" | "stable" | "other";
+
+const VARIANT_META: Record<TileVariant, { label: string; tone: string }> = {
+  equity: { label: "Equity", tone: "orange" },
+  fund: { label: "Fund", tone: "violet" },
+  stable: { label: "Stable", tone: "green" },
+  other: { label: "Asset", tone: "white" },
+};
+
+/** Category variant drives the card accent — never issuer identity. */
+export function tileVariantFor(category: string | null | undefined): TileVariant {
+  const normalized = (category ?? "").toLowerCase();
+  if (normalized.includes("equity")) return "equity";
+  if (normalized.includes("treasury") || normalized.includes("fixed_income") || normalized.includes("fixed income")) return "fund";
+  if (normalized.includes("stable")) return "stable";
+  return "other";
+}
+
 /**
- * Compact visual tile: large official logo stage first, then ticker,
- * short name, issuer, chain, max 2–3 tiny action labels.
- * No paragraphs, no source-review, no KYC copy — that lives in the sheet.
+ * Premium compact tile: modest brand stage, then ticker + category chip,
+ * one issuer · network line (name shown only when it adds information),
+ * max 2–3 tiny action labels. No paragraphs, no source-review, no KYC
+ * copy — that lives in the sheet.
  */
 export function AssetTile({
   asset,
@@ -36,6 +57,10 @@ export function AssetTile({
   const issuerShort = visual?.issuerShort ?? asset.issuer ?? null;
   const labels = (asset.actionLabels ?? []).slice(0, 3);
   const stage = visual?.stage ?? "light";
+  const variant = tileVariantFor(asset.category ?? asset.classLabel);
+  const meta = VARIANT_META[variant];
+  const displayName = shortAssetName(asset.name, asset.code);
+  const showName = displayName.toUpperCase() !== asset.code.toUpperCase();
 
   const body = (
     <>
@@ -48,10 +73,14 @@ export function AssetTile({
         )}
       </span>
       <span className="v-tile-body">
-        <strong>{asset.code}</strong>
-        <span className="v-tile-name">{shortAssetName(asset.name, asset.code)}</span>
-        {issuerShort ? <small className="v-tile-sub">{issuerShort}</small> : null}
-        <small className="v-tile-chain">{eco.label}</small>
+        <span className="v-tile-top">
+          <strong>{asset.code}</strong>
+          <span className={`v-chip tone-${meta.tone} v-tile-var`}>{meta.label}</span>
+        </span>
+        {showName ? <span className="v-tile-name">{displayName}</span> : null}
+        <small className="v-tile-sub">
+          {[issuerShort, eco.label].filter(Boolean).join(" · ")}
+        </small>
       </span>
       {labels.length > 0 ? (
         <span className="v-tile-acts" aria-label="Available actions">
@@ -63,27 +92,23 @@ export function AssetTile({
     </>
   );
 
+  const tileProps = {
+    className: "v-tile",
+    "aria-label": `Preview ${asset.code}${showName ? ` ${displayName}` : ""}`,
+    "data-asset": asset.slug,
+    "data-variant": variant,
+  };
+
   if (onSelect) {
     return (
-      <button
-        type="button"
-        className="v-tile"
-        onClick={() => onSelect(asset.slug)}
-        aria-label={`Preview ${asset.code} ${shortAssetName(asset.name, asset.code)}`}
-        data-asset={asset.slug}
-      >
+      <button type="button" {...tileProps} onClick={() => onSelect(asset.slug)}>
         {body}
       </button>
     );
   }
 
   return (
-    <Link
-      className="v-tile"
-      href={href}
-      aria-label={`Preview ${asset.code} ${shortAssetName(asset.name, asset.code)}`}
-      data-asset={asset.slug}
-    >
+    <Link {...tileProps} href={href}>
       {body}
     </Link>
   );

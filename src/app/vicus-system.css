@@ -3610,10 +3610,42 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 
 .v-tile-mark-lg { font-size: 1.6rem; min-height: 88px; min-width: 88px; }
 
-.v-tile-logo { border-radius: 18px; max-height: 88px; max-width: 100%; object-fit: contain; }
+.v-tile-logo { border-radius: 12px; max-height: 44px; max-width: 100%; object-fit: contain; }
 
-.v-tile-body { display: grid; gap: 2px; min-width: 0; }
-.v-tile-body strong { font-size: 1.02rem; letter-spacing: -0.02em; }
+.v-tile-mark {
+  font-size: 1.1rem;
+  min-height: 56px;
+  min-width: 56px;
+  padding: 10px 14px;
+}
+
+.v-tile-body { display: grid; gap: 3px; min-width: 0; }
+.v-tile-body strong { font-size: 1.05rem; letter-spacing: -0.02em; }
+.v-tile-top {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+}
+.v-tile-top strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-tile-var { flex: none; font-size: 0.62rem; min-height: 22px; padding: 0 8px; }
+/* Category accent: a quiet top edge per asset class. Issuer identity stays
+   in the logo and issuer line — never in the accent. */
+.v-tile { position: relative; }
+.v-tile::before {
+  border-radius: 22px 22px 0 0;
+  content: "";
+  height: 2px;
+  left: 18px;
+  position: absolute;
+  right: 18px;
+  top: 0;
+}
+.v-tile[data-variant="equity"]::before { background: linear-gradient(90deg, transparent, rgba(255, 150, 80, 0.75), transparent); }
+.v-tile[data-variant="fund"]::before { background: linear-gradient(90deg, transparent, rgba(139, 43, 255, 0.75), transparent); }
+.v-tile[data-variant="stable"]::before { background: linear-gradient(90deg, transparent, rgba(52, 211, 125, 0.75), transparent); }
+.v-tile[data-variant="other"]::before { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent); }
 .v-tile-name { color: var(--foreground); font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .v-tile-sub { color: var(--muted); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .v-tile-chain { color: var(--subtle); font-size: 0.7rem; }
@@ -3769,7 +3801,7 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 @media (max-width: 760px) {
   .v-tiles { gap: 10px; }
   .v-tile { padding: 16px 10px 12px; }
-  .v-tile-visual { min-height: 84px; }
+  .v-tile-visual { min-height: 56px; }
   .x-browser { padding-bottom: 96px; }
   .circle-page-body { padding-bottom: 96px; }
 }
@@ -3779,12 +3811,13 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* Logo stage is the strongest element in the tile. Light marks sit on a
-   soft white panel; the white Apple mark keeps a dark stage. */
+/* Logo stage is compact by design: brand marks read at a glance without
+   dominating the card. Light marks sit on a soft white panel; the white
+   Apple mark keeps a dark stage. */
 .v-tile-visual {
-  border-radius: 16px;
-  min-height: 104px;
-  padding: 14px 10px;
+  border-radius: 14px;
+  min-height: 64px;
+  padding: 10px;
 }
 
 .v-tile-stage-light {

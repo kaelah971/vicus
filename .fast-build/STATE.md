@@ -114,3 +114,11 @@
 - Preserved: Personal/Projects menu grouping, spoke sheet (dvh, safe-area, focus/Escape), bottom nav (env safe-area + 96px clearance), disconnected wallet states.
 - Verification: build green; screenshots at 460/500/760 clean; ≤430px captures limited by headless flooring (noted, not a product signal).
 - Next slices: P1.1 official logos/cards; first-visit onboarding; P1.3 trusted prices/charts; tokenized-stock coverage review; remaining responsive QA.
+
+## Mobile UI Recovery — Slice 2: P1.1 Premium Asset Cards (2026-10-16)
+- Diagnosed sub-450px old-headless screenshot clipping as tooling artifact (proven: identical markup measures exact at 390px via ffmpeg pixel analysis; Playwright mobile emulation shows innerWidth == scrollWidth at 360/375/390/430/1440). Switched verification to Playwright + system Edge (playwright-core devDependency, msedge channel) with DOM metrics per capture.
+- Rebuilt AssetTile: ticker + category chip row (Equity/Fund/Stable/Asset), name shown only when ≠ ticker (kills "USDC USDC" duplication), single issuer · network line, compact logo stage (104→64px, logos ≤44px), refined monogram disc, per-variant top accents, data-variant hook.
+- Truth fixes in asset-visuals.ts: issuer-first attribution (Backed/Coinbase, no underlying-company issuance claims); TSLAx/BENJI documented ticker fallbacks retained.
+- Registry category flows ExploreBrowser → tiles; BENJI monogram + issuer line now reads designed; WisdomTree funds differentiated by ticker + Equity/Fund chips.
+- Verification: stellar-home:verify PASS (new P1.1 group 10), tsc clean, lint 0 errors, build green; Playwright screenshots 360/375/390/430/1440 with zero page overflow; ≤400px icon-only menu verified live in DOM.
+- Mobile header slice (prior): text-size-adjust, pills end-padding, page-head rhythm, ≤400px compaction — all preserved and re-verified.

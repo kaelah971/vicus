@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.15 (P6.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.16 (P1.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.15 sync (2026-10-15): `Complete` (P0.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.16 sync (2026-10-16): `Complete` (P0.1, P1.1, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -188,7 +188,7 @@ Milestone IDs are stable. Statuses at v2.15 sync (2026-10-15): `Complete` (P0.1,
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P1.1 | Official logo + card system | Locally curated logos for covered assets; stock/fund/stablecoin card variants; no hotlinked/unlicensed marks | Visual review on `/discover` desktop+mobile; asset-coverage checklist | Planned |
+| P1.1 | Official logo + card system | Locally curated logos for covered assets; stock/fund/stablecoin card variants; no hotlinked/unlicensed marks | Visual review on `/discover` desktop+mobile; asset-coverage checklist | Complete 2026-10-16: premium compact tile system (ticker + category chip, dedup labels, issuer-first attribution, refined fallbacks, per-variant accents); 14/14 local brand files with provenance (TSLAx/BENJI documented Akamai-blocked fallbacks); `stellar-home:verify` P1.1 group green; Playwright screenshots 360–1440 with zero page overflow. |
 | P1.2 | Mobile UX + progressive disclosure pass | No clipping on target viewports; disclosures collapse long prose; action grids intact at ⅔-viewport sheets | Device-viewport checklist + screenshots | Planned |
 | P1.3 | Trustworthy price/chart presentation | Prices/charts render only with real feeds + timestamps + source labels; otherwise explicit “no verified feed” state; no fabricated series | Feed-absence matrix test (covered vs uncovered assets) | Planned |
 
@@ -610,6 +610,7 @@ Delivered (all checked against repository truth):
 - P5.2 personal baskets complete 2026-10-15 (create/save/watch + migration 0028, discovery only, live).
 - P5.3 transparency complete 2026-10-15 (routes/sources/totals + group-9, live).
 - P6.1 drops hardening complete 2026-10-15 (drops:verify races + recovery, no code changes).
+- P1.1 premium cards complete 2026-10-16 (tile hierarchy + variants + issuer truth, live).
 
 ---
 
@@ -669,7 +670,8 @@ After each completed milestone:
 | 2026-10-15 | P5.1 complete (basket model + 4 themes; discovery only; 43 IDs intact) | v2.12 sync |
 | 2026-10-15 | P5.2 complete (personal baskets + watches; migration 0028; 43 IDs intact) | v2.13 sync |
 | 2026-10-15 | P5.3 complete (compositional transparency; routes/sources/totals; 43 IDs intact) | v2.14 sync |
-| 2026-10-15 | P6.1 complete (idempotent claims + budget limits; drops:verify; 43 IDs intact) | This sync |
+| 2026-10-15 | P6.1 complete (idempotent claims + budget limits; drops:verify; 43 IDs intact) | v2.15 sync |
+| 2026-10-16 | P1.1 complete (premium cards + coverage; Playwright 360–1440; 43 IDs intact) | This sync |
 
 ---
 

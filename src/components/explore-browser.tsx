@@ -162,6 +162,7 @@ export function ExploreBrowser({
             name: circle.name,
             issuer: (circle as { issuerSource?: string }).issuerSource ?? null,
             classLabel: circle.assetClassLabel ?? circle.category,
+            category: circle.category,
             ecosystem: circle.ecosystem ?? circle.network,
             ecosystemLabel: circle.ecosystemLabel,
             network: circle.network,

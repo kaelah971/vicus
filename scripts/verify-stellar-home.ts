@@ -133,6 +133,18 @@ async function main() {
   assert.ok(/\.v-sheet\s*\{[^}]*max-height:\s*66d?vh/.test(css), "sheet default ~2/3 viewport");
   assert.ok(css.includes(".v-sheet-actions") && css.includes(".v-sheet-action.is-open"), "compact action grid with full-width disclosure");
 
+  // 10. P1.1 premium cards: hierarchy, category variants, issuer truth.
+  assert.ok(tileSrc.includes("v-tile-top") && tileSrc.includes("v-tile-var"), "ticker + variant chip row");
+  assert.ok(tileSrc.includes("showName") && tileSrc.includes("displayName"), "name omitted when it duplicates the ticker");
+  assert.ok(tileSrc.includes("tileVariantFor") && tileSrc.includes("equity") && tileSrc.includes("stable"), "stock/fund/stablecoin variants");
+  assert.ok(tileSrc.includes("data-variant"), "variant accent hook present");
+  assert.ok(browser.includes("category: circle.category"), "registry category flows to tiles");
+  assert.ok(visuals.includes('"Backed"') && visuals.includes('"Coinbase"'), "issuer-first attribution");
+  assert.ok(!visuals.includes("Apple ·") && !visuals.includes("Tesla ·") && !visuals.includes("NVIDIA ·"), "no underlying-company issuance claims");
+  assert.ok(/\.v-tile-visual\s*\{[^}]*min-height:\s*64px/.test(css), "compact logo stage");
+  assert.ok(/\.v-tile-logo\s*\{[^}]*max-height:\s*44px/.test(css), "restrained logo size");
+  assert.ok(css.includes('[data-variant="equity"]') && css.includes('[data-variant="stable"]'), "per-variant accents");
+
   console.log("stellar-home:verified");
 }
 

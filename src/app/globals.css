@@ -4509,19 +4509,31 @@ fieldset.field {
 @media (max-width: 400px) {
   .nav-inner {
     gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .nav-actions {
+    flex-wrap: nowrap;
     gap: 8px;
+    min-width: 0;
   }
 
-  .menu-trigger {
+  .mobile-wordmark .wordmark {
+    letter-spacing: 0.22em;
+  }
+
+  .site-nav .menu-trigger {
     font-size: 0;
     gap: 0;
     padding: 9px 12px;
   }
 
   .site-nav .button-small {
-    padding-inline: 12px;
+    font-size: 0.78rem;
+    padding-inline: 10px;
+  }
+
+  .site-nav .button {
+    white-space: nowrap;
   }
 }
