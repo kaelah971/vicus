@@ -24,3 +24,15 @@ Retired: `_test.png` (duplicate of 01, deleted). One landing capture hit a trans
 headless-network error page and was discarded, never shipped.
 
 | `12-stellar-reward-proof.png` | `https://stellar.expert/explorer/testnet/tx/36798e6e184e1c031236d47940dbf6e894447bce260cb918c8c1a2e6985b78fc` | 1440×900 | Independent public-explorer record of Vicus's historical Testnet reward settlement: Successful, ledger 5066878, 0.1 XLM payment, 2026-10-07 | Matches the read-only `reward_claims` row (network testnet, asset XLM, amount 0.1000000, status confirmed) and Testnet Horizon (`successful: true`, identical ledger/amount/op). Recipient shown only as explorer-abbreviated; full address omitted from docs by choice. No new transaction was executed for this capture. |
+
+## Gallery additions — 2026-10-17 (P1.3 → P6.3 recovery slices, same production, same conditions)
+
+| File | Live URL | Viewport | What is shown | Notes / limitations |
+|---|---|---|---|---|
+| `gal-discover-mobile.png` | `/discover` | 390×844 | Stellar-first tile grid with owner Apple/Tesla/NVIDIA marks on Beyond-Stellar tiles | Signed-out; first-visit dialog dismissed via stored completion |
+| `gal-onboarding-mobile.png` | `/discover` | 390×844 | First-visit interest dialog: 4 interest cards, adaptive CTA, Skip | Fresh device state (cleared storage); no selection submitted |
+| `gal-sheet-price-mobile.png` | `/discover?asset=aaplx-on-solana` | 390×844 | Preview sheet with live Jupiter indicative quote (~344.54 USDC), source + updated time, no-chart honesty note | Live quote at capture time; value moves |
+| `gal-basket-mobile.png` | `/baskets/apple-representations` | 390×844 | Curated basket constituent cards with brand marks, weight pills, eligibility disclosures | Scrolled to constituents |
+| `gal-loyalty-mobile.png` | `/profile/demo` | 390×844 | Loyalty section on the demo participant profile: honest zero state (Explorer · 0 pts) | Demo identity, explicitly labeled; no wallet, no fixtures presented as activity |
+| `gal-discover-desktop.png` | `/discover` | 1440×900 | Desktop catalogue with sidebar, filters, Stellar grid | Same conditions as mobile |
+| `gal-loyalty-desktop.png` | `/profile/demo` | 1440×900 | Desktop demo profile with loyalty zero state | Scrolled to loyalty section |

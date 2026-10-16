@@ -46,7 +46,7 @@ Status key: **Live** = usable in production · **Implemented** = built + tested,
 
 | Capability | Status | What it means |
 |---|---|---|
-| Discover tokenized assets | **Live** | Visual Stellar-first catalogue with real issuer marks; filter by ecosystem and asset class |
+| Discover tokenized assets | **Live** | Premium Stellar-first catalogue with owner-supplied Apple/Tesla/NVIDIA marks and issuer-first attribution; filter by ecosystem and asset class; first-visit interest onboarding orders (never hides) assets |
 | Understand assets, issuers, restrictions, networks | **Live** | Per-asset Overview with issuer, network, asset class, lifecycle, eligibility and risk disclosures; Apple comparison shows AAPLx vs AAPLc honestly, including "no verified Stellar representation" |
 | Action Compass: eligibility, next steps, verified alternatives | **Live** | Every action explains itself — available, unavailable, or explicitly unknown — with one concrete next step and at most one engine-verified alternative; `/use` ordering responds to your session |
 | Stellar Send with validation and review | **Implemented** | Policy-gated native payments with trustline + issuer-authorization checks on both sides, decimal-exact amounts, Freighter signing, durable receipts; human-signed Mainnet end-to-end still to be witnessed |
@@ -56,7 +56,10 @@ Status key: **Live** = usable in production · **Implemented** = built + tested,
 | Rewards, campaigns, claims | **Implemented** | Mission review, project-funded campaigns, idempotent Testnet XLM claims with durable receipts; needs a funded distributor for live end-to-end; Mainnet behind an explicit flag (off) |
 | Tokenized-asset access (Jupiter) | **Implemented** | AAPLx/TSLAx routes with live quotes, server-owned mints/slippage, wallet signing, delta verification; execution witnessed end-to-end still pending; AAPLc stays gated (no venue liquidity) |
 | Cross-chain exploration (CCTP) | **Implemented** | Testnet-only burn → attestation → delivery flow; Mainnet off by design pending the inbound-Stellar verdict |
+| Verified prices, honest absences | **Live** | Jupiter indicative quotes (AAPLx/TSLAx, USDC-denominated) and issuer NAV references (BENJI/WTGXX) with source + timestamps; explicit “no verified feed” states elsewhere; charts render only from real series (none wired — no decorative charts) |
 | Unified receipt infrastructure | **Live** | Canonical `initiated → prepared → signed → submitted → settled → failed → unknown` contract across flows; settled requires a transaction reference; source-leg success never proves destination delivery |
+| Loyalty progress | **Live** | Levels, UTC-day streaks, and recent activity derived only from approved missions (each counted once); honest zero states; recognition only — no monetary value, tokens, or eligibility |
+| Drops anti-abuse controls | **Live** | DB-backed per-user attempt quotas, cross-campaign proof-reuse rejection, reviewer-only decisions with shared-evidence flags; throttled attempts change nothing |
 | Curated baskets (discovery only) | **Live** | Four editorial themes of real assets with illustrative weights, issuer/network context, and live eligibility per member — explicitly not investable, no holdings or execution |
 | Personal baskets + watching (discovery only) | **Live** | Signed-in users save personal themes from catalogue assets and watch themes across visits; private by default, owner-isolated, validated server-side |
 | Soroban vaults, basket execution/tokens, Stellar-native swaps, Mainnet payouts | **Planned** | Researched, not built — see [the roadmap](docs/VICUS_MASTER_ROADMAP.md) |
@@ -105,10 +108,15 @@ Full-width motion above. Stellar-first positioning, two doors in: **Explore Vicu
 | [![Circles](docs/screenshots/08-circles.png)](https://explorevicus.vercel.app/circles) | [![Circle Space](docs/screenshots/09-space-missions.png)](https://explorevicus.vercel.app/spaces/circle) |
 | Real social signals per asset (“1 watching”) and truthful empty states where nothing exists yet. | Hosted assets, lessons, open missions — including a visible “0 contributions” where true. |
 
-| Mobile: the catalogue in your pocket | Mobile: the preview sheet |
+| Mobile: the catalogue in your pocket | Mobile: onboarding + verified price |
 |---|---|
-| ![Mobile Discover](docs/screenshots/10-mobile-discover.png) | ![Mobile asset sheet](docs/screenshots/11-mobile-sheet.png) |
-| Two-column visual grid, compact filters, bottom nav — no clipping. | BENJI sheet at ~⅔ viewport over the dimmed grid, grab handle and action grid intact. |
+| ![Mobile Discover](docs/screenshots/10-mobile-discover.png) | [![First-visit onboarding](docs/screenshots/gal-onboarding-mobile.png)](https://explorevicus.vercel.app/discover) |
+| Two-column visual grid, compact filters, bottom nav — no clipping. | Four interest cards map to real registry categories; adaptive CTA; Skip and Escape always available. |
+
+| Mobile: verified price in the preview sheet | Mobile: baskets + loyalty |
+|---|---|
+| [![AAPLx price evidence](docs/screenshots/gal-sheet-price-mobile.png)](https://explorevicus.vercel.app/discover?asset=aaplx-on-solana) | [![Basket constituents](docs/screenshots/gal-basket-mobile.png)](https://explorevicus.vercel.app/baskets/apple-representations) |
+| Live indicative quote with source, freshness, and updated time — or an explicit no-feed state. | Brand-mark cards with weights and eligibility disclosures; [loyalty progress](https://explorevicus.vercel.app/profile/demo) derives only from approved missions. |
 
 > Every screenshot is a production frame — see [`docs/screenshots/CAPTURE_MANIFEST.md`](docs/screenshots/CAPTURE_MANIFEST.md) for URLs and capture conditions. Prefer video? [Watch the official demo](https://youtu.be/w-jVztqD7qU).
 
@@ -158,7 +166,7 @@ Vicus is proof-first by construction:
 - **Source-chain success never proves destination delivery.** Cross-chain receipts keep per-leg evidence.
 - **Holdings carry freshness context.** Every read is timestamped; stale reads are labeled, never silently refreshed; zero balances stay distinguishable from read failures.
 
-These aren't slogans — they're covered by 40+ focused verifier scripts (`npm run *:verify`), including permissioned-boundary negatives, receipt lifecycle truth, and no-fabrication guards.
+These aren't slogans — they're covered by focused verifier scripts (`npm run *:verify`: abuse, loyalty, prices, asset-actions, receipts, rewards and more), including permissioned-boundary negatives, receipt lifecycle truth, and no-fabrication guards.
 
 ## Architecture
 
@@ -182,7 +190,7 @@ flowchart TD
 - **Holdings:** per-wallet chain readers (Horizon accounts, Solana token balances, Base `balanceOf`) with registry-exact matching, positive-only positions, read timestamps, and wallet isolation.
 - **Transaction boundaries:** server derives amounts/assets/destinations; envelopes are exact-match verified; permissioned trustlines re-checked server-side. Vicus never holds funds or secrets.
 - **Receipts:** canonical `src/lib/receipts/` contract unifies send/reward/campaign/access/swap/cross-chain records without rewriting history.
-- **Persistence:** Neon Postgres via Drizzle (28 migrations); balances are never written — only receipts, sessions, and social records.
+- **Persistence:** Neon Postgres via Drizzle (29 migrations); balances are never written — only receipts, sessions, quotas, and social records.
 
 ## Run locally
 
@@ -208,7 +216,7 @@ Vicus is substantially built and honestly labeled — not feature-complete. Rele
 - **R2 — Rewarding + Differentiated (planned):** baskets discovery, funded Drops, Circles reputation, Studio onboarding.
 - **R3 — Infrastructure (planned):** cross-chain Routes, basket execution, vault research + ecosystem APIs.
 
-The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.8: P0.1, P2.1–P2.3, P3.2–P3.4, P4.1–P4.2 complete). Current limitations: sparse-but-real community activity, two ticker-fallback brand marks (documented in `src/lib/asset-visuals.ts`), reward end-to-end needs a funded Testnet distributor.
+The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.20: P0.1, P1.1–P1.3, P2.1–P2.3, P3.2–P3.4, P4.1–P4.4, P5.1–P5.3, P6.1–P6.3 complete). Current limitations: sparse-but-real community activity, one ticker-fallback brand mark (BENJI, documented in `src/lib/asset-visuals.ts`), no review-SLA policy yet (reported, not promised), reward end-to-end needs a funded Testnet distributor.
 
 ---
 
