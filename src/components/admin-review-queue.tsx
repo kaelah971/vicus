@@ -123,6 +123,11 @@ export function AdminReviewQueue({ submissions, actionBase = "/api/admin/submiss
                     Open submitted source
                   </a>
                 ) : null}
+                {(submission.duplicateEvidenceCount ?? 0) > 0 ? (
+                  <span className="field-help">
+                    Shared evidence: {submission.duplicateEvidenceCount} other submission{submission.duplicateEvidenceCount === 1 ? "" : "s"} use{submission.duplicateEvidenceCount === 1 ? "s" : ""} this source — verify originality before approving.
+                  </span>
+                ) : null}
               </div>
               {submission.revisionReason ? (
                 <div className="review-submission-content">

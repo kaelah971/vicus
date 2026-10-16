@@ -134,6 +134,12 @@ export type SubmissionReviewRecord = {
   status: SubmissionStatus;
   revisionReason: string | null;
   submittedAt: string;
+  /**
+   * Other submissions for the same mission sharing this evidence URL.
+   * Advisory only — official doc links are legitimately reused, so the
+   * reviewer decides. Absent (org queues) reads as 0.
+   */
+  duplicateEvidenceCount?: number;
 };
 
 export type AdminMissionRecord = {

@@ -49,6 +49,7 @@
     "return-stellar:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-return-stellar.ts",
     "broader-access:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-broader-access.ts",
     "stellar-home:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-stellar-home.ts",
+    "abuse:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-abuse.ts",
     "prices:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-prices.ts",
     "representations:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-representations.ts",
     "asset-circles:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-asset-circles.ts",

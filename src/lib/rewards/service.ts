@@ -6,6 +6,7 @@ import { compareXlmAmounts, getRewardNetworkConfig, normalizeXlmAmount, rewardEx
 import { RewardActionError, RewardConfigurationError, RewardSettlementError } from "@/lib/rewards/errors";
 import type { RewardSettlementClaim, ConfirmedRewardSettlement } from "@/lib/rewards/settlement";
 import type { RewardFailureCode, RewardStateView } from "@/lib/rewards/types";
+import { consumeAbuseQuota } from "@/lib/abuse/rate-limit";
 
 type RewardClaimRow = typeof rewardClaims.$inferSelect;
 type RewardContext = {
@@ -165,6 +166,18 @@ export async function claimRewardForSession(
 
   const database = getDatabase();
   try {
+    const quota = await consumeAbuseQuota({
+      scope: "reward-claim",
+      userId: session.user.id,
+      qualifier: submissionId,
+    });
+    if (!quota.allowed) {
+      throw new RewardActionError(
+        "rate-limited",
+        429,
+        "Too many claim attempts right now. Wait a little and try again — nothing was charged or lost.",
+      );
+    }
     const context = await getRewardContext(database, submissionId, session.user.id);
     if (!context) {
       throw new RewardActionError("not-found", 404, "That reward could not be found.");

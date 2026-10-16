@@ -7,6 +7,7 @@ export type RewardActionCode =
   | "forbidden"
   | "not-eligible"
   | "wallet-mismatch"
+  | "rate-limited"
   | "reward-configuration-unavailable"
   | "reward-unavailable";
 

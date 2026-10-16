@@ -15,6 +15,7 @@ import {
   parseMissionConfig,
 } from "@/lib/missions/config";
 import { MissionActionError } from "@/lib/missions/errors";
+import { consumeAbuseQuota } from "@/lib/abuse/rate-limit";
 import type { SubmissionOutcome } from "@/lib/missions/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -75,6 +76,22 @@ export async function submitMission(
     }
     if (!context.participant) {
       throw new MissionActionError("unauthenticated", "Your Vicus session is no longer valid.", 401);
+    }
+
+    // Per-user, per-mission attempt quota (DB-backed, serverless-safe).
+    // Throttled attempts change nothing and stay safely retryable — this
+    // only bites brute-force answer cycling on auto-graded quizzes.
+    const quota = await consumeAbuseQuota({
+      scope: "mission-submit",
+      userId: context.participant.id,
+      qualifier: context.mission.id,
+    });
+    if (!quota.allowed) {
+      throw new MissionActionError(
+        "rate-limited",
+        "Too many attempts right now. Wait a little and try again — your progress is kept.",
+        429,
+      );
     }
 
     assertOpenMission(context.mission);

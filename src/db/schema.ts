@@ -944,3 +944,20 @@ export const basketWatches = pgTable(
     index("basket_watches_user_idx").on(table.userId),
   ],
 );
+
+/**
+ * P6.2 anti-abuse quotas. One row per (scope, subject, window bucket).
+ * DB-backed so limits hold across serverless instances — never in-memory
+ * counters. Bucket keys embed the window start, so expiry is implicit
+ * (stale buckets simply stop matching); no janitor required.
+ */
+export const abuseRateLimits = pgTable(
+  "abuse_rate_limits",
+  {
+    bucketKey: text("bucket_key").primaryKey(),
+    count: integer("count").notNull().default(1),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (table) => [index("abuse_rate_limits_window_idx").on(table.windowStart)],
+);

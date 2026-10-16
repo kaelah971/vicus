@@ -8,6 +8,7 @@ export type MissionActionErrorCode =
   | "invalid-quiz"
   | "invalid-text"
   | "duplicate-submission"
+  | "rate-limited"
   | "submission-not-found"
   | "invalid-transition";
 

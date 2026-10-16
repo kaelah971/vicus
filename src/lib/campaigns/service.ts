@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { getDatabase, isDatabaseUnavailableError, toDatabaseUnavailableError } from "@/db";
 import {
   assetTransfers,
@@ -11,6 +11,7 @@ import {
   missions,
 } from "@/db/schema";
 import { isGlobalAdmin, requireOrgRoles } from "@/lib/organizations/service";
+import { consumeAbuseQuota } from "@/lib/abuse/rate-limit";
 import {
   CAMPAIGN_EXPLORER_TX,
   CAMPAIGN_REWARD_ASSET,
@@ -43,6 +44,7 @@ export type CampaignActionErrorCode =
   | "funding-duplicate"
   | "proof-invalid"
   | "proof-reused"
+  | "rate-limited"
   | "budget-exhausted"
   | "participant-cap-reached"
   | "payout-retryable"
@@ -671,6 +673,14 @@ export async function claimCampaignReward(
 ) {
   try {
     const user = requireUserId(userId);
+    const quota = await consumeAbuseQuota({ scope: "campaign-claim", userId: user, qualifier: campaignId });
+    if (!quota.allowed) {
+      throw new CampaignActionError(
+        "rate-limited",
+        "Too many claim attempts right now. Wait a little and try again — nothing was charged or lost.",
+        429,
+      );
+    }
     if (typeof destinationPublicKey !== "string" || !destinationPublicKey.trim()) {
       throw new CampaignActionError("invalid-request", "Provide the verified Stellar destination.", 400);
     }
@@ -692,6 +702,29 @@ export async function claimCampaignReward(
       throw new CampaignActionError("invalid-transition", "This campaign has no valid per-completion reward.", 400);
     }
     const validated = await validateProof(database, campaign, user, proof);
+
+    // One proof earns one campaign reward. The same receipt reused in a
+    // different campaign is farming, not participation — reject before any
+    // reservation. Retries inside THIS campaign keep flowing into the
+    // idempotent insert below and resume the same completion.
+    const [reusedElsewhere] = await database
+      .select({ campaignId: campaignCompletions.campaignId })
+      .from(campaignCompletions)
+      .where(
+        and(
+          eq(campaignCompletions.proofKind, validated.kind),
+          eq(campaignCompletions.proofId, validated.proofId),
+          ne(campaignCompletions.campaignId, campaign.id),
+        ),
+      )
+      .limit(1);
+    if (reusedElsewhere) {
+      throw new CampaignActionError(
+        "proof-reused",
+        "That proof already earned a reward in another campaign. Each campaign reward needs its own proof.",
+        409,
+      );
+    }
 
     // Reserve without interactive transactions (neon-http): insert the
     // completion idempotently, then validate + reserve cover in ONE

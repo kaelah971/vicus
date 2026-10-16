@@ -427,6 +427,17 @@ export async function getAdminSubmissionQueue(filters: AdminQueueFilters = {}): 
       if (!isSubmissionStatus(submission.status)) {
         return [];
       }
+      // Shared-evidence count: other submissions for the same mission
+      // with the same non-empty URL. Same-row reads are computed inline
+      // (admin queue scale); null URLs never count.
+      const duplicateEvidenceCount = submission.evidenceUrl
+        ? rows.filter(
+            (other) =>
+              other.submission.id !== submission.id &&
+              other.submission.missionId === submission.missionId &&
+              other.submission.evidenceUrl === submission.evidenceUrl,
+          ).length
+        : 0;
 
       return [
         {
@@ -447,6 +458,7 @@ export async function getAdminSubmissionQueue(filters: AdminQueueFilters = {}): 
           status: submission.status,
           revisionReason: submission.revisionReason,
           submittedAt: submission.submittedAt.toISOString(),
+          duplicateEvidenceCount,
         },
       ];
     });
