@@ -166,3 +166,10 @@
 - Stellar DEX: mechanism ready (books/path payments live), market absent; genuine future listing would need auth/eligibility plumbing. No integration proposed.
 - Artifact: docs/Tokenized_Stock_Coverage.md (matrix, evidence, rejected routes, next slice = P0.4 witnessed AAPLx settlement, owner-dependent). Trading NOT shipped.
 - Ship: docs-only (artifact + STATE + roadmap workstream bullet, 43 IDs intact). No deploy needed. Verify: prices:verify green; diff--check clean.
+
+## P6.2 Drops Anti-Abuse Controls (2026-10-16/17, commit f5405da)
+- Reused: proof validation (ownership/status/circle/window), idempotent completion insert, budget reservation + caps, quiz duplicate guard, pending-only review transitions, wallet-bound claims, contested-settlement receipts. No second engine.
+- New: migration 0029 `abuse_rate_limits` (applied); `src/lib/abuse/rate-limit.ts` DB-backed quotas keyed on user id (mission-submit 20/hr, campaign/reward-claim 30/hr; 429 pre-side-effect, retry-safe); cross-campaign proof-reuse guard (`proof-reused` 409, same-campaign resume preserved); review-queue shared-evidence flag (advisory count, reviewer decides — doc links legitimately shared).
+- Gap reported, not invented: NO review SLA exists anywhere (no policy found) — queue + decision records + authz are the workflow; SLA needs an owner decision.
+- Verification: NEW `abuse:verify` green (limiter unit, 3-path enforcement, counting exhaustion, legit/idempotent/reuse, forged/wrong/expired, reviewer auth + persistence, duplicate flag, isolation, single settlement); regressions green: drops, campaign-funding 16/16, rewards, missions, auth, receipts; tsc clean; lint 0 errors; build green. Fixed own fallout: removed `server-only` from rate-limit (broke non-shimmed verifiers).
+- Ship: pushed main, Vercel Ready, alias moved, live 200s; prod table confirmed present. P6.3/P6.4 remain; P6 NOT complete.

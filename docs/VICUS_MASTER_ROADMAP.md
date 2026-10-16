@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.18 (P1 phase complete; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.19 (P6.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.18 sync (2026-10-16): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.19 sync (2026-10-16): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -291,7 +291,7 @@ Milestone IDs are stable. Statuses at v2.18 sync (2026-10-16): `Complete` (P0.1,
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
 | P6.1 | Idempotent claims + budget limits | Concurrent/double claims yield one settlement; caps enforced server-side; failed states durable | `campaign-funding:verify` + `reward:verify` + concurrency tests | Complete 2026-10-15 (`drops:verify`): cross-user single-payout race (exactly one paid, loser budget-exhausted, paid == funded, one submit); uncertain-timeout inline recovery with same hash; definitive-rejection → failed → retry pays once; reward concurrent double-claim (one settlement) + timeout retry + cross-user rejection; no code changes (existing atomic reservation/cover/CTE + envelope recovery proven). Funded-chain E2E still needs owner wallets. |
-| P6.2 | Anti-abuse controls | Rate limits, eligibility proofs, duplicate-evidence rejection; admin review queue SLA | Abuse-matrix tests | Planned |
+| P6.2 | Anti-abuse controls | Rate limits, eligibility proofs, duplicate-evidence rejection; admin review queue SLA | Abuse-matrix tests | Complete 2026-10-16: DB-backed per-user quotas (mission-submit 20/hr, campaign/reward-claim 30/hr, 429 pre-side-effect, serverless-safe); cross-campaign proof-reuse rejected (`proof-reused` 409, same-campaign resume intact); review queue flags shared evidence (advisory) with admin-only decisions persisted (reviewer + timestamp); `abuse:verify` matrix green + drops/campaign-funding-16/rewards/missions/auth/receipts regressions green; live on production. Limitation: no review SLA policy exists — reported, not invented. P6.3/P6.4 remain; P6 NOT complete. |
 | P6.3 | Loyalty progress | Participation streaks/levels derived from verified actions only; no invented participation | Rules audit | Planned |
 | P6.4 | Authorized-provider asset drops | Tokenized-asset drops only via authorized providers with issuer approval evidence; otherwise XLM-only | Provider-allowlist test; no permissionless stock-drop path | Planned |
 
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P6.2 Anti-abuse controls** (rate limits, eligibility proofs, duplicate-evidence rejection; no funds, no signatures).
+- **Next buildable product milestone: P6.3 Loyalty progress** (streaks/levels from verified actions only; P6.2 anti-abuse controls complete 2026-10-16, live).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
