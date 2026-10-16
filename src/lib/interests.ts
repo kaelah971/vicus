@@ -29,7 +29,7 @@ export const INTERESTS: readonly InterestDef[] = [
     label: "Stocks & companies",
     blurb: "Apple, Tesla, Nvidia and equity funds — each labeled by issuer and network.",
     categories: ["equity_fund"],
-    visual: { type: "brand", src: "/assets/brands/apple.svg", alt: "" },
+    visual: { type: "brand", src: "/assets/brands/apple-owner.jpeg", alt: "" },
   },
   {
     key: "stables",

@@ -3831,7 +3831,10 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 }
 
 .v-tile-logo {
+  border-radius: 8px;
+  height: auto;
   max-height: 72px;
+  object-fit: contain;
   width: 100%;
 }
 
@@ -3855,6 +3858,7 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 }
 
 .v-sheet-logo {
+  border-radius: 12px;
   max-height: 76px;
   max-width: 100%;
   object-fit: contain;
@@ -4500,7 +4504,7 @@ code, .t-id, .mono {
   overflow: hidden;
   width: 46px;
 }
-.v-onboard-mark img { height: 30px; object-fit: contain; width: 30px; }
+.v-onboard-mark img { border-radius: 6px; height: 30px; object-fit: contain; width: 30px; }
 .v-onboard-mark svg { color: var(--portal); }
 .v-onboard-card strong { font-size: 0.88rem; letter-spacing: -0.01em; }
 .v-onboard-card small { color: var(--muted); font-size: 0.72rem; line-height: 1.45; }
@@ -4590,7 +4594,7 @@ code, .t-id, .mono {
 .bsk-brand { align-items: center; border-radius: 14px; display: grid; flex: none; height: 52px; justify-items: center; width: 52px; }
 .bsk-stage-light { background: rgba(255, 255, 255, 0.92); }
 .bsk-stage-dark { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(var(--fg-rgb), 0.12); }
-.bsk-brand img { height: auto; max-height: 34px; max-width: 38px; width: auto; }
+.bsk-brand img { border-radius: 8px; height: auto; max-height: 34px; max-width: 38px; object-fit: contain; width: auto; }
 .bsk-brand-mark { font-size: 1rem; font-weight: 800; letter-spacing: 0.02em; }
 .bsk-stage-light .bsk-brand-mark { color: #111; }
 .bsk-id { display: grid; gap: 3px; min-width: 0; }

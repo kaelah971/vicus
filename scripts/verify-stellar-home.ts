@@ -113,17 +113,23 @@ async function main() {
 
   // 7. Official brand imagery renders from local files with provenance.
   const visuals = readFileSync(join(ROOT, "src/lib/asset-visuals.ts"), "utf8");
-  for (const file of ["apple.svg", "nvidia.png", "wisdomtree.png", "circle-usdc.svg", "paypal-pyusd.svg", "ondo-usdy.svg"]) {
+  for (const file of ["apple-owner.jpeg", "tesla-owner.jpeg", "nvidia-owner.jpeg", "wisdomtree.png", "circle-usdc.svg", "paypal-pyusd.svg", "ondo-usdy.svg"]) {
     assert.ok(existsSync(join(ROOT, "public/assets/brands", file)), `brand file exists: ${file}`);
   }
-  for (const slug of ["aaplx-on-solana", "aaplc-on-base", "nvdac-on-base", "wtgxx-on-stellar", "usdc-on-stellar", "pyusd-on-stellar", "usdy-on-stellar"]) {
+  for (const slug of ["aaplx-on-solana", "aaplc-on-base", "tslax-on-solana", "nvdac-on-base", "wtgxx-on-stellar", "usdc-on-stellar", "pyusd-on-stellar", "usdy-on-stellar"]) {
     assert.ok(visuals.includes(`"${slug}"`) && visuals.includes("/assets/brands/"), `${slug}: mapped to a local brand file`);
   }
+  assert.ok(
+    visuals.includes('localSrc: "/assets/brands/apple-owner.jpeg"') &&
+      visuals.includes('localSrc: "/assets/brands/tesla-owner.jpeg"') &&
+      visuals.includes('localSrc: "/assets/brands/nvidia-owner.jpeg"'),
+    "owner-supplied Apple/Tesla/NVIDIA files are the wired visuals (no substitutes)",
+  );
   assert.ok(visuals.includes("officialSource") && visuals.includes("sourcePage"), "provenance retained per file");
   assert.ok(visuals.includes("https://www.apple.com") && visuals.includes("https://www.nvidia.com") && visuals.includes("https://www.paypalobjects.com"), "official-domain sources only");
-  // Only the Akamai-blocked issuers may fall back (Tesla, Franklin/BENJI).
+  // Only the Akamai-blocked Franklin/BENJI issuer may fall back.
   const fallbackSlugs = [...visuals.matchAll(/"([a-z0-9-]+)":\s*\{[^}]*?localSrc:\s*null/g)].map((m) => m[1]);
-  assert.ok(fallbackSlugs.every((s) => s === "tslax-on-solana" || s === "benji-on-stellar"), `fallback-only: ${fallbackSlugs.join(",")}`);
+  assert.ok(fallbackSlugs.every((s) => s === "benji-on-stellar"), `fallback-only: ${fallbackSlugs.join(",")}`);
   // Every mapped localSrc resolves to a real file (tiles never 404).
   for (const match of visuals.matchAll(/localSrc:\s*"([^"]+)"/g)) {
     const rel = match[1].replace(/^\//, "");

@@ -3,16 +3,18 @@
  *
  * Sourcing rule: every file under `public/assets/brands/` was fetched from
  * an official company/product/issuer domain (or its official CDN referenced
- * by that domain). `officialSource` records the exact file URL;
- * `sourcePage` records the official page that references it. Random logo
- * sites, image search, AI generation, and trademark redraws are forbidden.
+ * by that domain), or supplied directly by the Vicus owner (`*-owner.jpeg`
+ * files from the owner asset pack). `officialSource` records the exact file
+ * URL or the owner pack name; `sourcePage` records the official page that
+ * references it. Random logo sites, image search, AI generation, and
+ * trademark redraws are forbidden.
  *
- * Two assets remain ticker-fallback for a genuine reason: every official
- * Franklin Templeton and Tesla endpoint returns Akamai Bot Manager 403 to
- * automated fetch (including favicons, regional sites, and IR subdomains).
- * Their entries keep `localSrc: null` with an `unavailableNote` — a human
- * with a real browser can drop the file in and set `localSrc` without any
- * other code change.
+ * Only BENJI remains ticker-fallback for a genuine reason: every official
+ * Franklin Templeton endpoint returns Akamai Bot Manager 403 to automated
+ * fetch. Its entry keeps `localSrc: null` with an `unavailableNote` — a
+ * human with a real browser can drop the file in and set `localSrc`
+ * without any other code change. Tesla was in the same position until the
+ * owner supplied `tesla-owner.jpeg` directly.
  */
 
 export type LogoStage = "light" | "dark";
@@ -43,44 +45,38 @@ const CIRCLE_PAGE = "https://www.circle.com/";
 const PAYPAL_PAGE = "https://www.paypal.com/pyusd";
 const ONDO_PAGE = "https://www.ondo.finance/";
 
-const TESLA_BLOCKED =
-  "Tesla web/IR/shop infrastructure returns Akamai 403 to automated fetch on every official endpoint tested (tesla.com, ir.tesla.com assets, shop.tesla.com); re-fetch with a real browser.";
 const FRANKLIN_BLOCKED =
   "Franklin Templeton infrastructure returns Akamai 403 to automated fetch on every official endpoint tested (.com/.co.uk/.ca/.com.au/.de/.lu, franklinresources.com, templeton.com, benjiinvestments.com, ftidocuments.com); re-fetch with a real browser.";
 
 export const ASSET_VISUALS: Record<string, AssetVisualEntry> = {
   "aaplx-on-solana": {
     slug: "aaplx-on-solana",
-    localSrc: "/assets/brands/apple.svg",
-    officialSource:
-      "https://www.apple.com/ac/globalnav/7/en_US/images/be15095f-5a20-57d0-ad14-cf4c638e223a/globalnav_apple_image__b5er5ngrzxqq_large.svg",
+    localSrc: "/assets/brands/apple-owner.jpeg",
+    officialSource: "Owner-supplied asset pack (vicus-owner-logo-assets.zip): apple-owner.jpeg",
     sourcePage: APPLE_PAGE,
     issuerShort: "Backed",
-    stage: "dark",
+    stage: "light",
   },
   "aaplc-on-base": {
     slug: "aaplc-on-base",
-    localSrc: "/assets/brands/apple.svg",
-    officialSource:
-      "https://www.apple.com/ac/globalnav/7/en_US/images/be15095f-5a20-57d0-ad14-cf4c638e223a/globalnav_apple_image__b5er5ngrzxqq_large.svg",
+    localSrc: "/assets/brands/apple-owner.jpeg",
+    officialSource: "Owner-supplied asset pack (vicus-owner-logo-assets.zip): apple-owner.jpeg",
     sourcePage: APPLE_PAGE,
     issuerShort: "Coinbase",
-    stage: "dark",
+    stage: "light",
   },
   "tslax-on-solana": {
     slug: "tslax-on-solana",
-    localSrc: null,
-    officialSource: "https://ir.tesla.com/favicons/favicon-180.png",
+    localSrc: "/assets/brands/tesla-owner.jpeg",
+    officialSource: "Owner-supplied asset pack (vicus-owner-logo-assets.zip): tesla-owner.jpeg",
     sourcePage: TESLA_PAGE,
     issuerShort: "Backed",
     stage: "light",
-    unavailableNote: TESLA_BLOCKED,
   },
   "nvdac-on-base": {
     slug: "nvdac-on-base",
-    localSrc: "/assets/brands/nvidia.png",
-    officialSource:
-      "https://www.nvidia.com/content/dam/en-zz/Solutions/about-nvidia/logo-and-brand/01-nvidia-logo-vert-500x200-2c50-d@2x.png",
+    localSrc: "/assets/brands/nvidia-owner.jpeg",
+    officialSource: "Owner-supplied asset pack (vicus-owner-logo-assets.zip): nvidia-owner.jpeg",
     sourcePage: NVIDIA_PAGE,
     issuerShort: "Coinbase",
     stage: "light",
