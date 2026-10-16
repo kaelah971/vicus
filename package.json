@@ -34,6 +34,7 @@
     "asset-access:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-asset-access.ts",
     "asset-actions:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-asset-actions.ts",
     "campaign-funding:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-campaign-funding.ts",
+    "drops:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-drops.ts",
     "external-utility:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-external-utility.ts",
     "exit:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-exit.ts",
     "generalized-access:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-generalized-access.ts",
