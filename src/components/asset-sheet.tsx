@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fallbackMark, getAssetVisual, shortAssetName } from "@/lib/asset-visuals";
 import { Glyph, capabilityMeta, ecosystemMeta } from "@/components/vicus-ui";
+import { PriceBlock } from "@/components/price-block";
 
 export type SheetAction = {
   kind: string;
@@ -142,6 +143,9 @@ export function AssetSheet({
               ) : null}
             </p>
           ) : null}
+
+          <h3 className="v-sheet-h">Price</h3>
+          <PriceBlock key={asset.slug} slug={asset.slug} />
 
           <h3 className="v-sheet-h">What you can do</h3>
           {actions.length > 0 ? (

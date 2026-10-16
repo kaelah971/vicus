@@ -46,6 +46,7 @@ import { getActivationMissionLinks } from "@/lib/activation/service";
 import { CommunityPostCard } from "@/components/community-post";
 import { PersonCard } from "@/components/person-card";
 import { AssetTabs } from "@/components/asset-tabs";
+import { PriceBlock } from "@/components/price-block";
 
 type CirclePageProps = {
   params: Promise<{ slug: string }>;
@@ -330,6 +331,14 @@ export default async function CirclePage({ params }: CirclePageProps) {
                           </dd>
                         </div>
                       </dl>
+                    </section>
+
+                    <section aria-labelledby="circle-price-title" className="c-use" id="price">
+                      <div className="c-use-head">
+                        <span className="v-eyebrow">Price</span>
+                        <h2 id="circle-price-title">Verified price</h2>
+                      </div>
+                      <PriceBlock key={circle.slug} slug={circle.slug} />
                     </section>
 
                     {lifecycle.length > 0 ? (
