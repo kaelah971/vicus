@@ -11,6 +11,7 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 import { compareXlmAmounts, getRewardSettlementConfig, normalizeXlmAmount } from "@/lib/rewards/config";
+import { authorizeAssetDrop, DROP_REJECTION_COPY } from "@/lib/drops/providers";
 import { RewardConfigurationError, RewardSettlementError } from "@/lib/rewards/errors";
 import type { RewardNetwork } from "@/lib/rewards/types";
 
@@ -115,6 +116,14 @@ export async function prepareRewardPayment(claim: RewardSettlementClaim): Promis
 
   if (config.network !== claim.network) {
     throw new RewardSettlementError("transaction_rejected", "The configured reward network changed before settlement.");
+  }
+
+  // P6.4 provider boundary: rewards settle native XLM only. Any future
+  // non-XLM distribution must pass the provider allowlist first — this
+  // gate fails closed if the claim shape ever widens.
+  const dropVerdict = authorizeAssetDrop({ assetCode: "XLM", assetIssuer: null, network: claim.network });
+  if (!dropVerdict.ok) {
+    throw new RewardSettlementError("transaction_rejected", DROP_REJECTION_COPY[dropVerdict.reason]);
   }
 
   let amount: string;

@@ -60,7 +60,7 @@ export default async function RewardsPage() {
             <section className="card">
               <p className="eyebrow">Rewards</p>
               <h1>Your rewards</h1>
-              <p className="muted">Native XLM only · network shown on every reward. Claim behavior unchanged.</p>
+              <p className="muted">Native XLM only · network shown on every reward. Tokenized-asset drops need an authorized provider — none connected. Claim behavior unchanged.</p>
             </section>
             <section className="card">
               {attentionRewards.length > 0 ? (

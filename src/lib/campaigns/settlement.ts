@@ -19,6 +19,7 @@ import {
   CAMPAIGN_REWARD_ISSUER,
   baseUnitsToUsdc,
 } from "@/lib/campaigns/config";
+import { authorizeAssetDrop, DROP_REJECTION_COPY } from "@/lib/drops/providers";
 
 export type CampaignConfigurationErrorCode = "distributor_not_configured" | "invalid-max-amount";
 
@@ -239,6 +240,17 @@ export async function prepareCampaignPayout(
   }
   if (!StrKey.isValidEd25519PublicKey(destinationPublicKey)) {
     throw new CampaignSettlementError("invalid_destination", "The verified Stellar destination is invalid.");
+  }
+  // P6.4 provider boundary: campaigns settle pinned Testnet USDC only.
+  // Any restricted-asset distribution must pass the provider allowlist;
+  // this gate fails closed if payout construction ever widens.
+  const dropVerdict = authorizeAssetDrop({
+    assetCode: CAMPAIGN_REWARD_ASSET,
+    assetIssuer: CAMPAIGN_REWARD_ISSUER,
+    network: "stellar_testnet",
+  });
+  if (!dropVerdict.ok) {
+    throw new CampaignSettlementError("transaction_rejected", DROP_REJECTION_COPY[dropVerdict.reason]);
   }
   let distributor: Keypair;
   try {
