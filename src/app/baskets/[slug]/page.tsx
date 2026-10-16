@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { ButtonLink, DataState, EmptyState, StatusPill } from "@/components/vicus";
-import { AssetToken, Chip, GlowField, SectionHead } from "@/components/vicus-ui";
+import { Chip, GlowField, SectionHead } from "@/components/vicus-ui";
+import { BrandMark } from "@/components/brand-mark";
 import { isDatabaseUnavailableError } from "@/db";
 import { BasketsError, resolveBasket, type ResolvedBasket } from "@/lib/baskets/service";
 import { resolveMyBasket } from "@/lib/baskets/user";
@@ -13,6 +14,15 @@ import { BasketWatchButton } from "@/components/basket-watch-button";
 import { DISCOVERY_ONLY_DISCLOSURE, weightPercent } from "@/lib/baskets/config";
 
 export const dynamic = "force-dynamic";
+
+/** Display host for a source URL; the href stays the exact official URL. */
+function sourceDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 type RouteProps = { params: Promise<{ slug: string }> };
 
@@ -126,41 +136,40 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                   }
                 />
                 {basket.members.length > 0 ? (
-                  <div className="pos-hold-grid">
+                  <div className="bsk-grid">
                     {basket.members.map((member) => (
-                      <article className="pos-hold" key={member.slug}>
-                        <div className="pos-hold-top">
-                          <AssetToken code={member.code} ecosystem={member.ecosystem} />
-                          <div className="pos-hold-id">
-                            <strong className="pos-hold-code">{member.code}</strong>
-                            <span className="pos-hold-net">
-                              {member.network} · {member.weightLabel}
+                      <article className="bsk-card" key={member.slug}>
+                        <div className="bsk-top">
+                          <BrandMark slug={member.slug} code={member.code} label={`${member.code} logo`} />
+                          <div className="bsk-id">
+                            <strong className="bsk-code">{member.code}</strong>
+                            <span className="bsk-sub">
+                              {member.issuer} · {member.network}
                             </span>
                           </div>
-                          <span className="pos-hold-chip">
-                            <Chip tone="blue">{member.assetClassLabel}</Chip>
+                          <span className="bsk-weight" title="Illustrative basket weight">
+                            {member.weightLabel}
                           </span>
                         </div>
-                        <p className="pos-actions-line">
-                          {member.issuer} · {member.ecosystemLabel}
-                        </p>
-                        <p className="pos-issuer" title={member.eligibilityNote}>
-                          {member.eligibilityNote}
-                        </p>
-                        <p className="pos-actions-line">{member.stateLabel}</p>
-                        <p className="pos-actions-line">
+                        <div className="bsk-tags">
+                          <Chip tone="blue">{member.assetClassLabel}</Chip>
+                          <span className="bsk-state">{member.stateLabel}</span>
+                        </div>
+                        <details className="bsk-elig">
+                          <summary>Eligibility</summary>
+                          <p>{member.eligibilityNote}</p>
+                        </details>
+                        <p className="bsk-routes">
                           {member.routes.length > 0
                             ? `Verified routes: ${member.routes.join(" · ")}`
                             : "No execution routes — discovery only."}
                         </p>
-                        {member.sourceUrl ? (
-                          <p className="pos-actions-line">
-                            <a href={member.sourceUrl} target="_blank" rel="noreferrer">
+                        <div className="bsk-foot">
+                          {member.sourceUrl ? (
+                            <a href={member.sourceUrl} target="_blank" rel="noreferrer" className="bsk-src-link">
                               Official source →
                             </a>
-                          </p>
-                        ) : null}
-                        <div className="pos-actions">
+                          ) : null}
                           <ButtonLink className="button-small" href={member.openHref} variant="outline">
                             Open {member.code}
                           </ButtonLink>
@@ -181,21 +190,19 @@ export default async function BasketDetailPage({ params }: RouteProps) {
                 ) : null}
               </section>
 
-              <section className="content-panel" aria-label="Basket provenance">
-                <p className="control-note">
-                  Source:{" "}
-                  <a href={basket.def.sourceUrl} target="_blank" rel="noreferrer">
-                    {basket.def.sourceUrl}
-                  </a>
-                </p>
-                <p style={{ marginTop: 12 }}>
+              <section className="content-panel bsk-src" aria-label="Basket provenance">
+                <span className="v-eyebrow">Source</span>
+                <a className="bsk-src-url" href={basket.def.sourceUrl} target="_blank" rel="noreferrer">
+                  {sourceDomain(basket.def.sourceUrl)}
+                </a>
+                <div className="bsk-nav">
                   <Link className="button button-outline button-small" href="/baskets">
                     All baskets
-                  </Link>{" "}
+                  </Link>
                   <Link className="button button-outline button-small" href="/discover">
                     Discover assets
                   </Link>
-                </p>
+                </div>
               </section>
             </div>
           )}

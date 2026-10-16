@@ -98,26 +98,26 @@ export default async function BasketsPage() {
                 title="Browse by theme"
                 line="Composition is illustrative. Every member links to its full asset page with live eligibility."
               />
-              <div className="pos-hold-grid">
+              <div className="bsk-grid">
                 {baskets.map((basket) => (
-                  <article className="pos-hold" key={basket.slug}>
-                    <div className="pos-hold-top">
-                      <div className="pos-hold-id">
-                        <strong className="pos-hold-code">{basket.name}</strong>
-                        <span className="pos-hold-net">
+                  <article className="bsk-card bsk-theme" key={basket.slug}>
+                    <div className="bsk-top">
+                      <div className="bsk-id">
+                        <strong className="bsk-code">{basket.name}</strong>
+                        <span className="bsk-sub">
                           {basket.memberCount} assets · v{basket.version}
                         </span>
                       </div>
                     </div>
-                    <p className="pos-actions-line">{basket.theme}</p>
-                    <div className="pos-actions">
+                    <p className="bsk-theme-line">{basket.theme}</p>
+                    <div className="bsk-tags">
                       {basket.memberCodes.map((code) => (
                         <Chip key={code} tone="violet">
                           {code}
                         </Chip>
                       ))}
                     </div>
-                    <div className="pos-actions">
+                    <div className="bsk-foot">
                       <Link className="button button-outline button-small" href={`/baskets/${basket.slug}`}>
                         Open theme
                       </Link>
@@ -144,16 +144,16 @@ export default async function BasketsPage() {
                   Nothing saved yet. Create a basket from real catalogue assets, or watch a curated theme to find it here after reload.
                 </p>
               ) : (
-                <div className="pos-hold-grid">
+                <div className="bsk-grid">
                   {mine.map((entry) => (
-                    <article className="pos-hold" key={entry.key}>
-                      <div className="pos-hold-top">
-                        <div className="pos-hold-id">
-                          <strong className="pos-hold-code">{entry.name}</strong>
-                          <span className="pos-hold-net">{entry.detail}</span>
+                    <article className="bsk-card bsk-theme" key={entry.key}>
+                      <div className="bsk-top">
+                        <div className="bsk-id">
+                          <strong className="bsk-code">{entry.name}</strong>
+                          <span className="bsk-sub">{entry.detail}</span>
                         </div>
                       </div>
-                      <div className="pos-actions">
+                      <div className="bsk-foot">
                         <Link className="button button-outline button-small" href={entry.href ?? "/baskets"}>
                           Open basket
                         </Link>
@@ -161,14 +161,14 @@ export default async function BasketsPage() {
                     </article>
                   ))}
                   {watched.map((entry) => (
-                    <article className="pos-hold" key={entry.key}>
-                      <div className="pos-hold-top">
-                        <div className="pos-hold-id">
-                          <strong className="pos-hold-code">{entry.name}</strong>
-                          <span className="pos-hold-net">Watching · {entry.detail}</span>
+                    <article className="bsk-card bsk-theme" key={entry.key}>
+                      <div className="bsk-top">
+                        <div className="bsk-id">
+                          <strong className="bsk-code">{entry.name}</strong>
+                          <span className="bsk-sub">Watching · {entry.detail}</span>
                         </div>
                       </div>
-                      <div className="pos-actions">
+                      <div className="bsk-foot">
                         {entry.href ? (
                           <Link className="button button-outline button-small" href={entry.href}>
                             Open basket

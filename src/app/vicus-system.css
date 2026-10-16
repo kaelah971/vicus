@@ -4580,3 +4580,36 @@ code, .t-id, .mono {
 .v-chart-empty { border-top: 1px dashed rgba(var(--fg-rgb), 0.14); color: var(--subtle); font-size: 0.78rem; margin-top: 10px; padding-top: 8px; }
 .v-chart { display: block; height: auto; margin-top: 10px; max-width: 100%; width: 100%; }
 .v-chart polyline { stroke: var(--foreground); }
+
+/* Curated baskets — premium constituent cards. Scoped to basket pages;
+   Position Center keeps its own pos-hold system untouched. */
+.bsk-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 20px; }
+.bsk-card { align-content: start; background: var(--surface-raised); border: 1px solid var(--hairline); border-radius: 18px; display: grid; gap: 14px; padding: clamp(18px, 2.5vw, 24px); transition: border-color 0.2s ease, transform 0.2s ease; }
+.bsk-card:hover { border-color: rgba(139, 43, 255, 0.5); transform: translateY(-2px); }
+.bsk-top { align-items: center; display: flex; gap: 14px; min-width: 0; }
+.bsk-brand { align-items: center; border-radius: 14px; display: grid; flex: none; height: 52px; justify-items: center; width: 52px; }
+.bsk-stage-light { background: rgba(255, 255, 255, 0.92); }
+.bsk-stage-dark { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(var(--fg-rgb), 0.12); }
+.bsk-brand img { height: auto; max-height: 34px; max-width: 38px; width: auto; }
+.bsk-brand-mark { font-size: 1rem; font-weight: 800; letter-spacing: 0.02em; }
+.bsk-stage-light .bsk-brand-mark { color: #111; }
+.bsk-id { display: grid; gap: 3px; min-width: 0; }
+.bsk-code { font-size: 1.1rem; font-weight: 750; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.bsk-sub { color: var(--subtle); font-size: 0.78rem; line-height: 1.45; }
+.bsk-weight { border: 1px solid rgba(46, 160, 90, 0.5); border-radius: 999px; flex: none; font-size: 0.78rem; font-weight: 700; margin-left: auto; padding: 3px 12px; white-space: nowrap; }
+.bsk-tags { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
+.bsk-state { color: var(--subtle); font-size: 0.76rem; }
+.bsk-theme-line { color: var(--muted); font-size: 0.86rem; line-height: 1.6; margin: 0; }
+.bsk-elig { border-top: 1px solid rgba(var(--fg-rgb), 0.08); padding-top: 10px; }
+.bsk-elig summary { color: var(--foreground); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+.bsk-elig p { color: var(--subtle); font-size: 0.8rem; line-height: 1.6; margin: 8px 0 0; }
+.bsk-routes { color: var(--muted); font-size: 0.78rem; line-height: 1.6; margin: 0; }
+.bsk-foot { align-items: center; border-top: 1px solid rgba(var(--fg-rgb), 0.08); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; padding-top: 14px; }
+.bsk-src-link { font-size: 0.8rem; }
+.bsk-src { display: grid; gap: 12px; }
+.bsk-src-url { font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
+.bsk-nav { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 560px) {
+  .bsk-grid { grid-template-columns: 1fr; }
+  .bsk-foot .button { flex: 1 1 auto; text-align: center; }
+}
