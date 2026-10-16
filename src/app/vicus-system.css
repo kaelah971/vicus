@@ -3841,9 +3841,14 @@ button.v-tile { cursor: pointer; font: inherit; width: 100%; }
 /* Sheet hero: large official visual above the title. */
 .v-sheet-hero {
   align-items: center;
+  background: #121218;
   display: flex;
   gap: 14px;
-  padding: 10px 0 4px;
+  margin: 0 -20px;
+  padding: 10px 20px 10px;
+  position: sticky;
+  top: -8px;
+  z-index: 2;
 }
 
 .v-sheet-stage {
