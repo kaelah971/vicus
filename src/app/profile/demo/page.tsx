@@ -11,6 +11,7 @@ import {
   StatusPill,
 } from "@/components/vicus";
 import { AppShell } from "@/components/app-shell";
+import { LoyaltyCard } from "@/components/loyalty-card";
 import { isDatabaseUnavailableError } from "@/db";
 import { getUserProfileByHandle } from "@/lib/data/profiles";
 
@@ -221,8 +222,9 @@ export default async function DemoProfilePage() {
             </section>
           </div>
 
-          <section className="hairline-card profile-panel reward-history-panel" id="reward-history">
-            <Eyebrow>Reward history</Eyebrow>
+          <LoyaltyCard userId={profile.user.id} demo />
+
+          <section className="hairline-card profile-panel reward-history-panel" id="reward-history">            <Eyebrow>Reward history</Eyebrow>
             <h2>Receipts should tell the whole story.</h2>
             <RewardState />
           </section>

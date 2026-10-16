@@ -4,6 +4,7 @@ import { ButtonLink, DataState, EmptyState, Icon, StatusPill } from "@/component
 import { AssetToken, Avatar, GlowField, MetricTile, Orb, SectionHead, StepFlow } from "@/components/vicus-ui";
 import { AppShell } from "@/components/app-shell";
 import { ProfileEditor } from "@/components/profile-editor";
+import { LoyaltyCard } from "@/components/loyalty-card";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { ReceiveSettings } from "@/components/receive-settings";
 import { isDatabaseUnavailableError } from "@/db";
@@ -251,8 +252,9 @@ export default async function MyProfilePage() {
             />
           </section>
 
-          <section className="p-section" id="rewards" aria-labelledby="rewards-title">
-            <SectionHead
+          <LoyaltyCard userId={session.user.id} />
+
+          <section className="p-section" id="rewards" aria-labelledby="rewards-title">            <SectionHead
               eyebrow="Rewards"
               id="rewards-title"
               line="Native XLM only · network shown on every reward."
