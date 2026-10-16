@@ -9,6 +9,15 @@ import {
   matchesCircleFilters,
 } from "../src/lib/data/circles";
 import { resolveAssetActions } from "../src/lib/asset-actions/service";
+import {
+  INTERESTS,
+  INTERESTS_KEY,
+  ONBOARDED_KEY,
+  categoriesFor,
+  rankByInterests,
+  sanitizeInterests,
+} from "../src/lib/interests";
+import { assetClassLabels } from "../src/lib/data/circles";
 import { listActiveCampaignCircles } from "../src/lib/campaigns/service";
 
 config({ path: ".env.local" });
@@ -144,6 +153,35 @@ async function main() {
   assert.ok(/\.v-tile-visual\s*\{[^}]*min-height:\s*64px/.test(css), "compact logo stage");
   assert.ok(/\.v-tile-logo\s*\{[^}]*max-height:\s*44px/.test(css), "restrained logo size");
   assert.ok(css.includes('[data-variant="equity"]') && css.includes('[data-variant="stable"]'), "per-variant accents");
+
+  // 10. P1.1 premium cards covered above; 11. first-visit interests.
+  // Every interest maps to real registry categories with live members;
+  // helpers are pure, storage keys namespaced, unknowns dropped.
+  assert.equal(INTERESTS.length, 4, "four curated interests");
+  assert.ok(INTERESTS.every((i) => i.key && i.label && i.blurb && i.categories.length > 0), "complete definitions");
+  assert.ok(INTERESTS.every((i) => i.categories.every((c) => c in assetClassLabels)), "categories are registry-real");
+  assert.equal(ONBOARDED_KEY, "vicus.onboarded.v1", "namespaced completion key");
+  assert.equal(INTERESTS_KEY, "vicus.interests.v1", "namespaced selection key");
+  assert.deepEqual(sanitizeInterests(["stocks", "nope", 42, "stocks"]), ["stocks"], "unknowns dropped, order kept");
+  assert.deepEqual(sanitizeInterests("stocks"), [], "non-arrays rejected");
+  assert.ok(categoriesFor(["stocks", "bonds"]).has("equity_fund") && categoriesFor(["stocks", "bonds"]).has("fixed_income"), "category union");
+  assert.deepEqual(categoriesFor([]), new Set(), "empty selection covers nothing");
+  assert.deepEqual(rankByInterests(["a", "b", "c"], (item) => item === "c"), ["c", "a", "b"], "matches first, order otherwise stable");
+  const registry = await listCircles(null);
+  for (const interest of INTERESTS) {
+    const members = registry.filter((c) => interest.categories.includes(c.category));
+    assert.ok(members.length > 0, `${interest.key}: resolves to real catalogue assets`);
+  }
+  // Dialog + browser wiring: deep-link suppression, edit affordance, no
+  // wallet or eligibility imports anywhere in the onboarding path.
+  const dialogSrc = readFileSync(join(ROOT, "src/components/onboarding-dialog.tsx"), "utf8");
+  assert.ok(dialogSrc.includes('role="dialog"') && dialogSrc.includes('aria-modal="true"'), "accessible dialog");
+  assert.ok(dialogSrc.includes("Escape") && dialogSrc.includes("aria-pressed"), "keyboard + toggle semantics");
+  assert.ok(dialogSrc.includes("Explore all assets") && dialogSrc.includes("Explore my interests") && dialogSrc.includes("Skip for now"), "adaptive CTA + skip");
+  assert.ok(!/Freighter|signMessage|eligib|balance|price|apy/i.test(dialogSrc), "no wallet, finance, or eligibility in dialog");
+  const browserSrc = readFileSync(join(ROOT, "src/components/explore-browser.tsx"), "utf8");
+  assert.ok(browserSrc.includes("hasAssetParam") && browserSrc.includes("localStorage"), "deep-link guard + device-local persistence");
+  assert.ok(browserSrc.includes("x-interests-btn") && browserSrc.includes("Edit interests"), "visible edit affordance");
 
   console.log("stellar-home:verified");
 }

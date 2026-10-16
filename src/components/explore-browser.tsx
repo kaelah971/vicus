@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState, Icon } from "@/components/vicus";
 import { ecosystemMeta } from "@/components/vicus-ui";
 import { AssetTile } from "@/components/asset-tile";
+import { OnboardingDialog } from "@/components/onboarding-dialog";
+import { INTERESTS_KEY, ONBOARDED_KEY, categoriesFor, sanitizeInterests } from "@/lib/interests";
 import { AssetSheet, type SheetAction, type SheetSubject } from "@/components/asset-sheet";
 import type { Circle } from "@/lib/vicus-data";
 import { buildDiscoveryGroups, matchesCircleFilters } from "@/lib/data/circles";
@@ -58,6 +60,10 @@ export function ExploreBrowser({
   const [state, setState] = useState("All statuses");
   const [onlyUsable, setOnlyUsable] = useState(false);
   const [onlyCampaigned, setOnlyCampaigned] = useState(false);
+  // First-visit interests: device-local, read once after mount to avoid
+  // hydration mismatch. Null = not yet read; never blocks browsing.
+  const [interests, setInterests] = useState<string[] | null>(null);
+  const [onboardOpen, setOnboardOpen] = useState(false);
 
   const ecosystemOptions = useMemo(
     () =>
@@ -111,6 +117,27 @@ export function ExploreBrowser({
   }
 
   const requestedClass = (searchParams.get("class") ?? "").trim().toLowerCase();
+  const hasAssetParam = (searchParams.get("asset") ?? "").trim().length > 0;
+
+  useEffect(() => {
+    // One-time client hydration of device-local preferences. useState
+    // initializers cannot read localStorage during SSR, so this single-run
+    // effect is the hydration point. hasAssetParam is read from the initial
+    // deep link only — later sheet opens must not retro-trigger onboarding.
+    let completed = false;
+    let saved: string[] = [];
+    try {
+      completed = window.localStorage.getItem(ONBOARDED_KEY) === "1";
+      saved = sanitizeInterests(JSON.parse(window.localStorage.getItem(INTERESTS_KEY) ?? "[]"));
+    } catch {
+      completed = true;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInterests(saved);
+    // Never interrupt a direct asset deep link.
+    if (!completed && !hasAssetParam) setOnboardOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const knownClasses = useMemo(
     () => new Set<string>([...CATEGORY_SHORTCUTS.map((entry) => entry.value), ...ASSET_CLASS_ORDER]),
     [],
@@ -123,15 +150,45 @@ export function ExploreBrowser({
   );
   const usableSet = useMemo(() => new Set(usableSlugs), [usableSlugs]);
   const campaignedSet = useMemo(() => new Set(campaignSlugs), [campaignSlugs]);
+  const interestCats = useMemo(
+    () => (interests && interests.length > 0 ? categoriesFor(interests) : null),
+    [interests],
+  );
   const filteredCircles = useMemo(() => {
     const filters = { assetClass, ecosystem, query, state };
-    return circles.filter(
+    const list = circles.filter(
       (circle) =>
         matchesCircleFilters(circle, filters) &&
         (!onlyUsable || usableSet.has(circle.slug)) &&
         (!onlyCampaigned || campaignedSet.has(circle.slug)),
     );
-  }, [assetClass, circles, ecosystem, query, state, onlyUsable, onlyCampaigned, usableSet, campaignedSet]);
+    // Interest boost (never a filter): matching categories surface first
+    // within each ecosystem partition downstream. Explicit ?class= wins
+    // outright; search text still applies to the whole catalogue.
+    if (!interestCats || assetClass !== ALL_CLASSES) return list;
+    const ecoRank = (circle: Circle) => ((circle.ecosystem ?? circle.network) === "stellar" ? 0 : 1);
+    return list
+      .map((circle, index) => ({ circle, index }))
+      .sort(
+        (a, b) =>
+          ecoRank(a.circle) - ecoRank(b.circle) ||
+          Number(interestCats.has(b.circle.category)) - Number(interestCats.has(a.circle.category)) ||
+          a.index - b.index,
+      )
+      .map((entry) => entry.circle);
+  }, [assetClass, circles, ecosystem, query, state, onlyUsable, onlyCampaigned, usableSet, campaignedSet, interestCats]);
+
+  function completeOnboarding(selected: string[]) {
+    const clean = sanitizeInterests(selected);
+    try {
+      window.localStorage.setItem(INTERESTS_KEY, JSON.stringify(clean));
+      window.localStorage.setItem(ONBOARDED_KEY, "1");
+    } catch {
+      // Device-local only; browsing continues regardless.
+    }
+    setInterests(clean);
+    setOnboardOpen(false);
+  }
 
   const groups = useMemo(
     () =>
@@ -241,6 +298,14 @@ export function ExploreBrowser({
               </label>
             </div>
           </details>
+          <button
+            type="button"
+            className="x-interests-btn"
+            onClick={() => setOnboardOpen(true)}
+            aria-label={interests && interests.length > 0 ? `Edit interests, ${interests.length} selected` : "Choose interests"}
+          >
+            Interests{interests && interests.length > 0 ? ` · ${interests.length}` : ""}
+          </button>
         </div>
       </div>
 
@@ -292,6 +357,12 @@ export function ExploreBrowser({
           openLabel="Open full asset"
         />
       ) : null}
+
+      <OnboardingDialog
+        open={onboardOpen}
+        initialSelected={interests ?? []}
+        onComplete={completeOnboarding}
+      />
     </section>
   );
 }

@@ -122,3 +122,9 @@
 - Registry category flows ExploreBrowser → tiles; BENJI monogram + issuer line now reads designed; WisdomTree funds differentiated by ticker + Equity/Fund chips.
 - Verification: stellar-home:verify PASS (new P1.1 group 10), tsc clean, lint 0 errors, build green; Playwright screenshots 360/375/390/430/1440 with zero page overflow; ≤400px icon-only menu verified live in DOM.
 - Mobile header slice (prior): text-size-adjust, pills end-padding, page-head rhythm, ≤400px compaction — all preserved and re-verified.
+
+## Mobile UI Recovery — Slice 3: First-Visit Interest Onboarding (2026-10-16)
+- Dialog on first /discover visit (exact headline + supporting copy): 4 multi-select interest cards mapped ONLY to real registry categories (stocks→equity_fund, stables→stablecoin, funds→treasury_fund, bonds→fixed_income; all verified non-empty), brand/glyph visuals from local files, adaptive CTA (Explore all assets / Explore my interests), Skip, Escape, backdrop-skip, focus heading, safe-area sheet + centered desktop.
+- Personalization = ordering boost only (Stellar-first preserved, explicit ?class= wins, search applies catalogue-wide, nothing hidden, Compass untouched, no suitability inference).
+- Persistence: device-local localStorage (vicus.onboarded.v1/vicus.interests.v1), sanitized keys, storage-failure tolerant, no flicker (mount-closed), ?asset= deep links never interrupted, visible Interests edit button with count.
+- Verification: stellar-home group-11 green; tsc/lint clean; 18/18 Playwright interactions (open/select/adapt/continue/storage/reload/edit/escape/deep-link/skip); viewports 360/375/390/430/1440 with innerWidth == scrollWidth; dialog in-viewport everywhere.

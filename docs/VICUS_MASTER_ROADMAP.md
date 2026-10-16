@@ -611,6 +611,7 @@ Delivered (all checked against repository truth):
 - P5.3 transparency complete 2026-10-15 (routes/sources/totals + group-9, live).
 - P6.1 drops hardening complete 2026-10-15 (drops:verify races + recovery, no code changes).
 - P1.1 premium cards complete 2026-10-16 (tile hierarchy + variants + issuer truth, live).
+- First-visit interest onboarding 2026-10-16 (dialog + interest ordering + device-local prefs, UI Recovery, live).
 
 ---
 
