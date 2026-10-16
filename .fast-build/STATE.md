@@ -159,3 +159,10 @@
 - Interactions green on production: tile-tap open, sheet ~66% viewport fit, action expand, Escape/X/backdrop close, onboarding (4 cards, adaptive CTA, persist, no-repeat), search 16→1, bottom-nav, hamburger menu + Escape, 4 circle tabs, keyboard focus, price + absence states.
 - Verification: stellar-home/baskets/prices verifiers green; tsc clean; lint 0 errors (3 pre-existing warnings); build green (stale Turbopack font-cache failure cleared via .next/cache removal — environmental, not code).
 - Ship: pushed main, Vercel Ready, alias moved, live 200s. Roadmap v2.18: P1.2 Complete, P1 phase closed (P1.1+P1.2+P1.3 live). 43 IDs intact. No milestone beyond P1 touched; no trading.
+
+## Research Slice — Tokenized-Stock Coverage + Stellar Trading Feasibility (2026-10-16)
+- Stellar sweep (Horizon, 8 codes): NO verified stock representation. stellarnasdaq AAPL (586 holders, domain dead, XLM-only book at ~$0.0001, zero USDC trades); indus TSLA (7,557 holders, domain dead, 50.75M-unit dust asks); NVDA/SPY/QQQ clones all empty USD books + dust XLM trades; DSTOQ dead; NVDAC nonexistent. All UNVERIFIED/REJECTED, none listed.
+- Existing four: AAPLx/TSLAx QUOTE-AVAILABLE + IMPLEMENTED-UNWITNESSED (fresh Jupiter quote ~344.75 USDC via prices:verify green); AAPLc/NVDAc venue-gated, flag still off. Attribution grep clean — no UI change.
+- Stellar DEX: mechanism ready (books/path payments live), market absent; genuine future listing would need auth/eligibility plumbing. No integration proposed.
+- Artifact: docs/Tokenized_Stock_Coverage.md (matrix, evidence, rejected routes, next slice = P0.4 witnessed AAPLx settlement, owner-dependent). Trading NOT shipped.
+- Ship: docs-only (artifact + STATE + roadmap workstream bullet, 43 IDs intact). No deploy needed. Verify: prices:verify green; diff--check clean.

@@ -613,6 +613,7 @@ Delivered (all checked against repository truth):
 - P1.1 premium cards complete 2026-10-16 (tile hierarchy + variants + issuer truth, live).
 - P1.3 verified prices complete 2026-10-16 (quotes/NAV/absence states + matrix; Playwright 360–1440; live).
 - P1 phase complete 2026-10-16 (P1.2 mobile pass: zero overflow 360–1440, pinned sheet hero, full interaction suite green on production).
+- Research workstream 2026-10-16: tokenized-stock coverage + Stellar trading feasibility (`docs/Tokenized_Stock_Coverage.md`) — no verified Stellar stock representation (clone soup rejected with live book/trade/TOML evidence); AAPLx/TSLAx quote-available + implemented-unwitnessed; AAPLc/NVDAc venue-gated; Stellar DEX mechanism ready but market absent; next build is P0.4 witnessed AAPLx settlement (owner-dependent), no new engineering. Trading NOT shipped; all 43 IDs intact.
 - First-visit interest onboarding 2026-10-16 (dialog + interest ordering + device-local prefs, UI Recovery, live).
 
 ---
