@@ -2114,6 +2114,13 @@ a.v-row:hover {
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-padding-inline: 16px;
+}
+
+.x-pills::after {
+  content: "";
+  flex: none;
+  width: 10px;
 }
 
 .x-pills::-webkit-scrollbar {

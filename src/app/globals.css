@@ -33,6 +33,10 @@
 
 html {
   background: var(--background);
+  /* Prevent mobile browsers and in-app webviews (notably Telegram) from
+     inflating text: inflated glyphs overflow their containers and clip. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
 
@@ -4245,6 +4249,10 @@ fieldset.field {
     width: min(100% - 32px, 1240px);
   }
 
+  .v-page-head {
+    padding: 36px 0 24px;
+  }
+
   .nav-inner {
     display: flex;
     justify-content: space-between;
@@ -4492,5 +4500,28 @@ fieldset.field {
   .reward-state,
   .hairline-card {
     border-radius: 16px;
+  }
+}
+
+/* Very small phones (≈360px and below): icon-only menu trigger plus tighter
+   header spacing so the wordmark, wallet button, and menu never overflow.
+   The trigger keeps its accessible label; only the visible text hides. */
+@media (max-width: 400px) {
+  .nav-inner {
+    gap: 8px;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .menu-trigger {
+    font-size: 0;
+    gap: 0;
+    padding: 9px 12px;
+  }
+
+  .site-nav .button-small {
+    padding-inline: 12px;
   }
 }

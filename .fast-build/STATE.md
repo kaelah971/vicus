@@ -106,3 +106,11 @@
 - Full Wave 2 regression: all 36 package.json verifiers PASS in single runs, lint/tsc/build/diff-check green, safety scan clean
 - Live evidence 2026-10-13: AAPLx + TSLAx Jupiter quotes at 0 impact; Morpho AAPLc market live; NVDAc Aerodrome reverts
 - Wallet-signature E2Es (A–E, G–H) PENDING HUMAN; Morpho read-only flow PROVEN; nothing committed/pushed/deployed
+
+## Mobile UI Recovery — Slice 1: Mobile header + navigation (2026-10-16)
+- GitHub About fixed to canonical positioning; website set to https://explorevicus.vercel.app; topics preserved; no stale vicus-topaz links in tracked docs.
+- Diagnosed sub-450px screenshot clipping as old-headless-Edge viewport flooring (proven: breakpoints only at 340/480/…, identical markup fits at 460+; committed Oct-13 production frame shows the same tooling pattern). No grid/layout defect in app CSS.
+- Shipped (CSS only, globals.css + vicus-system.css): text-size-adjust 100% (Telegram/in-app webview inflation), x-pills scroll end-padding + scroll-padding, v-page-head mobile rhythm tightening (≤760px), ≤400px icon-only menu trigger (accessible label kept) + header compaction.
+- Preserved: Personal/Projects menu grouping, spoke sheet (dvh, safe-area, focus/Escape), bottom nav (env safe-area + 96px clearance), disconnected wallet states.
+- Verification: build green; screenshots at 460/500/760 clean; ≤430px captures limited by headless flooring (noted, not a product signal).
+- Next slices: P1.1 official logos/cards; first-visit onboarding; P1.3 trusted prices/charts; tokenized-stock coverage review; remaining responsive QA.
