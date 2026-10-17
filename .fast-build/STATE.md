@@ -202,3 +202,9 @@
 - Channel verdict: NO holder-gated discussion lane built — no channel primitives exist and a bolt-on would risk feed/counter/preview leakage. Authorization boundary shipped instead; explicitly deferred, no fake restricted UI.
 - Verification: role:verify extended green (freshness unit, 8-case gate matrix, privacy source assertions, no-balance persistence incl. gate rows); social verifier updated to the new contract; regressions: auth/asset-circles/community/reputation/loyalty green; tsc clean; lint 0 errors; build green. Mobile/desktop screenshots (circle role counts, verify area) zero overflow.
 - Ship: feature commit + docs commit (README v2.23 + 3 gallery shots + manifest + roadmap v2.23 + log). Pushed; Vercel Ready; alias verified live (zero VERIFIED HOLDER strings served). P7.3 next.
+
+## P7.3 Social Discovery + Community Actions (2026-10-17, commit 6a1a008)
+- New: src/lib/social-discovery/rank.ts — deterministic order (watched > explicit interest > active > quiet, slug tiebreak; search filters, never ranks; unknown interests ignored; no counts, no holding signals). Circles directory: q search (GET form), interest chips, Why-here reasons, per-card Open/Discuss/Theses links (all verified routes). Signed-out fallback = activity order.
+- Verification: asset-circles:verify extended (11-case ordering matrix incl. precedence/fallback/no-fabrication + page wiring + no-holding-signals assertions) green; regressions green: social/community/conviction/reputation/role/auth; tsc clean; lint 0 errors; build green. Mobile + desktop screenshots zero overflow.
+- P7.2 CORRECTED to Blocked: the original acceptance requires holder-gated channels and no lane was built (boundary + freshness + privacy remain live and verified). Reported explicitly; P7 stays open. Channel lane = next dependency-ready slice after P8.1 or standalone.
+- Delivery: README (discovery row + gallery), 3 production gallery shots + manifest, roadmap v2.24 + log, no migration.

@@ -41,3 +41,6 @@ headless-network error page and was discarded, never shipped.
 | `gal-roles-circle-mobile.png` | `/circles/usdc-on-stellar` | 390×844 | Circle tab with watcher/contribution/verified-role counts (honest zeroes), no holder chips | Signed-out; Circle tab active |
 | `gal-roles-circle-desktop.png` | `/circles/usdc-on-stellar` | 1440×900 | Desktop circle view with role counts | Same conditions as mobile |
 | `gal-roles-verify-mobile.png` | `/circles/benji-on-stellar` | 390×844 | Asset overview with disclosures; role verification lives behind wallet connection | Signed-out; Overview tab |
+| `gal-circles-mobile.png` | `/circles` | 390×844 | Circles directory: search, interest chips, per-circle actions + reasons | Signed-out |
+| `gal-circles-interest-mobile.png` | `/circles?interest=stocks` | 390×844 | Stocks interest order with Why-here reasons | Signed-out; explicit interest param |
+| `gal-circles-desktop.png` | `/circles` | 1440×900 | Desktop circles directory | Signed-out |

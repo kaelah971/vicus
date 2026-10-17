@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.23 (P7.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.24 (P7.3 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.23 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.2), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.24 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.3), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -311,9 +311,9 @@ Milestone IDs are stable. Statuses at v2.23 sync (2026-10-17): `Complete` (P0.1,
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P7.1 | Contribution reputation | Reputation derived from approved missions, theses, verified participation — never counts invented | `conviction:verify` + rules audit | Complete 2026-10-17: evidence taxonomy (verified vs authored, no scores, loyalty XP untouched); dedupe incl. same-proof collapse; ReputationCard on profile/me + public profile + demo (public-safe only); `reputation:verify` matrix green + conviction/loyalty/asset-circles/social/community/missions/campaign-funding/abuse regressions green; mobile/desktop screenshots; live on production. P7.2/P7.3 remain. |
-| P7.2 | Privacy-safe holding roles | Verified-holder roles gate channels without exposing balances; pasted addresses never grant roles | `role:verify` + privacy audit (no balances to browser) | Complete 2026-10-17: 24h freshness policy with live revalidation (stale rechecks chain, outage fails closed preserving history, confirmed-negative clears the stale row, trustline never authorizes); default-private public display (generic Verified chips, no holder/trustline labels anywhere public); `role:verify` freshness + gate + privacy matrix green with auth/asset-circles/social/community/reputation/loyalty regressions green; role card shows staleness + reverify; live on production. Holder-gated discussion channel NOT built — authorization boundary shipped, lane deferred (no fake restricted UI). P7.3 remains. |
-| P7.3 | Social discovery + community actions | Relevant circles/people/theses surface per asset; per-asset community actions link to real flows | `asset-circles:verify`, `social:verify`, `community:verify` | Planned |
+| P7.1 | Contribution reputation | Reputation derived from approved missions, theses, verified participation — never counts invented | `conviction:verify` + rules audit | Complete 2026-10-17: evidence taxonomy (verified vs authored, no scores, loyalty XP untouched); dedupe incl. same-proof collapse; ReputationCard on profile/me + public profile + demo (public-safe only); `reputation:verify` matrix green + conviction/loyalty/asset-circles/social/community/missions/campaign-funding/abuse regressions green; mobile/desktop screenshots; live on production. P7.2/P7.3 remains, BUT the original acceptance requires holder-gated channels and no gated discussion lane was built in this slice: P7.2 moves to Blocked pending the channel slice (authorization boundary + freshness + privacy shipped and live). |
+| P7.2 | Privacy-safe holding roles | Verified-holder roles gate channels without exposing balances; pasted addresses never grant roles | `role:verify` + privacy audit (no balances to browser) | Blocked 2026-10-17 (channel lane unbuilt; boundary + freshness + privacy live): 24h freshness policy with live revalidation (stale rechecks chain, outage fails closed preserving history, confirmed-negative clears the stale row, trustline never authorizes); default-private public display (generic Verified chips, no holder/trustline labels anywhere public); `role:verify` freshness + gate + privacy matrix green with auth/asset-circles/social/community/reputation/loyalty regressions green; role card shows staleness + reverify; live on production. Holder-gated discussion channel NOT built — authorization boundary shipped, lane deferred (no fake restricted UI). P7.3 remains. |
+| P7.3 | Social discovery + community actions | Relevant circles/people/theses surface per asset; per-asset community actions link to real flows | `asset-circles:verify`, `social:verify`, `community:verify` | Complete 2026-10-17: explainable ranking (watched > interest > active > quiet, search filters, nothing hidden, no holding signals) with Why-here reasons; per-circle Discuss/Theses/Open links to real routes; signed-out fallback verified; `asset-circles:verify` ordering matrix green + social/community/conviction/reputation/role regressions green; mobile/desktop screenshots; live on production. |
 
 **Dependencies:** P4 ownership rules; P2 eligibility context (shared signals).
 **Blockers/risks:** Gaming reputation; privacy regressions; moderation load.
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P7.3 Social discovery + community actions** (per-asset community actions link to real flows; P7.2 roles complete 2026-10-17, live; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
+- **Next buildable product milestone: P8.1 Issuer/project onboarding** (P7.3 complete 2026-10-17, live; P7.2 blocked on the holder-gated channel lane; P7 stays open; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -682,6 +682,8 @@ After each completed milestone:
 | 2026-10-17 | P6.3 complete (verified loyalty read-model + card; README/manifest/AGENTS delivery rules; 43 IDs intact) | This sync |
 | 2026-10-17 | P6.4 complete + P6 phase complete (provider boundary + allowlist matrix; zero providers connected, XLM-only in effect; 43 IDs intact) | This sync |
 | 2026-10-17 | P7.1 complete (evidence taxonomy + ReputationCard; privacy + rules audits green; 43 IDs intact) | Prior sync |
+| 2026-10-17 | P7.2 corrected to Blocked (holder-gated channel lane unbuilt; boundary + freshness + privacy remain live) | This sync |
+| 2026-10-17 | P7.3 complete (ranking matrix + directory UX; 43 IDs intact) | This sync |
 | 2026-10-17 | P7.2 complete (freshness gate + default-private display; channel lane deferred honestly; 43 IDs intact) | This sync |
 
 ---

@@ -60,6 +60,7 @@ Status key: **Live** = usable in production · **Implemented** = built + tested,
 | Unified receipt infrastructure | **Live** | Canonical `initiated → prepared → signed → submitted → settled → failed → unknown` contract across flows; settled requires a transaction reference; source-leg success never proves destination delivery |
 | Loyalty progress | **Live** | Levels, UTC-day streaks, and recent activity derived only from approved missions (each counted once); honest zero states; recognition only — no monetary value, tokens, or eligibility |
 | Contribution reputation | **Live** | Verified counts (approved missions, paid campaigns) kept apart from authored content (theses with open/resolved/withdrawn/expired states, active posts/answers); no scores, no leaderboard; public profiles show public-safe records only |
+| Social circle discovery | **Live** | Searchable, interest-ordered Circles directory with explainable reasons (watched, interest match, activity), per-circle Discuss/Theses/Use actions into real routes; nothing hidden, no holding signals in ranking |
 | Privacy-safe holding roles | **Live** | Linked-wallet Stellar holding checks with 24h freshness for restricted access (stale revalidates live, outages fail closed); public surfaces show generic Verified only — holder/trustline distinction stays private to the owner |
 | Drops anti-abuse controls | **Live** | DB-backed per-user attempt quotas, cross-campaign proof-reuse rejection, reviewer-only decisions with shared-evidence flags; throttled attempts change nothing |
 | Authorized-provider drops | **Policy live, zero providers** | Fail-closed allowlist: XLM rewards + pinned Testnet USDC only; tokenized-asset distribution needs allowlisted provider + unexpired issuer evidence + verified recipient eligibility — none connected, so restricted drops stay disabled |
@@ -116,10 +117,15 @@ Full-width motion above. Stellar-first positioning, two doors in: **Explore Vicu
 | ![Mobile Discover](docs/screenshots/10-mobile-discover.png) | [![First-visit onboarding](docs/screenshots/gal-onboarding-mobile.png)](https://explorevicus.vercel.app/discover) |
 | Two-column visual grid, compact filters, bottom nav — no clipping. | Four interest cards map to real registry categories; adaptive CTA; Skip and Escape always available. |
 
-| Mobile: verified price in the preview sheet | Mobile: baskets, loyalty + reputation + roles |
+| Mobile: verified price in the preview sheet | Mobile: baskets, loyalty + reputation + roles + circles |
 |---|---|
 | [![AAPLx price evidence](docs/screenshots/gal-sheet-price-mobile.png)](https://explorevicus.vercel.app/discover?asset=aaplx-on-solana) | [![Basket constituents](docs/screenshots/gal-basket-mobile.png)](https://explorevicus.vercel.app/baskets/apple-representations) |
 | Live indicative quote with source, freshness, and updated time — or an explicit no-feed state. | Brand-mark cards with weights and eligibility disclosures; [loyalty](https://explorevicus.vercel.app/profile/demo) derives only from approved missions, [reputation](https://explorevicus.vercel.app/profile/demo) separates verified contributions from authored content, and [circle roles](https://explorevicus.vercel.app/circles/usdc-on-stellar) keep holder detail private. |
+
+| Circles directory with interest ordering | Interest-filtered discovery |
+|---|---|
+| [![Circles directory](docs/screenshots/gal-circles-desktop.png)](https://explorevicus.vercel.app/circles) | [![Stocks interest](docs/screenshots/gal-circles-interest-mobile.png)](https://explorevicus.vercel.app/circles?interest=stocks) |
+| Search, interest chips, per-circle Discuss/Theses/Use actions, and Why-here reasons on every card. | Explicit interest filter reorders (never hides); matched circles explain themselves. |
 
 > Every screenshot is a production frame — see [`docs/screenshots/CAPTURE_MANIFEST.md`](docs/screenshots/CAPTURE_MANIFEST.md) for URLs and capture conditions. Prefer video? [Watch the official demo](https://youtu.be/w-jVztqD7qU).
 
@@ -219,7 +225,7 @@ Vicus is substantially built and honestly labeled — not feature-complete. Rele
 - **R2 — Rewarding + Differentiated (planned):** baskets discovery, funded Drops, Circles reputation, Studio onboarding.
 - **R3 — Infrastructure (planned):** cross-chain Routes, basket execution, vault research + ecosystem APIs.
 
-The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.23: P0.1, P1.1–P1.3, P2.1–P2.3, P3.2–P3.4, P4.1–P4.4, P5.1–P5.3, P6.1–P6.4, P7.1–P7.2 complete). Current limitations: sparse-but-real community activity, one ticker-fallback brand mark (BENJI, documented in `src/lib/asset-visuals.ts`), no review-SLA policy yet (reported, not promised), no approved asset-drop providers (XLM-only in effect), reward end-to-end needs a funded Testnet distributor.
+The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.24: P0.1, P1.1–P1.3, P2.1–P2.3, P3.2–P3.4, P4.1–P4.4, P5.1–P5.3, P6.1–P6.4, P7.1, P7.3 complete; P7.2 blocked on the holder-gated discussion lane). Current limitations: sparse-but-real community activity, one ticker-fallback brand mark (BENJI, documented in `src/lib/asset-visuals.ts`), no review-SLA policy yet (reported, not promised), no approved asset-drop providers (XLM-only in effect), reward end-to-end needs a funded Testnet distributor.
 
 ---
 
