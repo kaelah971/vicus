@@ -214,7 +214,11 @@ async function verify() {
   assert.equal(people.filter((person) => person.user.id === aliceId).length, 1, "Duplicate people must collapse.");
   assert(aliceCard.relationships.includes("Watcher"));
   assert(aliceCard.relationships.includes("Contributor"));
-  assert(aliceCard.relationships.includes("Verified Holder"));
+  assert(aliceCard.relationships.includes("Verified"));
+  assert(
+    !aliceCard.relationships.some((rel) => rel === "Verified Holder" || rel === "Verified Trustline"),
+    "P7.2 default-private: public relationships never distinguish holder from trustline.",
+  );
   assert.equal(aliceCard.approvedContributionCount, 1);
   const peopleLeaked = JSON.stringify(people);
   assert(!/publicKey/i.test(peopleLeaked), "Circle people must not leak wallet keys.");

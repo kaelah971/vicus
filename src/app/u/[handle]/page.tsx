@@ -212,17 +212,15 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               <div className="circle-section-heading">
                 <div>
                   <Eyebrow>Verified roles</Eyebrow>
-                  <h2 id="person-roles-title">Supported holder checks.</h2>
+                  <h2 id="person-roles-title">Supported role checks.</h2>
                 </div>
-                <p>Role without wallet details — verification state only.</p>
+                <p>Participation confirmed — holder details stay private to the owner.</p>
               </div>
               <div className="mission-grid">
                 {profile.verifiedRoles.map((verified) => (
                   <article className="mission-card" key={verified.id}>
                     <div className="mission-card-header">
-                      <StatusPill tone="green">
-                        {verified.role === "verified-holder" ? "Verified Holder" : "Verified Trustline"}
-                      </StatusPill>
+                      <StatusPill tone="green">Verified</StatusPill>
                       <span className="mission-type">{verified.network}</span>
                     </div>
                     <h3>
@@ -230,7 +228,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                     </h3>
                     <p>
                       Verified {verified.verifiedAt.toISOString().slice(0, 10)} · checked{" "}
-                      {verified.lastCheckedAt.toISOString().slice(0, 10)} · {verified.lastState}
+                      {verified.lastCheckedAt.toISOString().slice(0, 10)}
                     </p>
                   </article>
                 ))}

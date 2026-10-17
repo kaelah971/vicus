@@ -13,11 +13,99 @@ import { getCircleVerificationConfig } from "@/lib/data/circles";
 import {
   unsupportedVerificationResult,
   verifyClassicAssetRole,
+  type VerificationBalances,
 } from "@/lib/stellar/verify-role";
 import type { StellarVerificationResult } from "@/lib/stellar/types";
 
 export const SUPPORTED_PERSISTED_ROLES = ["verified-holder", "verified-trustline"] as const;
 export type PersistedRoleType = (typeof SUPPORTED_PERSISTED_ROLES)[number];
+
+/**
+ * P7.2 freshness policy: a persisted holder check authorizes restricted
+ * access for 24 hours. Older rows are history, not permission — any
+ * protected boundary must revalidate through requireFreshHolderAccess.
+ * Horizon outages always fail closed and never rewrite history.
+ */
+export const ROLE_FRESHNESS_MS = 24 * 60 * 60 * 1_000;
+
+export function isRoleFresh(lastCheckedAt: Date, now: number = Date.now()): boolean {
+  const checked = lastCheckedAt instanceof Date ? lastCheckedAt.getTime() : NaN;
+  if (!Number.isFinite(checked) || checked > now) return false;
+  return now - checked < ROLE_FRESHNESS_MS;
+}
+
+export type FreshHolderAccessVerdict =
+  | { ok: true; role: "verified-holder"; fresh: boolean; checkedAt: Date }
+  | { ok: false; reason: "no-role" | "trustline-only" | "stale-unqualified" | "unavailable" | "unsupported" | "wallet-unlinked" };
+
+/**
+ * Authoritative holder gate for restricted Circle experiences. Fresh
+ * persisted holder rows pass without network; anything else triggers a
+ * live linked-wallet recheck. A confirmed-negative recheck removes the
+ * stale row (history lives on in receipts/completions, not in permission)
+ * while outages and unsupported configs fail closed and preserve it.
+ * Trustline-only never authorizes holder access.
+ */
+export async function requireFreshHolderAccess(
+  input: LinkedWalletVerificationInput,
+  overrides?: LinkedWalletVerificationOverrides & { now?: number },
+): Promise<FreshHolderAccessVerdict> {
+  const now = overrides?.now ?? Date.now();
+  const database = getDatabase();
+  try {
+    // Wallet-link check first (DB only, no network): the wallet row must
+    // still belong to the requesting user, or nothing proceeds.
+    const [link] = await database
+      .select({ id: stellarWallets.id })
+      .from(stellarWallets)
+      .where(and(eq(stellarWallets.id, input.walletId), eq(stellarWallets.userId, input.userId)))
+      .limit(1);
+    if (!link) return { ok: false, reason: "wallet-unlinked" };
+
+    const persisted = await getRoleVerificationForCircle(input.userId, input.circleSlug);
+    if (persisted && persisted.role === "verified-holder" && isRoleFresh(persisted.lastCheckedAt, now)) {
+      return { ok: true, role: "verified-holder", fresh: true, checkedAt: persisted.lastCheckedAt };
+    }
+    if (persisted && persisted.role !== "verified-holder" && isRoleFresh(persisted.lastCheckedAt, now)) {
+      return { ok: false, reason: "trustline-only" };
+    }
+
+    // Stale or missing: live authoritative recheck through the linked
+    // wallet (ownership re-verified inside; pasted addresses impossible).
+    const { result } = await verifyLinkedWalletForCircle(input, overrides);
+    if (result.qualified && result.role === "verified-holder") {
+      const fresh = await getRoleVerificationForCircle(input.userId, input.circleSlug);
+      return { ok: true, role: "verified-holder", fresh: false, checkedAt: fresh?.lastCheckedAt ?? new Date(now) };
+    }
+    if (result.status === "verified-trustline") {
+      return { ok: false, reason: "trustline-only" };
+    }
+    if (result.status === "not-qualified" || result.status === "account-not-found") {
+      // Confirmed negative from the live chain: the stale row must not
+      // authorize anything again. Outages never reach this branch.
+      const [circleRow] = await database
+        .select({ id: circles.id })
+        .from(circles)
+        .where(eq(circles.slug, input.circleSlug.trim()))
+        .limit(1);
+      if (circleRow) {
+        await database
+          .delete(stellarRoleVerifications)
+          .where(
+            and(
+              eq(stellarRoleVerifications.userId, input.userId),
+              eq(stellarRoleVerifications.circleId, circleRow.id),
+            ),
+          );
+      }
+      return { ok: false, reason: "stale-unqualified" };
+    }
+    if (result.status === "unsupported") return { ok: false, reason: "unsupported" };
+    return { ok: false, reason: "unavailable" };
+  } catch {
+    throw toDatabaseUnavailableError("require fresh holder access");
+  }
+}
 
 function isPersistedRoleType(role: string): role is PersistedRoleType {
   return (SUPPORTED_PERSISTED_ROLES as readonly string[]).includes(role);
@@ -149,6 +237,10 @@ export type LinkedWalletVerificationInput = {
   circleSlug: string;
 };
 
+export type LinkedWalletVerificationOverrides = {
+  loadAccount?: (accountId: string) => Promise<{ balances: VerificationBalances } | null>;
+};
+
 export type LinkedWalletVerificationOutcome = {
   result: StellarVerificationResult;
   persisted: VerifiedRoleRecord | null;
@@ -161,6 +253,7 @@ export type LinkedWalletVerificationOutcome = {
  */
 export async function verifyLinkedWalletForCircle(
   input: LinkedWalletVerificationInput,
+  overrides?: LinkedWalletVerificationOverrides,
 ): Promise<LinkedWalletVerificationOutcome> {
   const config = await getCircleVerificationConfig(input.circleSlug);
 
@@ -218,11 +311,15 @@ export async function verifyLinkedWalletForCircle(
     throw toDatabaseUnavailableError("verify wallet link");
   }
 
-  const result = await verifyClassicAssetRole(input.walletPublicKey, {
-    assetCode: config.stellarAssetCode,
-    issuerAccount: config.stellarIssuerAccount,
-    network: config.stellarNetwork,
-  });
+  const result = await verifyClassicAssetRole(
+    input.walletPublicKey,
+    {
+      assetCode: config.stellarAssetCode,
+      issuerAccount: config.stellarIssuerAccount,
+      network: config.stellarNetwork,
+    },
+    overrides ? { loadAccount: overrides.loadAccount } : undefined,
+  );
 
   if (!result.qualified || !isPersistedRoleType(result.role)) {
     return { result, persisted: null };

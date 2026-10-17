@@ -26,6 +26,16 @@ function formatDate(value: string | Date) {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+/** P7.2: persisted checks older than 24h are history, not permission. */
+const ROLE_FRESHNESS_MS = 24 * 60 * 60 * 1_000;
+
+function freshnessNote(lastCheckedAt: string): string | null {
+  const checked = new Date(lastCheckedAt).getTime();
+  if (!Number.isFinite(checked)) return null;
+  if (Date.now() - checked < ROLE_FRESHNESS_MS) return null;
+  return "Older than 24 hours — reverify for current holder access. Restricted areas always re-check live.";
+}
+
 type RoleVerificationProps = {
   circleSlug: string;
   circleName: string;
@@ -228,6 +238,11 @@ export function RoleVerification({
             {persisted.circle.name} on Stellar · Last verified {formatDate(persisted.lastCheckedAt)}. Ownership is
             re-checked on reverify; this is not a permanent claim.
           </p>
+          {freshnessNote(persisted.lastCheckedAt) ? (
+            <p className="verification-stale" role="note">
+              {freshnessNote(persisted.lastCheckedAt)}
+            </p>
+          ) : null}
           <p className="verification-timestamp">
             <button
               aria-busy={isVerifyingLinked}

@@ -4643,3 +4643,6 @@ code, .t-id, .mono {
 .rep-green { border-color: rgba(46, 160, 90, 0.55); }
 .rep-blue { border-color: rgba(77, 163, 255, 0.55); }
 .rep-muted { color: var(--subtle); }
+
+/* P7.2 — stale verification notice inside the role card. */
+.verification-stale { border-left: 2px solid rgba(217, 130, 40, 0.7); color: var(--subtle); font-size: 0.8rem; line-height: 1.5; margin: 8px 0 0; padding-left: 10px; }

@@ -136,7 +136,7 @@ export async function getCircleSocialSummary(
 
   const isContributor = (p: SocialPerson) => p.relationships.includes("Contributor");
   const isVerified = (p: SocialPerson) =>
-    p.relationships.some((rel) => rel === "Verified Holder" || rel === "Verified Trustline");
+    p.relationships.some((rel) => rel === "Verified" || rel === "Verified Holder" || rel === "Verified Trustline");
   const all = [...byHandle.values()];
   const groups = {
     following: all.filter((p) => people.some((person) => person.user.handle === p.handle && followed.has(person.user.id))),

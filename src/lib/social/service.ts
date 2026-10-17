@@ -381,9 +381,9 @@ export async function getCirclePeople(circleId: string): Promise<PersonCard[]> {
       }
     }
     for (const row of verifiedRows) {
-      ensure(row.user).relationships.add(
-        row.role === "verified-holder" ? "Verified Holder" : "Verified Trustline",
-      );
+      // P7.2 default-private: public relationship chips never distinguish
+      // holder from trustline. Holding status is visible to the owner only.
+      ensure(row.user).relationships.add("Verified");
     }
 
     return [...people.values()]

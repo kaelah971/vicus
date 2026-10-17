@@ -30,11 +30,11 @@ export function PersonCard({ person }: { person: PersonCardData }) {
                 ? "WATCHING"
                 : relationship === "Contributor"
                   ? "CONTRIBUTED"
-                  : relationship === "Verified Holder"
-                    ? "VERIFIED HOLDER"
-                    : relationship === "Verified Trustline"
-                      ? "VERIFIED"
-                      : relationship}
+                  : relationship === "Verified" ||
+                      relationship === "Verified Holder" ||
+                      relationship === "Verified Trustline"
+                    ? "VERIFIED"
+                    : relationship}
             </span>
           ))}
         </span>

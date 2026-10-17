@@ -68,9 +68,19 @@ function isNotFoundError(error: unknown): boolean {
   );
 }
 
+export type VerificationBalances = Array<{
+  code: string;
+  issuer: string;
+  balance: string;
+}>;
+
 export async function verifyClassicAssetRole(
   address: string,
   config: ClassicAssetVerificationConfig,
+  overrides?: {
+    /** Injectable account reader for deterministic tests. Null = account missing. */
+    loadAccount?: (accountId: string) => Promise<{ balances: VerificationBalances } | null>;
+  },
 ): Promise<StellarVerificationResult> {
   const normalizedAddress = address.trim();
   const baseConfig = { assetCode: config.assetCode, network: config.network };
@@ -97,15 +107,29 @@ export async function verifyClassicAssetRole(
   }
 
   try {
-    const server = getStellarMainnetServer();
-    const account = await server.accounts().accountId(normalizedAddress).call();
-    const matchingBalance = account.balances.find(
-      (balance) =>
-        balance.asset_type !== "native" &&
-        "asset_code" in balance &&
-        "asset_issuer" in balance &&
-        balance.asset_code === canonicalAsset.code &&
-        balance.asset_issuer === canonicalAsset.issuer,
+    let balances: VerificationBalances;
+    if (overrides?.loadAccount) {
+      const account = await overrides.loadAccount(normalizedAddress);
+      if (!account) {
+        return result(
+          baseConfig,
+          "account-not-found",
+          false,
+          "No Stellar account was found for this address.",
+        );
+      }
+      balances = account.balances;
+    } else {
+      const server = getStellarMainnetServer();
+      const account = await server.accounts().accountId(normalizedAddress).call();
+      balances = account.balances.flatMap((balance) =>
+        balance.asset_type !== "native" && "asset_code" in balance && "asset_issuer" in balance
+          ? [{ code: balance.asset_code, issuer: balance.asset_issuer, balance: "balance" in balance ? balance.balance : "0" }]
+          : [],
+      );
+    }
+    const matchingBalance = balances.find(
+      (balance) => balance.code === canonicalAsset.code && balance.issuer === canonicalAsset.issuer,
     );
 
     if (!matchingBalance) {

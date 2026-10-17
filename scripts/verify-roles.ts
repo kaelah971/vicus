@@ -17,6 +17,9 @@ import { getUserProfileById } from "../src/lib/data/profiles";
 import {
   getRoleVerificationForCircle,
   getVerifiedRolesForUser,
+  isRoleFresh,
+  requireFreshHolderAccess,
+  ROLE_FRESHNESS_MS,
   verifyLinkedWalletForCircle,
 } from "../src/lib/data/roles";
 import { verifyClassicAssetRole } from "../src/lib/stellar/verify-role";
@@ -234,6 +237,94 @@ async function verify() {
       !text.includes("stellarRoleVerifications") && !text.includes("verifyLinkedWalletForCircle") && !/grantRole|persistRole/i.test(text),
       `${file}: connected reads grant no roles`,
     );
+  }
+
+  // P7.2 freshness policy: 24h boundary is exact and documented.
+  assert.equal(ROLE_FRESHNESS_MS, 24 * 60 * 60 * 1_000, "freshness window is 24h");
+  const now = Date.now();
+  assert.equal(isRoleFresh(new Date(now - 1_000), now), true, "fresh check passes");
+  assert.equal(isRoleFresh(new Date(now - ROLE_FRESHNESS_MS), now), false, "boundary is exclusive");
+  assert.equal(isRoleFresh(new Date(now - ROLE_FRESHNESS_MS - 1), now), false, "stale check fails");
+  assert.equal(isRoleFresh(new Date(now + 60_000), now), false, "future timestamps never fresh");
+  assert.equal(isRoleFresh(new Date("invalid"), now), false, "bad timestamps never fresh");
+
+  // P7.2 gate matrix with a deterministic chain transport (no Horizon).
+  const gateUser = await createUserWithWallet();
+  const gateInput = () => ({
+    userId: gateUser.userId,
+    walletId: gateUser.walletId,
+    walletPublicKey: gateUser.publicKey,
+    circleSlug: "usdc-on-stellar",
+  });
+  const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+  const holderTransport = async () => ({ balances: [{ code: "USDC", issuer: USDC_ISSUER, balance: "25.5" }] });
+  const emptyTransport = async () => ({ balances: [] as { code: string; issuer: string; balance: string }[] });
+  const failingTransport = async (): Promise<{ balances: { code: string; issuer: string; balance: string }[] } | null> => {
+    throw new Error("horizon down");
+  };
+  // Fresh persisted holder passes with a transport that would explode on use.
+  await upsertRole(gateUser.userId, gateUser.walletId, usdc.id, usdc.assetId, "verified-holder", "mainnet");
+  const freshOk = await requireFreshHolderAccess(gateInput(), {
+    loadAccount: async () => { throw new Error("must not touch the network when fresh"); },
+  });
+  assert.equal(freshOk.ok, true, "fresh holder passes without network");
+  // Fresh trustline never authorizes holder access.
+  await upsertRole(gateUser.userId, gateUser.walletId, usdc.id, usdc.assetId, "verified-trustline", "mainnet");
+  const trustlineDenied = await requireFreshHolderAccess(gateInput(), { loadAccount: holderTransport });
+  assert.equal(trustlineDenied.ok, false, "trustline is not holder access");
+  // Stale holder revalidates live and passes on a positive balance.
+  await database
+    .update(stellarRoleVerifications)
+    .set({ lastCheckedAt: new Date(Date.now() - ROLE_FRESHNESS_MS - 1_000) })
+    .where(and(eq(stellarRoleVerifications.userId, gateUser.userId), eq(stellarRoleVerifications.circleId, usdc.id)));
+  const recheckedGate = await requireFreshHolderAccess(gateInput(), { loadAccount: holderTransport });
+  assert.equal(recheckedGate.ok, true, "stale holder revalidates live");
+  // Stale holder with an emptied balance fails AND loses the stale row.
+  await database
+    .update(stellarRoleVerifications)
+    .set({ lastCheckedAt: new Date(Date.now() - ROLE_FRESHNESS_MS - 1_000) })
+    .where(and(eq(stellarRoleVerifications.userId, gateUser.userId), eq(stellarRoleVerifications.circleId, usdc.id)));
+  const revoked = await requireFreshHolderAccess(gateInput(), { loadAccount: emptyTransport });
+  assert.equal(revoked.ok, false, "emptied balance fails closed");
+  const afterRevoke = await getRoleVerificationForCircle(gateUser.userId, "usdc-on-stellar");
+  assert.equal(afterRevoke, null, "confirmed-negative recheck removes the stale row");
+  // Outage fails closed and preserves history.
+  await upsertRole(gateUser.userId, gateUser.walletId, usdc.id, usdc.assetId, "verified-holder", "mainnet");
+  await database
+    .update(stellarRoleVerifications)
+    .set({ lastCheckedAt: new Date(Date.now() - ROLE_FRESHNESS_MS - 1_000) })
+    .where(and(eq(stellarRoleVerifications.userId, gateUser.userId), eq(stellarRoleVerifications.circleId, usdc.id)));
+  const outage = await requireFreshHolderAccess(gateInput(), { loadAccount: failingTransport });
+  assert.equal(outage.ok, false, "outage fails closed");
+  const afterOutage = await getRoleVerificationForCircle(gateUser.userId, "usdc-on-stellar");
+  assert.ok(afterOutage, "outage never rewrites history");
+  // Wrong wallet never authorizes, even with a live positive balance.
+  const stranger = await createUserWithWallet();
+  const impersonated = await requireFreshHolderAccess(
+    { userId: stranger.userId, walletId: gateUser.walletId, walletPublicKey: gateUser.publicKey, circleSlug: "usdc-on-stellar" },
+    { loadAccount: holderTransport },
+  );
+  assert.equal(impersonated.ok, false, "borrowed wallet links authorize nothing");
+  // Missing link authorizes nothing without network.
+  const unlinked = await requireFreshHolderAccess(
+    { userId: stranger.userId, walletId: randomUUID(), walletPublicKey: stranger.publicKey, circleSlug: "usdc-on-stellar" },
+    { loadAccount: holderTransport },
+  );
+  assert.equal(unlinked.ok, false, "ghost wallet authorizes nothing");
+
+  // P7.2 privacy: public surfaces never distinguish holder from trustline.
+  const personCard = readFileSync(join(ROOT, "src/components/person-card.tsx"), "utf8");
+  assert.ok(!personCard.includes("VERIFIED HOLDER"), "no public holder chip");
+  const publicProfile = readFileSync(join(ROOT, "src/app/u/[handle]/page.tsx"), "utf8");
+  assert.ok(!/Verified Holder|Verified Trustline/i.test(publicProfile), "no public holder/trustline labels");
+  assert.ok(publicProfile.includes(">Verified<"), "generic verified state retained");
+  const socialService = readFileSync(join(ROOT, "src/lib/social/service.ts"), "utf8");
+  assert.ok(!socialService.includes('"Verified Holder"'), "relationship strings carry no holder claim");
+  // Serialized role rows still carry no balances or secrets (gate paths included).
+  const [gateRow] = await database.select().from(stellarRoleVerifications).where(eq(stellarRoleVerifications.userId, gateUser.userId)).limit(1);
+  const gateKeys = Object.keys(gateRow ?? {}).map((key) => key.toLowerCase());
+  for (const forbidden of ["balance", "secret", "payload", "seed", "amount", "publickey", "address"]) {
+    assert(!gateKeys.some((key) => key.includes(forbidden)), `gate rows must not persist ${forbidden}`);
   }
 
   console.log("Role verification passed", {
