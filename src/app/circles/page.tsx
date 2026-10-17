@@ -2,6 +2,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { DataState } from "@/components/vicus";
 import { getAssetVisual, fallbackMark } from "@/lib/asset-visuals";
+import { INTERESTS } from "@/lib/interests";
+import { rankCircles } from "@/lib/social-discovery/rank";
+import { getCurrentSession } from "@/lib/auth/session";
 import { isDatabaseUnavailableError } from "@/db";
 import { isAssetCircle, listCircles } from "@/lib/data/circles";
 import { getCircleSocialSummary } from "@/lib/circles-social/service";
@@ -16,6 +19,8 @@ type CircleSignal = {
   code: string;
   name: string;
   issuer: string;
+  category: string;
+  watched: boolean;
   questions: number;
   latestQuestion: string | null;
   contributors: number;
@@ -29,6 +34,8 @@ async function circleSignal(circle: {
   code: string;
   name: string;
   issuerSource: string;
+  category: string;
+  watched?: boolean | null;
 }): Promise<CircleSignal> {
   const [social, questions, theses, campaigns] = await Promise.all([
     getCircleSocialSummary(circle.slug, null).catch(() => null),
@@ -41,6 +48,8 @@ async function circleSignal(circle: {
     code: circle.code,
     name: circle.name,
     issuer: circle.issuerSource,
+    category: circle.category,
+    watched: circle.watched === true,
     questions: questions.length,
     latestQuestion: questions[0]?.title ?? null,
     contributors: social ? social.groups.contributors.length : 0,
@@ -60,11 +69,24 @@ function signalLine(signal: CircleSignal): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-export default async function CirclesDirectoryPage() {
+export default async function CirclesDirectoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string; interest?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const query = typeof params.q === "string" ? params.q.slice(0, 80) : "";
+  const interest = typeof params.interest === "string" ? params.interest.slice(0, 40) : "";
+  let userId: string | null = null;
+  try {
+    userId = (await getCurrentSession())?.user.id ?? null;
+  } catch {
+    userId = null;
+  }
   let circles: Awaited<ReturnType<typeof listCircles>> = [];
   let unavailable = false;
   try {
-    circles = (await listCircles(null)).filter(isAssetCircle);
+    circles = (await listCircles(userId)).filter(isAssetCircle);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       unavailable = true;
@@ -83,9 +105,14 @@ export default async function CirclesDirectoryPage() {
       listLiveCampaigns().catch(() => []),
     ]);
   }
-  const active = signals.filter((signal) => signalLine(signal) !== null);
-  const quiet = signals.filter((signal) => signalLine(signal) === null);
-  const ordered = [...active, ...quiet];
+  // Explainable order: search filters, then watched, interest match,
+  // live activity, quiet. Signed-out viewers get activity order.
+  const ranked = rankCircles(
+    signals.map((signal) => ({ ...signal, active: signalLine(signal) !== null })),
+    { interest, query },
+  );
+  const ordered = ranked.map((entry) => entry.circle);
+  const reasonFor = (slug: string) => ranked.find((entry) => entry.circle.slug === slug)?.reasons ?? [];
 
   return (
     <AppShell active="circles">
@@ -102,14 +129,44 @@ export default async function CirclesDirectoryPage() {
             ) : (
               <>
                 <section className="card" aria-label="Active circles">
-                  <h2>Active circles</h2>
+                  <h2>Browse circles</h2>
+                  <form className="s-circle-search" method="get" action="/circles" role="search">
+                    <input
+                      aria-label="Search circles"
+                      defaultValue={query}
+                      maxLength={80}
+                      name="q"
+                      placeholder="Search code, name, or issuer"
+                      type="search"
+                    />
+                    {interest ? <input type="hidden" name="interest" value={interest} /> : null}
+                    <button className="button button-outline button-small" type="submit">Search</button>
+                  </form>
+                  <div className="s-circle-interests" role="group" aria-label="Order by interest">
+                    <Link
+                      className={`v-chip${!interest ? " tone-green" : ""}`}
+                      href={query ? `/circles?q=${encodeURIComponent(query)}` : "/circles"}
+                    >
+                      All
+                    </Link>
+                    {INTERESTS.map((entry) => (
+                      <Link
+                        className={`v-chip${interest === entry.key ? " tone-green" : ""}`}
+                        key={entry.key}
+                        href={`/circles?interest=${entry.key}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+                      >
+                        {entry.label}
+                      </Link>
+                    ))}
+                  </div>
                   {ordered.length === 0 ? (
-                    <p className="muted">No circles yet.</p>
+                    <p className="muted">{query ? `No circles match “${query}”.` : "No circles yet."}</p>
                   ) : (
                     <ul className="s-circle-list">
                       {ordered.map((signal) => {
                         const visual = getAssetVisual(signal.slug);
                         const line = signalLine(signal);
+                        const reasons = reasonFor(signal.slug);
                         return (
                           <li key={signal.slug} className="s-circle-card">
                             <span className="s-circle-visual" aria-hidden="true">
@@ -124,13 +181,24 @@ export default async function CirclesDirectoryPage() {
                               <strong>{signal.code}</strong>
                               <small>{signal.issuer}</small>
                               {line ? <small className="s-circle-signal">{line}</small> : <small className="s-circle-signal">New circle — be the first to ask.</small>}
+                              {reasons.length > 0 ? (
+                                <small className="s-circle-reason">Why here: {reasons.join(" · ")}</small>
+                              ) : null}
                               {signal.latestQuestion ? (
                                 <small className="s-circle-latest">“{signal.latestQuestion}”</small>
                               ) : null}
                             </span>
-                            <Link className="s-circle-open" href={`/circles/${signal.slug}`}>
-                              Open Circle →
-                            </Link>
+                            <span className="s-circle-actions">
+                              <Link className="s-circle-open" href={`/circles/${signal.slug}`}>
+                                Open Circle →
+                              </Link>
+                              <Link className="v-text-link small" href={`/circles/${signal.slug}/community`}>
+                                Discuss
+                              </Link>
+                              <Link className="v-text-link small" href={`/circles/${signal.slug}/conviction`}>
+                                Theses
+                              </Link>
+                            </span>
                           </li>
                         );
                       })}

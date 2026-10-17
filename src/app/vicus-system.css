@@ -4646,3 +4646,18 @@ code, .t-id, .mono {
 
 /* P7.2 — stale verification notice inside the role card. */
 .verification-stale { border-left: 2px solid rgba(217, 130, 40, 0.7); color: var(--subtle); font-size: 0.8rem; line-height: 1.5; margin: 8px 0 0; padding-left: 10px; }
+
+/* P7.3 — Circles discovery: search, interest order chips, reasons, card actions. */
+.s-circle-search { display: flex; gap: 8px; margin: 12px 0; }
+.s-circle-search input[type="search"] { background: rgba(var(--fg-rgb), 0.05); border: 1px solid rgba(var(--fg-rgb), 0.14); border-radius: 12px; color: inherit; flex: 1; font-size: 0.86rem; min-width: 0; padding: 9px 12px; }
+.s-circle-interests { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.s-circle-reason { color: var(--subtle); font-style: italic; }
+.s-circle-actions { align-items: flex-start; display: flex; flex-direction: column; flex: none; gap: 6px; }
+.s-circle-actions .small { font-size: 0.76rem; }
+@media (max-width: 560px) {
+  .s-circle-search { flex-direction: column; }
+  .s-circle-search .button { text-align: center; }
+}
+@media (max-width: 340px) {
+  .s-circle-actions { flex-direction: row; flex-wrap: wrap; grid-column: 1 / -1; justify-content: flex-end; }
+}

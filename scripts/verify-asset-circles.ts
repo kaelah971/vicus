@@ -1,5 +1,7 @@
 import { strict as assert } from "node:assert";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { config } from "dotenv";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../src/db";
@@ -25,6 +27,8 @@ import {
   CircleSocialError,
   getCircleSocialSummary,
 } from "../src/lib/circles-social/service";
+import { rankCircles } from "../src/lib/social-discovery/rank";
+import { INTERESTS } from "../src/lib/interests";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -176,8 +180,57 @@ async function main() {
   assert.equal(external.slug, "aaplx-on-solana");
   assert.ok(Array.isArray(external.groups.watching), "same shape for external assets");
 
+  // 6. P7.3 explainable discovery ordering (pure ranking, no I/O).
+  const pool = [
+    { slug: 'b-coin', code: 'B', name: 'B Coin', issuer: 'Iota', category: 'stablecoin', watched: false, active: false },
+    { slug: 'a-coin', code: 'A', name: 'A Coin', issuer: 'Iota', category: 'equity_fund', watched: false, active: true },
+    { slug: 'c-coin', code: 'C', name: 'C Coin', issuer: 'Iota', category: 'equity_fund', watched: true, active: false },
+  ];
+  assert.deepEqual(
+    rankCircles(pool).map((r) => r.circle.slug),
+    ['c-coin', 'a-coin', 'b-coin'],
+    'watched first, then active, then quiet',
+  );
+  const unwatched = pool.map((c) => ({ ...c, watched: false }));
+  assert.deepEqual(
+    rankCircles(unwatched).map((r) => r.circle.slug),
+    ['a-coin', 'b-coin', 'c-coin'],
+    'signed-out default is activity order',
+  );
+  const stocks = rankCircles(unwatched, { interest: 'stocks' });
+  assert.deepEqual(
+    stocks.map((r) => r.circle.slug),
+    ['a-coin', 'c-coin', 'b-coin'],
+    'interest matches order before active non-matches',
+  );
+  assert.ok(stocks[0].reasons.join(' ').includes('Stocks'), 'interest reason names the interest');
+  assert.deepEqual(
+    rankCircles(unwatched, { interest: 'nope' }).map((r) => r.circle.slug),
+    ['a-coin', 'b-coin', 'c-coin'],
+    'unknown interest falls back to activity order',
+  );
+  assert.deepEqual(rankCircles(pool, { query: 'A Coin' }).map((r) => r.circle.slug), ['a-coin'], 'name search');
+  assert.deepEqual(rankCircles(pool, { query: 'iota' }).map((r) => r.circle.slug), ['c-coin', 'a-coin', 'b-coin'], 'issuer search filters, rank order stands');
+  assert.deepEqual(rankCircles(pool, { query: 'zzz' }), [], 'no matches, no fabrication');
+  const mixed = rankCircles(
+    [
+      { slug: 'w-quiet', code: 'W', name: 'W', issuer: 'I', category: 'stablecoin', watched: true, active: false },
+      { slug: 'm-active', code: 'M', name: 'M', issuer: 'I', category: 'equity_fund', watched: false, active: true },
+    ],
+    { interest: 'stocks' },
+  );
+  assert.equal(mixed[0].circle.slug, 'w-quiet', 'watched outranks interest');
+  assert.ok(mixed[0].reasons.includes('Watched by you'), 'watched reason stated');
+  assert.ok(INTERESTS.length > 0 && INTERESTS.every((i) => i.label.length > 0), 'interest labels present');
+  const ROOT = join(__dirname, '..');
+  const directory = readFileSync(join(ROOT, 'src/app/circles/page.tsx'), 'utf8');
+  assert.ok(directory.includes('rankCircles') && directory.includes('name="q"'), 'search + ranking wired');
+  assert.ok(directory.includes('/community') && directory.includes('/conviction'), 'Discuss/Theses link to real routes');
+  assert.ok(!/hold|balance|trustline/i.test(readFileSync(join(ROOT, 'src/lib/social-discovery/rank.ts'), 'utf8')), 'ranking ignores holdings');
+
   await cleanup();
   console.log("asset-circles:verified");
+
 }
 
 main().catch(async (error) => {
