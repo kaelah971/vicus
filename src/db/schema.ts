@@ -566,6 +566,30 @@ export const circlePostHelpful = pgTable(
   ],
 );
 
+/**
+ * P8.1 staged onboarding payloads. Applicant-supplied claims only — never
+ * independently verified issuer facts (registration belongs to P8.2).
+ */
+export type SpaceApplicationAssetDoc = {
+  name: string;
+  network: string;
+  identifier: string | null;
+  documentationUrls: string[];
+  issuerWebsite: string | null;
+  verificationSources: string[];
+  requestedUse: string | null;
+};
+
+export type SpaceApplicationEligibility = {
+  authorizedRepresentative: boolean;
+  issuerRelationship: string | null;
+  distributionRequested: boolean;
+  jurisdictions: string | null;
+  permissionedNotes: string | null;
+  kycProcesses: string | null;
+  evidenceUrls: string[];
+};
+
 export const spaceApplications = pgTable(
   "space_applications",
   {
@@ -585,6 +609,17 @@ export const spaceApplications = pgTable(
     reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
     reviewNote: text("review_note"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    /** P8.1 staged onboarding: applicant-supplied asset claims (NOT verified facts). */
+    assetDetails: jsonb("asset_details")
+      .$type<SpaceApplicationAssetDoc[]>()
+      .notNull()
+      .default([]),
+    /** P8.1 staged onboarding: applicant eligibility declarations. */
+    eligibility: jsonb("eligibility").$type<SpaceApplicationEligibility | null>(),
+    /** Organization created by approval (idempotent replay + audit). */
+    organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "set null" }),
+    /** When the draft entered the review queue (null until submitted). */
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [

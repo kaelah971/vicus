@@ -13,6 +13,10 @@ import {
   spaceApplications,
   users,
 } from "@/db/schema";
+import type {
+  SpaceApplicationAssetDoc,
+  SpaceApplicationEligibility,
+} from "@/db/schema";
 import { mapCircle } from "@/lib/data/circles";
 import {
   getSubmissionStatesForUser,
@@ -944,12 +948,18 @@ export type SpaceApplicationRecord = {
   reviewNote: string | null;
   reviewedAt: string | null;
   createdAt: string;
+  submittedAt: string | null;
+  organizationId: string | null;
+  organizationSlug: string | null;
+  assetDetails: SpaceApplicationAssetDoc[];
+  eligibility: SpaceApplicationEligibility | null;
   applicant: { id: string; handle: string; displayName: string };
 };
 
 function mapApplication(
   application: typeof spaceApplications.$inferSelect,
   applicant: { id: string; handle: string; displayName: string },
+  organizationSlug: string | null = null,
 ): SpaceApplicationRecord {
   return {
     id: application.id,
@@ -965,6 +975,11 @@ function mapApplication(
     reviewNote: application.reviewNote,
     reviewedAt: application.reviewedAt?.toISOString() ?? null,
     createdAt: application.createdAt.toISOString(),
+    submittedAt: application.submittedAt?.toISOString() ?? null,
+    organizationId: application.organizationId,
+    organizationSlug,
+    assetDetails: Array.isArray(application.assetDetails) ? application.assetDetails : [],
+    eligibility: (application.eligibility as SpaceApplicationEligibility | null) ?? null,
     applicant,
   };
 }
@@ -1224,7 +1239,29 @@ export async function reviewSpaceApplication(
       .innerJoin(users, eq(spaceApplications.applicantUserId, users.id))
       .where(eq(spaceApplications.id, applicationId))
       .limit(1);
-    if (!row || row.application.status !== "pending") {
+    if (!row) {
+      throw new MissionActionError("invalid-request", "That application could not be found.", 404);
+    }
+    // Idempotent replay: a previous approval that recorded its
+    // organization returns the same outcome instead of erroring.
+    // Checked before the pending gate so retries succeed.
+    if (action === "approved" && row.application.organizationId) {
+      const [existingOrg] = await database
+        .select({ slug: organizations.slug })
+        .from(organizations)
+        .where(eq(organizations.id, row.application.organizationId))
+        .limit(1);
+      const applicantReplay = {
+        id: row.applicant.id,
+        handle: row.applicant.handle,
+        displayName: row.applicant.displayName,
+      };
+      return {
+        ...mapApplication(row.application, applicantReplay, existingOrg?.slug ?? null),
+        organizationSlug: existingOrg?.slug ?? null,
+      };
+    }
+    if (row.application.status !== "pending") {
       throw new MissionActionError(
         "invalid-transition",
         "This application is no longer waiting for review.",
@@ -1308,6 +1345,7 @@ export async function reviewSpaceApplication(
         reviewedBy: actorId,
         reviewNote,
         reviewedAt: new Date(),
+        organizationId: created.id,
         updatedAt: new Date(),
       })
       .where(
@@ -1328,5 +1366,328 @@ export async function reviewSpaceApplication(
   } catch (error) {
     if (error instanceof MissionActionError) throw error;
     throw toDatabaseUnavailableError("review space application");
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* P8.1 staged onboarding: DRAFT → PENDING REVIEW → APPROVED / REJECTED */
+/* ------------------------------------------------------------------ */
+
+export const APPLICATION_STATUSES = ["draft", "pending", "approved", "rejected"] as const;
+
+const MAX_ASSET_DOCS = 10;
+const MAX_URLS_PER_LIST = 10;
+
+function asUrlList(value: unknown): string[] | null {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > MAX_URLS_PER_LIST) return null;
+  const cleaned: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") return null;
+    const url = entry.trim();
+    if (!url) continue;
+    if (url.length > 500 || !isHttpUrl(url)) return null;
+    cleaned.push(url);
+  }
+  return cleaned;
+}
+
+function asOptionalText(value: unknown, max: number): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > max) return null;
+  return trimmed;
+}
+
+/** Validate one applicant-supplied asset claim (never a verified fact). */
+export function validateAssetDoc(value: unknown): { ok: true; doc: SpaceApplicationAssetDoc } | { ok: false; issue: string } {
+  if (typeof value !== "object" || value === null) return { ok: false, issue: "Each asset needs a name and network." };
+  const entry = value as Record<string, unknown>;
+  const name = asBoundedString(entry.name, 2, 120);
+  const network = asBoundedString(entry.network, 2, 40);
+  if (!name || !network) return { ok: false, issue: "Each asset needs a name (2–120 chars) and network (2–40 chars)." };
+  const identifier = asOptionalText(entry.identifier, 200);
+  const documentationUrls = asUrlList(entry.documentationUrls ?? []);
+  const verificationSources = asUrlList(entry.verificationSources ?? []);
+  if (documentationUrls === null || verificationSources === null) {
+    return { ok: false, issue: `Asset "${name}": URLs must be valid http(s), max 10 per list.` };
+  }
+  const rawIssuerWebsite = asOptionalText(entry.issuerWebsite, 500);
+  if (entry.issuerWebsite !== undefined && entry.issuerWebsite !== null && entry.issuerWebsite !== "" && (rawIssuerWebsite === null || !isHttpUrl(rawIssuerWebsite))) {
+    return { ok: false, issue: `Asset "${name}": issuer website must be a valid http(s) URL.` };
+  }
+  return {
+    ok: true,
+    doc: {
+      name,
+      network,
+      identifier,
+      documentationUrls,
+      issuerWebsite: rawIssuerWebsite,
+      verificationSources,
+      requestedUse: asOptionalText(entry.requestedUse, 500),
+    },
+  };
+}
+
+export function validateAssetDocs(value: unknown): { ok: true; docs: SpaceApplicationAssetDoc[] } | { ok: false; issue: string } {
+  if (value === undefined || value === null) return { ok: true, docs: [] };
+  if (!Array.isArray(value) || value.length > MAX_ASSET_DOCS) {
+    return { ok: false, issue: `Up to ${MAX_ASSET_DOCS} asset entries are supported.` };
+  }
+  const docs: SpaceApplicationAssetDoc[] = [];
+  for (const entry of value) {
+    const result = validateAssetDoc(entry);
+    if (!result.ok) return result;
+    docs.push(result.doc);
+  }
+  return { ok: true, docs };
+}
+
+/** Validate applicant eligibility declarations (factual, never an approval). */
+export function validateEligibility(value: unknown): { ok: true; eligibility: SpaceApplicationEligibility | null } | { ok: false; issue: string } {
+  if (value === undefined || value === null) return { ok: true, eligibility: null };
+  if (typeof value !== "object" || value === null) return { ok: false, issue: "Eligibility must be an object." };
+  const entry = value as Record<string, unknown>;
+  if (typeof entry.authorizedRepresentative !== "boolean" || typeof entry.distributionRequested !== "boolean") {
+    return { ok: false, issue: "Eligibility needs explicit yes/no answers for representation and distribution." };
+  }
+  const evidenceUrls = asUrlList(entry.evidenceUrls ?? []);
+  if (evidenceUrls === null) return { ok: false, issue: "Evidence URLs must be valid http(s), max 10." };
+  return {
+    ok: true,
+    eligibility: {
+      authorizedRepresentative: entry.authorizedRepresentative,
+      issuerRelationship: asOptionalText(entry.issuerRelationship, 500),
+      distributionRequested: entry.distributionRequested,
+      jurisdictions: asOptionalText(entry.jurisdictions, 500),
+      permissionedNotes: asOptionalText(entry.permissionedNotes, 2000),
+      kycProcesses: asOptionalText(entry.kycProcesses, 2000),
+      evidenceUrls,
+    },
+  };
+}
+
+type IdentityPatch = {
+  proposedName?: unknown;
+  proposedSlug?: unknown;
+  description?: unknown;
+  websiteUrl?: unknown;
+  projectType?: unknown;
+  ecosystemFocus?: unknown;
+  requestedPurpose?: unknown;
+  affiliationNote?: unknown;
+};
+
+function validatedIdentityFields(patch: IdentityPatch): Record<string, string | null> {
+  const out: Record<string, string | null> = {};
+  if (patch.proposedName !== undefined) {
+    const v = asBoundedString(patch.proposedName, 2, 180);
+    if (v === null) throw new MissionActionError("invalid-request", "Project name needs 2–180 characters.", 400);
+    out.proposedName = v;
+  }
+  if (patch.proposedSlug !== undefined) {
+    const v = asSlug(patch.proposedSlug);
+    if (v === null) throw new MissionActionError("invalid-request", "Space slug must be lowercase letters, numbers, and hyphens.", 400);
+    out.proposedSlug = v;
+  }
+  if (patch.description !== undefined) {
+    const v = asBoundedString(patch.description, 20, 2000);
+    if (v === null) throw new MissionActionError("invalid-request", "Description needs 20–2000 characters.", 400);
+    out.description = v;
+  }
+  if (patch.websiteUrl !== undefined) {
+    if (patch.websiteUrl === null || (typeof patch.websiteUrl === "string" && !patch.websiteUrl.trim())) {
+      out.websiteUrl = null;
+    } else if (typeof patch.websiteUrl === "string" && isHttpUrl(patch.websiteUrl.trim()) && patch.websiteUrl.trim().length <= 500) {
+      out.websiteUrl = patch.websiteUrl.trim();
+    } else {
+      throw new MissionActionError("invalid-request", "Use a valid http or https website URL.", 400);
+    }
+  }
+  if (patch.projectType !== undefined) {
+    if (typeof patch.projectType !== "string" || !(spaceProjectTypes as readonly string[]).includes(patch.projectType)) {
+      throw new MissionActionError("invalid-request", "Choose a valid project type.", 400);
+    }
+    out.projectType = patch.projectType;
+  }
+  if (patch.ecosystemFocus !== undefined) {
+    if (patch.ecosystemFocus === null || (typeof patch.ecosystemFocus === "string" && !patch.ecosystemFocus.trim())) {
+      out.ecosystemFocus = null;
+    } else if (typeof patch.ecosystemFocus === "string") {
+      const v = patch.ecosystemFocus.trim().toLowerCase();
+      if (v.length > 32 || !/^[a-z0-9-]+$/.test(v)) throw new MissionActionError("invalid-request", "The ecosystem focus is invalid.", 400);
+      out.ecosystemFocus = v;
+    } else {
+      throw new MissionActionError("invalid-request", "The ecosystem focus is invalid.", 400);
+    }
+  }
+  if (patch.requestedPurpose !== undefined) {
+    const v = asBoundedString(patch.requestedPurpose, 20, 2000);
+    if (v === null) throw new MissionActionError("invalid-request", "Hosting purpose needs 20–2000 characters.", 400);
+    out.requestedPurpose = v;
+  }
+  if (patch.affiliationNote !== undefined) {
+    out.affiliationNote = asOptionalText(patch.affiliationNote, 2000);
+  }
+  return out;
+}
+
+function requireApplicant(applicantId: string | null | undefined): string {
+  if (!applicantId || !/^[0-9a-f-]{36}$/i.test(applicantId)) {
+    throw new MissionActionError("unauthenticated", "Sign in to manage a Space application.", 401);
+  }
+  return applicantId;
+}
+
+async function getOwnedApplication(database: ReturnType<typeof getDatabase>, applicantId: string, id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    throw new MissionActionError("invalid-request", "That application could not be found.", 404);
+  }
+  const [row] = await database
+    .select()
+    .from(spaceApplications)
+    .where(and(eq(spaceApplications.id, id), eq(spaceApplications.applicantUserId, applicantId)))
+    .limit(1);
+  if (!row) throw new MissionActionError("invalid-request", "That application could not be found.", 404);
+  return row;
+}
+
+/** Start a new draft. Incomplete by design — saving never submits. */
+export async function createSpaceApplicationDraft(applicantId: string | null | undefined) {
+  const applicant = requireApplicant(applicantId);
+  try {
+    const database = getDatabase();
+    const [created] = await database
+      .insert(spaceApplications)
+      .values({
+        id: randomUUID(),
+        applicantUserId: applicant,
+        proposedName: "",
+        proposedSlug: `draft-${randomUUID().slice(0, 8)}`,
+        description: "",
+        websiteUrl: null,
+        projectType: "other",
+        ecosystemFocus: null,
+        requestedPurpose: "",
+        affiliationNote: null,
+        status: "draft",
+        assetDetails: [],
+        eligibility: null,
+      })
+      .returning();
+    if (!created) throw toDatabaseUnavailableError("create application draft");
+    const [user] = await database.select({ id: users.id, handle: users.handle, displayName: users.displayName }).from(users).where(eq(users.id, applicant)).limit(1);
+    return mapApplication(created, user ?? { id: applicant, handle: "", displayName: "" });
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("create application draft");
+  }
+}
+
+/** Edit an owned draft. Pending/approved/rejected applications are read-only. */
+export async function updateSpaceApplicationDraft(
+  applicantId: string | null | undefined,
+  id: string,
+  patch: IdentityPatch & { assetDetails?: unknown; eligibility?: unknown },
+) {
+  const applicant = requireApplicant(applicantId);
+  try {
+    const database = getDatabase();
+    const row = await getOwnedApplication(database, applicant, id);
+    if (row.status !== "draft") {
+      throw new MissionActionError("invalid-transition", "Only drafts can be edited. Submitted applications are read-only.", 409);
+    }
+    const set: Record<string, unknown> = { ...validatedIdentityFields(patch), updatedAt: new Date() };
+    if (patch.assetDetails !== undefined) {
+      const result = validateAssetDocs(patch.assetDetails);
+      if (!result.ok) throw new MissionActionError("invalid-request", result.issue, 400);
+      set.assetDetails = result.docs;
+    }
+    if (patch.eligibility !== undefined) {
+      const result = validateEligibility(patch.eligibility);
+      if (!result.ok) throw new MissionActionError("invalid-request", result.issue, 400);
+      set.eligibility = result.eligibility;
+    }
+    const [updated] = await database
+      .update(spaceApplications)
+      .set(set)
+      .where(and(eq(spaceApplications.id, id), eq(spaceApplications.status, "draft")))
+      .returning();
+    if (!updated) throw toDatabaseUnavailableError("update application draft");
+    const [user] = await database.select({ id: users.id, handle: users.handle, displayName: users.displayName }).from(users).where(eq(users.id, applicant)).limit(1);
+    return mapApplication(updated, user ?? { id: applicant, handle: "", displayName: "" });
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("update application draft");
+  }
+}
+
+/** Read an owned application at any stage (resume drafts, review status). */
+export async function getSpaceApplicationForApplicant(applicantId: string | null | undefined, id: string) {
+  const applicant = requireApplicant(applicantId);
+  try {
+    const database = getDatabase();
+    const row = await getOwnedApplication(database, applicant, id);
+    const [user] = await database.select({ id: users.id, handle: users.handle, displayName: users.displayName }).from(users).where(eq(users.id, applicant)).limit(1);
+    return mapApplication(row, user ?? { id: applicant, handle: "", displayName: "" });
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("read space application");
+  }
+}
+
+function validateIdentityComplete(row: typeof spaceApplications.$inferSelect): string | null {
+  if (!row.proposedName || row.proposedName.trim().length < 2) return "Project name needs 2–180 characters.";
+  if (!row.proposedSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.proposedSlug) || row.proposedSlug.startsWith("draft-")) return "Pick a real Space slug (lowercase, hyphens) — draft placeholders cannot be submitted.";
+  if (!row.description || row.description.trim().length < 20) return "Description needs 20–2000 characters.";
+  if (!row.requestedPurpose || row.requestedPurpose.trim().length < 20) return "Hosting purpose needs 20–2000 characters.";
+  if (!(spaceProjectTypes as readonly string[]).includes(row.projectType)) return "Choose a valid project type.";
+  if (row.websiteUrl && (!isHttpUrl(row.websiteUrl) || row.websiteUrl.length > 500)) return "Website must be a valid http(s) URL.";
+  return null;
+}
+
+/**
+ * Submit an owned draft into the review queue. Validates every stage;
+ * incomplete applications never enter review. Drafts stay invisible to
+ * reviewers and public directories until this succeeds.
+ */
+export async function submitSpaceApplicationDraft(applicantId: string | null | undefined, id: string) {
+  const applicant = requireApplicant(applicantId);
+  try {
+    const database = getDatabase();
+    const row = await getOwnedApplication(database, applicant, id);
+    if (row.status !== "draft") {
+      throw new MissionActionError("invalid-transition", "Only drafts can be submitted.", 409);
+    }
+    const identityIssue = validateIdentityComplete(row);
+    if (identityIssue) throw new MissionActionError("invalid-request", identityIssue, 400);
+    const docs = validateAssetDocs(row.assetDetails);
+    if (!docs.ok) throw new MissionActionError("invalid-request", docs.issue, 400);
+    const eligibility = validateEligibility(row.eligibility);
+    if (!eligibility.ok) throw new MissionActionError("invalid-request", eligibility.issue, 400);
+    if (!eligibility.eligibility) {
+      throw new MissionActionError("invalid-request", "Eligibility declarations are required before submission.", 400);
+    }
+    const [conflict] = await database
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.slug, row.proposedSlug))
+      .limit(1);
+    if (conflict) {
+      throw new MissionActionError("invalid-request", "A Space with this slug already exists. Pick another slug.", 409);
+    }
+    const [updated] = await database
+      .update(spaceApplications)
+      .set({ status: "pending", submittedAt: new Date(), assetDetails: docs.docs, eligibility: eligibility.eligibility, updatedAt: new Date() })
+      .where(and(eq(spaceApplications.id, id), eq(spaceApplications.status, "draft")))
+      .returning();
+    if (!updated) throw toDatabaseUnavailableError("submit space application");
+    const [user] = await database.select({ id: users.id, handle: users.handle, displayName: users.displayName }).from(users).where(eq(users.id, applicant)).limit(1);
+    return mapApplication(updated, user ?? { id: applicant, handle: "", displayName: "" });
+  } catch (error) {
+    if (error instanceof MissionActionError) throw error;
+    throw toDatabaseUnavailableError("submit space application");
   }
 }

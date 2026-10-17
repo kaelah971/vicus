@@ -66,6 +66,31 @@ export function SpaceApplicationReview({ applications }: { applications: SpaceAp
           {application.affiliationNote ? (
             <p className="control-note">Affiliation: {application.affiliationNote}</p>
           ) : null}
+          {application.assetDetails.length > 0 ? (
+            <div className="control-note">
+              <strong>Claimed assets (applicant-stated, not verified):</strong>
+              <ul>
+                {application.assetDetails.map((asset, index) => (
+                  <li key={index}>
+                    {asset.name} · {asset.network}
+                    {asset.identifier ? ` · ${asset.identifier}` : ""}
+                    {asset.documentationUrls.length > 0 ? (
+                      <> — <a href={asset.documentationUrls[0]} rel="noreferrer" target="_blank">docs →</a></>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {application.eligibility ? (
+            <p className="control-note">
+              Eligibility: representative {application.eligibility.authorizedRepresentative ? "yes" : "no"};
+              distribution {application.eligibility.distributionRequested ? "requested (separate issuer review)" : "not requested"}
+              {application.eligibility.jurisdictions ? `; scope: ${application.eligibility.jurisdictions}` : ""}
+            </p>
+          ) : (
+            <p className="control-note">Eligibility: not declared (legacy application).</p>
+          )}
           <div className="field-group">
             <label htmlFor={`space-review-note-${application.id}`}>Review note (optional, shown on rejection)</label>
             <input

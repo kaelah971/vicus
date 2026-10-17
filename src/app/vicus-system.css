@@ -4661,3 +4661,18 @@ code, .t-id, .mono {
 @media (max-width: 340px) {
   .s-circle-actions { flex-direction: row; flex-wrap: wrap; grid-column: 1 / -1; justify-content: flex-end; }
 }
+
+/* P8.1 — staged onboarding wizard. Compact, mobile-first. */
+.form-steps { display: flex; gap: 8px; list-style: none; margin: 0 0 4px; padding: 0; }
+.form-steps li { align-items: center; border: 1px solid rgba(var(--fg-rgb), 0.12); border-radius: 999px; color: var(--subtle); display: flex; font-size: 0.74rem; gap: 6px; padding: 5px 12px 5px 6px; }
+.form-steps li span { align-items: center; background: rgba(var(--fg-rgb), 0.08); border-radius: 999px; display: inline-flex; font-size: 0.68rem; height: 20px; justify-content: center; width: 20px; }
+.form-steps li[aria-current="step"] { border-color: rgba(139, 43, 255, 0.6); color: var(--foreground); }
+.form-steps li[data-done="true"] { border-color: rgba(46, 160, 90, 0.5); }
+.field-input { background: #050507; border: 1px solid var(--hairline-strong); border-radius: 10px; color: var(--foreground); font-size: 0.86rem; line-height: 1.5; padding: 10px 12px; width: 100%; }
+textarea.field-input { min-height: 88px; resize: vertical; }
+.form-error { background: rgba(217, 60, 60, 0.1); border: 1px solid rgba(217, 60, 60, 0.45); border-radius: 12px; color: inherit; font-size: 0.84rem; padding: 10px 14px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+@media (max-width: 560px) {
+  .form-steps { flex-wrap: wrap; }
+  .form-actions .button { flex: 1 1 auto; text-align: center; }
+}

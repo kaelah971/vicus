@@ -64,7 +64,8 @@
     "xeco:seed": "tsx scripts/add-cross-ecosystem-assets.ts",
     "loyalty:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-loyalty.ts",
     "drop-providers:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-drop-providers.ts",
-    "reputation:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-reputation.ts"
+    "reputation:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-reputation.ts",
+    "host-onboarding:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-host-onboarding.ts"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.7.0",

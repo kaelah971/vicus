@@ -7,7 +7,7 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { listEcosystems } from "@/lib/data/circles";
 import { listMySpaceApplications, listOrganizationsForActor } from "@/lib/organizations/service";
-import { SpaceApplicationForm } from "@/components/space-application-form";
+import { SpaceOnboardingWizard } from "@/components/space-onboarding-wizard";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +17,15 @@ export const metadata: Metadata = {
 };
 
 function statusLabel(status: string) {
+  if (status === "draft") return "Draft — not submitted";
   if (status === "pending") return "Pending review";
   if (status === "approved") return "Approved";
   return "Rejected";
 }
 
-export default async function HostPage() {
+export default async function HostPage({ searchParams }: { searchParams?: Promise<{ resume?: string }> }) {
+  const params = (await searchParams) ?? {};
+  const resumeId = typeof params.resume === "string" && /^[0-9a-f-]{36}$/i.test(params.resume) ? params.resume : null;
   let session;
   try {
     session = await getCurrentSession();
@@ -125,9 +128,9 @@ export default async function HostPage() {
                 <Eyebrow>Apply for a Space</Eyebrow>
                 <h2>Tell us about your project.</h2>
               </div>
-              <p>Sign in first — applications are tied to your Vicus identity, nothing else.</p>
+              <p>Sign in first — applications are tied to your Vicus identity, nothing else. Drafts save automatically as you go and never submit until you confirm.</p>
             </div>
-            {session ? <SpaceApplicationForm ecosystems={ecosystems} /> : <WalletConnectPrompt />}
+            {session ? <SpaceOnboardingWizard ecosystems={ecosystems} resumeId={resumeId} key={resumeId ?? "new"} /> : <WalletConnectPrompt />}
           </section>
 
           {session && myApplications.length > 0 ? (
@@ -141,8 +144,12 @@ export default async function HostPage() {
               <ul>
                 {myApplications.map((application) => (
                   <li key={application.id}>
-                    <strong>{application.proposedName}</strong> · {statusLabel(application.status)}
-                    {" · "}applied {application.createdAt.slice(0, 10)}
+                    <strong>{application.proposedName || "Untitled draft"}</strong> · {statusLabel(application.status)}
+                    {application.status === "draft" ? (
+                      <>{" · "}<Link href={`/host?resume=${application.id}`}>Resume draft →</Link></>
+                    ) : (
+                      <>{" · "}applied {application.createdAt.slice(0, 10)}</>
+                    )}
                     {application.status === "rejected" && application.reviewNote ? (
                       <p className="control-note">Feedback: {application.reviewNote}</p>
                     ) : null}
