@@ -36,3 +36,5 @@ headless-network error page and was discarded, never shipped.
 | `gal-loyalty-mobile.png` | `/profile/demo` | 390×844 | Loyalty section on the demo participant profile: honest zero state (Explorer · 0 pts) | Demo identity, explicitly labeled; no wallet, no fixtures presented as activity |
 | `gal-discover-desktop.png` | `/discover` | 1440×900 | Desktop catalogue with sidebar, filters, Stellar grid | Same conditions as mobile |
 | `gal-loyalty-desktop.png` | `/profile/demo` | 1440×900 | Desktop demo profile with loyalty zero state | Scrolled to loyalty section |
+| `gal-reputation-mobile.png` | `/profile/demo` | 390×844 | Reputation zero state on the demo profile (verified/authored empty, honesty copy) | Demo identity, explicitly labeled; scrolled to reputation section |
+| `gal-reputation-desktop.png` | `/profile/demo` | 1440×900 | Desktop reputation zero state | Same conditions as mobile |

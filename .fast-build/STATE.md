@@ -187,3 +187,10 @@
 - Verification: NEW drop-providers:verify green (approved-fixture pass, 9 rejection reasons exact, env-spoof rejected, copy complete); regressions green: drops, campaign-funding 16/16, abuse, loyalty, rewards, missions, auth, receipts; tsc clean; lint 0 errors; build green; rewards 390/1440 zero overflow.
 - No approved provider found (none exists) — documented as the limitation, not a blocker. No migration. No screenshots (one-line copy; gallery 1 day old).
 - Ship: pushed main, Vercel Ready, alias moved, live 200s. Roadmap v2.21: P6.4 COMPLETE + P6 PHASE CLOSED (P6.1–P6.4 live). 43 IDs intact.
+
+## P7.1 Evidence-Backed Contribution Reputation (2026-10-17)
+- Read model only (no tables/writes/scores): src/lib/reputation/ — verified (approved submissions keyed by submission id; paid completions keyed by id + deduped by proof, earliest wins) vs authored (theses with open/resolved/withdrawn/expired states, active posts/answers; moderated excluded; votes never credit). Loyalty XP untouched.
+- ReputationCard (verified + authored sections, circles line, disclaimers, honest empties) on profile/me (private) + public profile + demo (public-safe: no pending/notes/wallets/rewards/balances/contacts). Premium on 390/1440; populated state QA'd via transient fixtures (removed after).
+- Verification: NEW reputation:verify green (dedupe, garbage, thesis states, ordering, service fixtures incl. revocation/isolation/public-private/no-leak); regressions: conviction/loyalty/asset-circles/social/community/missions/campaign-funding/abuse green; tsc clean; lint 0 errors; build green. Real finding: Neon clock ~300ms ahead of app clock breaks same-instant campaign windows — verifier backdates windows (product impact nil, documented).
+- Delivery: README synced (feature row + v2.22 + limitations), 2 production gallery shots + manifest, roadmap v2.22 + log, P7.2 next. No migration.
+- Ship: code c418d9a + P7.1 docs commit (this session), pushed; Vercel Ready; alias verified serving reputation on demo. P7.2/P7.3 remain.

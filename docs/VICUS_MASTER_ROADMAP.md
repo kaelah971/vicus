@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.21 (P6 phase complete; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.22 (P7.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.21 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.22 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -311,7 +311,7 @@ Milestone IDs are stable. Statuses at v2.21 sync (2026-10-17): `Complete` (P0.1,
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P7.1 | Contribution reputation | Reputation derived from approved missions, theses, verified participation — never counts invented | `conviction:verify` + rules audit | Planned |
+| P7.1 | Contribution reputation | Reputation derived from approved missions, theses, verified participation — never counts invented | `conviction:verify` + rules audit | Complete 2026-10-17: evidence taxonomy (verified vs authored, no scores, loyalty XP untouched); dedupe incl. same-proof collapse; ReputationCard on profile/me + public profile + demo (public-safe only); `reputation:verify` matrix green + conviction/loyalty/asset-circles/social/community/missions/campaign-funding/abuse regressions green; mobile/desktop screenshots; live on production. P7.2/P7.3 remain. |
 | P7.2 | Privacy-safe holding roles | Verified-holder roles gate channels without exposing balances; pasted addresses never grant roles | `role:verify` + privacy audit (no balances to browser) | Planned |
 | P7.3 | Social discovery + community actions | Relevant circles/people/theses surface per asset; per-asset community actions link to real flows | `asset-circles:verify`, `social:verify`, `community:verify` | Planned |
 
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P7.1 Contribution reputation** (reputation from approved missions/theses/verified participation; P6 phase complete 2026-10-17 — owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
+- **Next buildable product milestone: P7.2 Privacy-safe holding roles** (verified-holder roles without balance exposure; P7.1 reputation complete 2026-10-17, live; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -681,6 +681,7 @@ After each completed milestone:
 | 2026-10-16 | P6.2 complete (rate limits + proof-reuse guard + review flags; no SLA policy found; 43 IDs intact) | Commit `f5405da` + v2.19 sync |
 | 2026-10-17 | P6.3 complete (verified loyalty read-model + card; README/manifest/AGENTS delivery rules; 43 IDs intact) | This sync |
 | 2026-10-17 | P6.4 complete + P6 phase complete (provider boundary + allowlist matrix; zero providers connected, XLM-only in effect; 43 IDs intact) | This sync |
+| 2026-10-17 | P7.1 complete (evidence taxonomy + ReputationCard; privacy + rules audits green; 43 IDs intact) | This sync |
 
 ---
 
