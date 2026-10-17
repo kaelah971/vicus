@@ -180,3 +180,10 @@
 - Verification: NEW loyalty:verify green (13 groups: zero/single/dup-day/consecutive/broken/lapsed/yesterday-alive/UTC-midnight/boundaries/garbage/ordering/table-monotonic/service isolation + revocation + unknown-user); regressions: abuse/drops/campaign-funding/rewards/missions/auth/receipts green; tsc clean; lint 0 errors; build green. Populated card visually QA'd via transient fixture (route + rows removed after).
 - Delivery rules (owner-required, permanent): AGENTS.md shipping policy appended (README-per-feature, real screenshots mobile+desktop, interaction testing, honest states, roadmap/state sync, production proof); README synced to v2.20 (prices/loyalty/abuse/baskets/onboarding/owner logos, 1 fallback, no SLA); 7 production gallery shots + manifest.
 - Ship: pushed main, Vercel Ready, alias moved, live (demo loyalty serving). P6.4 remains; P6 NOT complete.
+
+## P6.4 Authorized-Provider Asset Drops (2026-10-17, commit 7e45274)
+- Policy: src/lib/drops/providers.ts — fail-closed allowlist (EMPTY: zero connected providers), full evidence validation (expiry/revocation/asset/issuer/network/eligibility/evidence), UNKNOWN never eligible, env/client inputs authorize nothing. Single source: campaign issuer constant imported, not duplicated.
+- Gates wired into both settlement entries (XLM prepare + Testnet-USDC prepare) as defense-in-depth; existing flows pass unchanged. Rewards page states the policy in product copy.
+- Verification: NEW drop-providers:verify green (approved-fixture pass, 9 rejection reasons exact, env-spoof rejected, copy complete); regressions green: drops, campaign-funding 16/16, abuse, loyalty, rewards, missions, auth, receipts; tsc clean; lint 0 errors; build green; rewards 390/1440 zero overflow.
+- No approved provider found (none exists) — documented as the limitation, not a blocker. No migration. No screenshots (one-line copy; gallery 1 day old).
+- Ship: pushed main, Vercel Ready, alias moved, live 200s. Roadmap v2.21: P6.4 COMPLETE + P6 PHASE CLOSED (P6.1–P6.4 live). 43 IDs intact.

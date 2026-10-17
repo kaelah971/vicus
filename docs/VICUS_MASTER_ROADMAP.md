@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.20 (P6.3 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.21 (P6 phase complete; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.20 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.21 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -293,11 +293,11 @@ Milestone IDs are stable. Statuses at v2.20 sync (2026-10-17): `Complete` (P0.1,
 | P6.1 | Idempotent claims + budget limits | Concurrent/double claims yield one settlement; caps enforced server-side; failed states durable | `campaign-funding:verify` + `reward:verify` + concurrency tests | Complete 2026-10-15 (`drops:verify`): cross-user single-payout race (exactly one paid, loser budget-exhausted, paid == funded, one submit); uncertain-timeout inline recovery with same hash; definitive-rejection → failed → retry pays once; reward concurrent double-claim (one settlement) + timeout retry + cross-user rejection; no code changes (existing atomic reservation/cover/CTE + envelope recovery proven). Funded-chain E2E still needs owner wallets. |
 | P6.2 | Anti-abuse controls | Rate limits, eligibility proofs, duplicate-evidence rejection; admin review queue SLA | Abuse-matrix tests | Complete 2026-10-16: DB-backed per-user quotas (mission-submit 20/hr, campaign/reward-claim 30/hr, 429 pre-side-effect, serverless-safe); cross-campaign proof-reuse rejected (`proof-reused` 409, same-campaign resume intact); review queue flags shared evidence (advisory) with admin-only decisions persisted (reviewer + timestamp); `abuse:verify` matrix green + drops/campaign-funding-16/rewards/missions/auth/receipts regressions green; live on production. Limitation: no review SLA policy exists — reported, not invented. P6.3/P6.4 remain; P6 NOT complete. |
 | P6.3 | Loyalty progress | Participation streaks/levels derived from verified actions only; no invented participation | Rules audit | Complete 2026-10-17: read-model over approved submissions (XP = live mission points, one event once; pending/rejected earn nothing; revocation drops XP live); Explorer→Steward thresholds + UTC-day streaks documented; LoyaltyCard on profile + demo profile with honest zero states and recognition-only disclaimer; `loyalty:verify` rules audit green; mobile/desktop screenshots; live on production. P6.4 remains; P6 NOT complete. |
-| P6.4 | Authorized-provider asset drops | Tokenized-asset drops only via authorized providers with issuer approval evidence; otherwise XLM-only | Provider-allowlist test; no permissionless stock-drop path | Planned |
+| P6.4 | Authorized-provider asset drops | Tokenized-asset drops only via authorized providers with issuer approval evidence; otherwise XLM-only | Provider-allowlist test; no permissionless stock-drop path | Complete 2026-10-17: fail-closed provider policy (`src/lib/drops/providers.ts`, empty allowlist — zero connected providers); gates wired into XLM + Testnet-USDC settlement entries; `drop-providers:verify` allowlist matrix green (approved-fixture pass, forged/mismatch/expired/revoked/ineligible/unknown/spoofed all rejected with exact reasons; env flags authorize nothing); drops/campaign-funding-16/abuse/loyalty/rewards/missions/auth/receipts regressions green; rewards page states the policy; live on production. NOT claimed: no authorized tokenized-asset drop is live, no provider connected, no distribution witnessed — XLM-only remains in effect. |
 
 **Dependencies:** P4 proof + real funded campaign controls. Cannot precede honest receipt truth.
 **Blockers/risks:** Treasury funding; Sybil attacks; issuer authorization for non-XLM drops; legal review for rewards-as-incentives.
-**Status:** Planned.
+**Status:** Complete 2026-10-17 (P6.1 claims + P6.2 abuse + P6.3 loyalty + P6.4 provider boundary all live; P6 phase complete).
 
 ---
 
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P6.4 Authorized-provider asset drops** (tokenized-asset drops only via authorized providers with issuer approval evidence; P6.3 loyalty complete 2026-10-17, live).
+- **Next buildable product milestone: P7.1 Contribution reputation** (reputation from approved missions/theses/verified participation; P6 phase complete 2026-10-17 — owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -680,6 +680,7 @@ After each completed milestone:
 | 2026-10-16 | P1 phase complete (P1.2 mobile pass; interaction suite green on production; 43 IDs intact) | Commit `32b7397` |
 | 2026-10-16 | P6.2 complete (rate limits + proof-reuse guard + review flags; no SLA policy found; 43 IDs intact) | Commit `f5405da` + v2.19 sync |
 | 2026-10-17 | P6.3 complete (verified loyalty read-model + card; README/manifest/AGENTS delivery rules; 43 IDs intact) | This sync |
+| 2026-10-17 | P6.4 complete + P6 phase complete (provider boundary + allowlist matrix; zero providers connected, XLM-only in effect; 43 IDs intact) | This sync |
 
 ---
 

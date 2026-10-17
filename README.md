@@ -60,6 +60,7 @@ Status key: **Live** = usable in production · **Implemented** = built + tested,
 | Unified receipt infrastructure | **Live** | Canonical `initiated → prepared → signed → submitted → settled → failed → unknown` contract across flows; settled requires a transaction reference; source-leg success never proves destination delivery |
 | Loyalty progress | **Live** | Levels, UTC-day streaks, and recent activity derived only from approved missions (each counted once); honest zero states; recognition only — no monetary value, tokens, or eligibility |
 | Drops anti-abuse controls | **Live** | DB-backed per-user attempt quotas, cross-campaign proof-reuse rejection, reviewer-only decisions with shared-evidence flags; throttled attempts change nothing |
+| Authorized-provider drops | **Policy live, zero providers** | Fail-closed allowlist: XLM rewards + pinned Testnet USDC only; tokenized-asset distribution needs allowlisted provider + unexpired issuer evidence + verified recipient eligibility — none connected, so restricted drops stay disabled |
 | Curated baskets (discovery only) | **Live** | Four editorial themes of real assets with illustrative weights, issuer/network context, and live eligibility per member — explicitly not investable, no holdings or execution |
 | Personal baskets + watching (discovery only) | **Live** | Signed-in users save personal themes from catalogue assets and watch themes across visits; private by default, owner-isolated, validated server-side |
 | Soroban vaults, basket execution/tokens, Stellar-native swaps, Mainnet payouts | **Planned** | Researched, not built — see [the roadmap](docs/VICUS_MASTER_ROADMAP.md) |
@@ -216,7 +217,7 @@ Vicus is substantially built and honestly labeled — not feature-complete. Rele
 - **R2 — Rewarding + Differentiated (planned):** baskets discovery, funded Drops, Circles reputation, Studio onboarding.
 - **R3 — Infrastructure (planned):** cross-chain Routes, basket execution, vault research + ecosystem APIs.
 
-The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.20: P0.1, P1.1–P1.3, P2.1–P2.3, P3.2–P3.4, P4.1–P4.4, P5.1–P5.3, P6.1–P6.3 complete). Current limitations: sparse-but-real community activity, one ticker-fallback brand mark (BENJI, documented in `src/lib/asset-visuals.ts`), no review-SLA policy yet (reported, not promised), reward end-to-end needs a funded Testnet distributor.
+The complete 43-milestone roadmap with statuses, evidence, and acceptance criteria lives in [docs/VICUS_MASTER_ROADMAP.md](docs/VICUS_MASTER_ROADMAP.md) (v2.21: P0.1, P1.1–P1.3, P2.1–P2.3, P3.2–P3.4, P4.1–P4.4, P5.1–P5.3, P6.1–P6.4 complete). Current limitations: sparse-but-real community activity, one ticker-fallback brand mark (BENJI, documented in `src/lib/asset-visuals.ts`), no review-SLA policy yet (reported, not promised), no approved asset-drop providers (XLM-only in effect), reward end-to-end needs a funded Testnet distributor.
 
 ---
 
