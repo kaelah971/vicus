@@ -16,6 +16,7 @@ import { getPublicProfileByHandle } from "@/lib/social/service";
 import { getUserCommunityContributions } from "@/lib/community/service";
 import { getProfileThesisSummary } from "@/lib/conviction/service";
 import { FollowButton } from "@/components/follow-button";
+import { ReputationCard } from "@/components/reputation-card";
 import { ContactButton } from "@/components/contact-button";
 import { isContactSaved } from "@/lib/contacts/service";
 import { personInitials } from "@/components/person-card";
@@ -203,6 +204,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               </EmptyState>
             )}
           </section>
+
+          <ReputationCard userId={profile.user.id} visibility="public" />
 
           {profile.verifiedRoles.length > 0 ? (
             <section className="circle-section" aria-labelledby="person-roles-title">

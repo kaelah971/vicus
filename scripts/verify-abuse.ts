@@ -250,7 +250,10 @@ async function main() {
   );
   temporaryCampaignIds.push(missionCampaignA.id, missionCampaignB.id);
   for (const c of [missionCampaignA, missionCampaignB]) {
-    await database.update(campaigns).set({ status: "active", fundedAmount: "10.0000000" }).where(eq(campaigns.id, c.id));
+    // Backdate the window start: the Neon server clock runs ahead of the
+    // app clock (~300ms observed), so app-stamped proof times would
+    // otherwise fall microseconds before DB-stamped campaign creation.
+    await database.update(campaigns).set({ status: "active", fundedAmount: "10.0000000", createdAt: new Date(Date.now() - 3_600_000) }).where(eq(campaigns.id, c.id));
   }
   const approvalId = randomUUID();
   await database.insert(missionSubmissions).values({
@@ -280,7 +283,7 @@ async function main() {
     TEST_ENV,
   );
   temporaryCampaignIds.push(sendCampaign.id);
-  await database.update(campaigns).set({ status: "active", fundedAmount: "10.0000000" }).where(eq(campaigns.id, sendCampaign.id));
+  await database.update(campaigns).set({ status: "active", fundedAmount: "10.0000000", createdAt: new Date(Date.now() - 3_600_000) }).where(eq(campaigns.id, sendCampaign.id));
   const bobsProof = await proofTransfer(bob.id, DEST, benji);
   await expectCode(
     claimCampaignReward(sendCampaign.id, alice.id, DEST, { kind: "send", id: bobsProof }, horizon, TEST_ENV),
