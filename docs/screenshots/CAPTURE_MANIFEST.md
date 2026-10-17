@@ -38,3 +38,6 @@ headless-network error page and was discarded, never shipped.
 | `gal-loyalty-desktop.png` | `/profile/demo` | 1440×900 | Desktop demo profile with loyalty zero state | Scrolled to loyalty section |
 | `gal-reputation-mobile.png` | `/profile/demo` | 390×844 | Reputation zero state on the demo profile (verified/authored empty, honesty copy) | Demo identity, explicitly labeled; scrolled to reputation section |
 | `gal-reputation-desktop.png` | `/profile/demo` | 1440×900 | Desktop reputation zero state | Same conditions as mobile |
+| `gal-roles-circle-mobile.png` | `/circles/usdc-on-stellar` | 390×844 | Circle tab with watcher/contribution/verified-role counts (honest zeroes), no holder chips | Signed-out; Circle tab active |
+| `gal-roles-circle-desktop.png` | `/circles/usdc-on-stellar` | 1440×900 | Desktop circle view with role counts | Same conditions as mobile |
+| `gal-roles-verify-mobile.png` | `/circles/benji-on-stellar` | 390×844 | Asset overview with disclosures; role verification lives behind wallet connection | Signed-out; Overview tab |
