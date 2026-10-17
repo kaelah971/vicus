@@ -44,3 +44,5 @@ headless-network error page and was discarded, never shipped.
 | `gal-circles-mobile.png` | `/circles` | 390×844 | Circles directory: search, interest chips, per-circle actions + reasons | Signed-out |
 | `gal-circles-interest-mobile.png` | `/circles?interest=stocks` | 390×844 | Stocks interest order with Why-here reasons | Signed-out; explicit interest param |
 | `gal-circles-desktop.png` | `/circles` | 1440×900 | Desktop circles directory | Signed-out |
+| `gal-host-mobile.png` | `/host` | 390×844 | Host page: staged onboarding intro, signed-in application flow behind wallet auth | Signed-out (connect prompt); wizard QA'd locally with isolated fixtures |
+| `gal-host-desktop.png` | `/host` | 1440×900 | Desktop host page | Same conditions as mobile |

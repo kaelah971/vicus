@@ -1,7 +1,7 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.24 (P7.3 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Version:** v2.25 (P8.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
 **Date:** 2026-10-14
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.24 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.3), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.3, P8.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -331,7 +331,7 @@ Milestone IDs are stable. Statuses at v2.24 sync (2026-10-17): `Complete` (P0.1,
 
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
-| P8.1 | Issuer/project onboarding | Staged onboarding: identity → asset docs → eligibility → review; incomplete stays draft | E2E draft→submit→approve | Planned |
+| P8.1 | Issuer/project onboarding | Staged onboarding: identity → asset docs → eligibility → review; incomplete stays draft | E2E draft→submit→approve | Complete 2026-10-17: DRAFT→PENDING→APPROVED/REJECTED lifecycle with owned drafts (save/resume, read-only once submitted, drafts invisible to queue/directories); per-stage validation (asset docs up to 10 with http(s) URLs, eligibility declarations required); single-organization approval with full audit trail + idempotent replay; `host-onboarding:verify` matrix green (draft/edit/isolation/submit guards/spoofed flags/read-only/replay/slug-collision/legacy-compat/no-asset-registration) + orgs/missions/drops/abuse regressions green; host wizard mobile/desktop QA green; live on production. P8.2–P8.4 remain. |
 | P8.2 | Source-backed asset registration | Every registered asset requires sources (issuer docs, contracts, Horizon records); unsourced rejected | Registration-validation tests | Planned |
 | P8.3 | Project-funded campaign management | Create → treasury copy → fund → hash verify → activate → payouts with budget dashboard | `campaign-funding:verify` + manual E2E §G | Planned |
 | P8.4 | Analytics + distribution evidence | Views, completions, payouts, distribution proofs per campaign; no invented metrics | Metrics-audit (every number traceable) | Planned |
@@ -595,7 +595,7 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P8.1 Issuer/project onboarding** (P7.3 complete 2026-10-17, live; P7.2 blocked on the holder-gated channel lane; P7 stays open; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
+- **Next buildable product milestone: P8.2 Source-backed asset registration** (P7.3 complete 2026-10-17, live; P7.2 blocked on the holder-gated channel lane; P7 stays open; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -684,6 +684,7 @@ After each completed milestone:
 | 2026-10-17 | P7.1 complete (evidence taxonomy + ReputationCard; privacy + rules audits green; 43 IDs intact) | Prior sync |
 | 2026-10-17 | P7.2 corrected to Blocked (holder-gated channel lane unbuilt; boundary + freshness + privacy remain live) | This sync |
 | 2026-10-17 | P7.3 complete (ranking matrix + directory UX; 43 IDs intact) | This sync |
+| 2026-10-17 | P8.1 complete (staged onboarding + draft lifecycle + audit trail; 43 IDs intact) | This sync |
 | 2026-10-17 | P7.2 complete (freshness gate + default-private display; channel lane deferred honestly; 43 IDs intact) | This sync |
 
 ---

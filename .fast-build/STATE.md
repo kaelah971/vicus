@@ -208,3 +208,10 @@
 - Verification: asset-circles:verify extended (11-case ordering matrix incl. precedence/fallback/no-fabrication + page wiring + no-holding-signals assertions) green; regressions green: social/community/conviction/reputation/role/auth; tsc clean; lint 0 errors; build green. Mobile + desktop screenshots zero overflow.
 - P7.2 CORRECTED to Blocked: the original acceptance requires holder-gated channels and no lane was built (boundary + freshness + privacy remain live and verified). Reported explicitly; P7 stays open. Channel lane = next dependency-ready slice after P8.1 or standalone.
 - Delivery: README (discovery row + gallery), 3 production gallery shots + manifest, roadmap v2.24 + log, no migration.
+
+## P8.1 Issuer/Project Onboarding (2026-10-17, commit 33c747b)
+- Lifecycle: DRAFT→PENDING→APPROVED/REJECTED on space_applications (+ migration 0030: asset_details/eligibility jsonb, organization_id FK, submitted_at; applied). Drafts owned + editable, read-only once submitted, invisible to queue/directories pre-submit. Legacy one-shot submit preserved.
+- Validation per stage (asset docs ≤10, http(s) URLs, eligibility booleans required); submit requires all stages + slug check; approval sets organizationId, idempotent replay safe, concurrent/second approval creates no duplicate; rejection with note; resubmit-after-decision blocked.
+- UX: 4-step wizard (identity/assets/eligibility/review) with save/resume/back/next, inline errors, confirmation; admin review shows asset claims (labeled unverified) + eligibility; host page drafts list with resume links.
+- Verification: NEW host-onboarding:verify green (draft/isolation/incomplete/invalid-urls/spoofed-status/eligibility-gate/submit-once/read-only/replay/slug-collision/legacy-compat); regressions orgs/missions/drops/abuse green; tsc clean; lint 0 errors; build green. Wizard QA'd 390/1440 (temp route, deleted).
+- Delivery: README (capability + v2.25), 2 production gallery shots + manifest, roadmap v2.25 + log, no fixture residue (debug orgs removed). P8.2–P8.4 remain; P7.2 still blocked.
