@@ -65,7 +65,8 @@
     "loyalty:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-loyalty.ts",
     "drop-providers:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-drop-providers.ts",
     "reputation:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-reputation.ts",
-    "host-onboarding:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-host-onboarding.ts"
+    "host-onboarding:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-host-onboarding.ts",
+    "registration:verify": "tsx --tsconfig scripts/tsconfig.verify.json scripts/verify-registration.ts"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.7.0",

@@ -628,6 +628,86 @@ export const spaceApplications = pgTable(
   ],
 );
 
+/* ------------------------------------------------------------------ */
+/* P8.2 source-backed asset registration: applicant claims, reviewer   */
+/* decisions, and the registry write they authorize. A registration     */
+/* NEVER implies issuer endorsement, trading availability, eligibility,  */
+/* distribution rights, or payouts — it records that an admin reviewed  */
+/* stated sources and allowed the asset into the catalogue.             */
+/* ------------------------------------------------------------------ */
+
+export type AssetRegistrationType =
+  | "stellar-classic"
+  | "stellar-contract"
+  | "evm"
+  | "solana";
+
+export type AssetRegistrationStatus =
+  | "pending"
+  | "needs_review"
+  | "approved"
+  | "rejected";
+
+export type AssetRegistrationFinding = {
+  code: string;
+  message: string;
+  severity: "info" | "warning" | "blocking";
+};
+
+export const assetRegistrations = pgTable(
+  "asset_registrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    applicantUserId: uuid("applicant_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Origin Space application claim (provenance only — never authority). */
+    spaceApplicationId: uuid("space_application_id").references(
+      () => spaceApplications.id,
+      { onDelete: "set null" },
+    ),
+    assetName: varchar("asset_name", { length: 120 }).notNull(),
+    assetType: varchar("asset_type", { length: 32 }).notNull(),
+    /** Canonical network label: stellar | base | ethereum | solana. */
+    network: varchar("network", { length: 32 }).notNull(),
+    /** Canonical on-chain identifier: issuer / contract / mint (exact). */
+    identifier: text("identifier").notNull(),
+    /** Canonical asset code or symbol (Stellar code; token symbol elsewhere). */
+    code: varchar("code", { length: 32 }),
+    /** Applicant-stated issuer relationship (claim only, never verified fact). */
+    issuerClaim: text("issuer_claim"),
+    /** Official issuer/product documentation (applicant-supplied URLs). */
+    documentationUrls: jsonb("documentation_urls").$type<string[]>().notNull().default([]),
+    /** Public chain records: Horizon / explorer references (applicant-supplied). */
+    chainEvidenceUrls: jsonb("chain_evidence_urls").$type<string[]>().notNull().default([]),
+    issuerWebsite: text("issuer_website"),
+    /** Canonical dedupe key: type:network:identifier (see service). */
+    canonicalKey: text("canonical_key").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    /** Server-computed validation findings at submit + review time. */
+    validationFindings: jsonb("validation_findings")
+      .$type<AssetRegistrationFinding[]>()
+      .notNull()
+      .default([]),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewNote: text("review_note"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    /** Registry row created by approval (null until approved). */
+    registeredAssetId: uuid("registered_asset_id").references(() => assets.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    index("asset_registrations_applicant_status_idx").on(
+      table.applicantUserId,
+      table.status,
+    ),
+    index("asset_registrations_status_idx").on(table.status),
+    index("asset_registrations_canonical_idx").on(table.canonicalKey),
+  ],
+);
+
 export const assetCapabilities = pgTable(
   "asset_capabilities",
   {

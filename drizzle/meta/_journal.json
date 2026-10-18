@@ -218,6 +218,13 @@
       "when": 1792243708095,
       "tag": "0030_conscious_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792327479402,
+      "tag": "0031_fuzzy_chameleon",
+      "breakpoints": true
     }
   ]
 }

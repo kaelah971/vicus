@@ -7,7 +7,9 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { WalletConnectPrompt } from "@/components/wallet-auth";
 import { listEcosystems } from "@/lib/data/circles";
 import { listMySpaceApplications, listOrganizationsForActor } from "@/lib/organizations/service";
+import { listMyAssetRegistrations } from "@/lib/registrations/service";
 import { SpaceOnboardingWizard } from "@/components/space-onboarding-wizard";
+import { AssetRegistrationPanel, type RegistrationClaim } from "@/components/asset-registration-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +51,14 @@ export default async function HostPage({ searchParams }: { searchParams?: Promis
   let ecosystems: Array<{ value: string; label: string }> = [];
   let myOrgs: Awaited<ReturnType<typeof listOrganizationsForActor>> = [];
   let myApplications: Awaited<ReturnType<typeof listMySpaceApplications>> = [];
+  let myRegistrations: Awaited<ReturnType<typeof listMyAssetRegistrations>> = [];
   try {
     ecosystems = await listEcosystems().catch(() => []);
     if (session) {
-      [myOrgs, myApplications] = await Promise.all([
+      [myOrgs, myApplications, myRegistrations] = await Promise.all([
         listOrganizationsForActor(session.user.id),
         listMySpaceApplications(session.user.id),
+        listMyAssetRegistrations(session.user.id),
       ]);
     }
   } catch (error) {
@@ -172,6 +176,32 @@ export default async function HostPage({ searchParams }: { searchParams?: Promis
               </EmptyState>
             </section>
           ) : null}
+
+          <section className="hairline-card admin-panel" id="asset-registration" style={{ marginTop: 16 }}>
+            <div className="admin-panel-header">
+              <div>
+                <Eyebrow>Asset registration</Eyebrow>
+                <h2>Get an asset into the catalogue.</h2>
+              </div>
+              <p>Request registration for a canonical asset identity with official documentation and public chain records. Admins review sources before anything is listed.</p>
+            </div>
+            {session ? (
+              <AssetRegistrationPanel
+                claims={myApplications.flatMap((application) =>
+                  (application.assetDetails ?? []).map((asset) => ({
+                    applicationId: application.id,
+                    applicationName: application.proposedName || "Untitled draft",
+                    name: asset.name,
+                    network: asset.network,
+                    identifier: asset.identifier ?? "",
+                  }) satisfies RegistrationClaim),
+                )}
+                registrations={myRegistrations}
+              />
+            ) : (
+              <p className="control-note">Sign in to request registration — requests are tied to your Vicus identity.</p>
+            )}
+          </section>
         </div>
       </main>
     </AppShell>

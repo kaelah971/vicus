@@ -17,7 +17,9 @@ import { getAdminSubmissionQueue } from "@/lib/data/missions";
 import { AdminReviewQueue } from "@/components/admin-review-queue";
 import { MissionCreateForm } from "@/components/mission-create-form";
 import { SpaceApplicationReview } from "@/components/space-application-review";
+import { AssetRegistrationReview } from "@/components/asset-registration-review";
 import { listPendingSpaceApplications } from "@/lib/organizations/service";
+import { listPendingAssetRegistrations } from "@/lib/registrations/service";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +88,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let missionRecords;
   let reviewQueue;
   let spaceApplications: Awaited<ReturnType<typeof listPendingSpaceApplications>> = [];
+  let assetRegistrations: Awaited<ReturnType<typeof listPendingAssetRegistrations>> = [];
 
   try {
     [overview, missionRecords, reviewQueue] = await Promise.all([
@@ -94,6 +97,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       getAdminSubmissionQueue({ status: statusFilter, circleSlug: circleFilter }),
     ]);
     spaceApplications = await listPendingSpaceApplications(session.user.id);
+    assetRegistrations = await listPendingAssetRegistrations(session.user.id);
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return (
@@ -297,6 +301,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <p>Approval creates the Space and makes the applicant its owner. Rejection creates nothing.</p>
             </div>
             <SpaceApplicationReview applications={spaceApplications} />
+          </section>
+
+          <section className="hairline-card admin-panel" id="asset-registrations">
+            <div className="admin-panel-header">
+              <div>
+                <Eyebrow>Asset registrations</Eyebrow>
+                <h2>Register reviewed assets.</h2>
+              </div>
+              <p>Registration records reviewed sources only. It never certifies the issuer, enables no trading or payouts, and publishes no Circle.</p>
+            </div>
+            <AssetRegistrationReview registrations={assetRegistrations} />
           </section>
 
           <p className="admin-footnote">

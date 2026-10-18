@@ -4676,3 +4676,10 @@ textarea.field-input { min-height: 88px; resize: vertical; }
   .form-steps { flex-wrap: wrap; }
   .form-actions .button { flex: 1 1 auto; text-align: center; }
 }
+
+/* P8.2 — source-backed asset registration. Long identifiers and URLs wrap; grids stack on mobile. */
+.reg-mono { font-family: var(--font-geist-mono, ui-monospace, monospace); font-size: 0.82em; overflow-wrap: anywhere; word-break: break-word; }
+.reg-grid { display: grid; gap: 0 16px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 560px) {
+  .reg-grid { grid-template-columns: 1fr; }
+}
