@@ -46,3 +46,5 @@ headless-network error page and was discarded, never shipped.
 | `gal-circles-desktop.png` | `/circles` | 1440×900 | Desktop circles directory | Signed-out |
 | `gal-host-mobile.png` | `/host` | 390×844 | Host page: staged onboarding intro, signed-in application flow behind wallet auth | Signed-out (connect prompt); wizard QA'd locally with isolated fixtures |
 | `gal-host-desktop.png` | `/host` | 1440×900 | Desktop host page | Same conditions as mobile |
+| `gal-registration-mobile.png` | `/host#asset-registration` | 390×844 | Asset registration section: explainer + sign-in prompt (public surface) | Signed-out; request form + admin review QA'd locally with isolated fixtures (temp route, removed); zero overflow |
+| `gal-registration-desktop.png` | `/host#asset-registration` | 1440×900 | Desktop registration section | Same conditions as mobile |

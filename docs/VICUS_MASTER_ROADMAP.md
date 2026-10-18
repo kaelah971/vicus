@@ -1,8 +1,8 @@
 # VICUS MASTER ROADMAP V2 — Canonical Product & Engineering Roadmap
 
 **Status:** Canonical / Active
-**Version:** v2.25 (P8.1 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
-**Date:** 2026-10-14
+**Version:** v2.26 (P8.2 shipped; structure, milestones and acceptance criteria unchanged from v2.0)
+**Date:** 2026-10-18
 **Branch:** `main`
 **Scope:** Documentation only — no feature code changed in this session.
 **Positioning:** Where tokenized assets become usable.
@@ -143,7 +143,7 @@ Historical settlement (NOT current Mainnet enablement):
 
 Scopes: **(A)** local dev (`.env.local` holds 11 keys incl. `VICUS_APP_URL` — values never inspected) · **(B)** live Vercel preview `explorevicus.vercel.app` (project `vicus`) serving browse + honest gates · **(C)** Neon QA database, historically migrated · **(D)** future financial-production. Blockers below refer to **(D)** unless noted.
 
-(D) blockers (all open): (D) `DATABASE_URL` + migrations `0000→0027` (28 files) not run in (D) · `VICUS_APP_URL=https://…` + `VICUS_HOME_DOMAIN` to verify for (D) · reward-distributor + Lab-issuer keys PRESENT in (A, funding unknown), campaign-secret keys NOT PRESENT in (A) — (D) needs dedicated funded treasury keys + explicit caps · `VICUS_ENABLE_MAINNET_REWARDS` must remain unset · (D) `db:verify` + manual E2E.
+(D) blockers (all open): (D) `DATABASE_URL` + migrations `0000→0031` (32 files) not run in (D) · `VICUS_APP_URL=https://…` + `VICUS_HOME_DOMAIN` to verify for (D) · reward-distributor + Lab-issuer keys PRESENT in (A, funding unknown), campaign-secret keys NOT PRESENT in (A) — (D) needs dedicated funded treasury keys + explicit caps · `VICUS_ENABLE_MAINNET_REWARDS` must remain unset · (D) `db:verify` + manual E2E.
 
 Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc execution gated · Return-to-Stellar gated · Solana Send destination gated · TSLAx/NVDAc limited to verified routes.
 
@@ -153,7 +153,7 @@ Safe by construction: Mainnet CCTP off (code-constant `false`) · AAPLc executio
 
 Every phase follows the executable template: Problem · User outcome · Reuse · Complete · Remaining · Milestones · Dependencies · Acceptance · Verification · Blockers/risks · Status.
 
-Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.3, P8.1), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
+Milestone IDs are stable. Statuses at v2.26 sync (2026-10-18): `Complete` (P0.1, P1.1, P1.2, P1.3, P2.1, P2.2, P2.3, P3.2, P3.3, P3.4, P4.1, P4.2, P4.3, P4.4, P5.1, P5.2, P5.3, P6.1, P6.2, P6.3, P6.4, P7.1, P7.3, P8.1, P8.2), `Blocked` (P7.2), `Planned` (everything else). Shipped slices are recorded as evidence; money-movement milestones stay Planned until witnessed E2E.
 
 ---
 
@@ -214,7 +214,7 @@ Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1,
 
 **Dependencies:** P0 auth/role reliability; Action Engine as-is (extended, not forked — `eligibility.ts` annotates `resolveAssetActions` output). P2.1–P2.3 complete: Compass phase done (ordering responds to session, signed-out fallback stable, no ownership claims).
 **Blockers/risks:** Over-inference from role checks (must not claim ownership from auth alone); privacy (no balances to browser).
-**Status:** Planned.
+**Status:** Complete 2026-10-14 (P2.1–P2.3 all live; Compass phase done).
 
 ---
 
@@ -235,7 +235,7 @@ Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1,
 
 **Dependencies:** P0 reliability; verified Stellar execution pathways. P3.2–P3.4 complete; P3.1 outstanding (E2E-bound to P0.2–P0.3).
 **Blockers/risks:** Venue liquidity; issuer cooperation for permissioned assets; Testnet/Mainnet confusion (must label).
-**Status:** Planned.
+**Status:** Partial — P3.2–P3.4 complete 2026-10-14; P3.1 outstanding (E2E-bound to P0.2–P0.3).
 
 ---
 
@@ -317,7 +317,7 @@ Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1,
 
 **Dependencies:** P4 ownership rules; P2 eligibility context (shared signals).
 **Blockers/risks:** Gaming reputation; privacy regressions; moderation load.
-**Status:** Planned.
+**Status:** Partial — P7.1 + P7.3 complete 2026-10-17; P7.2 Blocked (holder-gated discussion lane unbuilt).
 
 ---
 
@@ -332,13 +332,13 @@ Milestone IDs are stable. Statuses at v2.25 sync (2026-10-17): `Complete` (P0.1,
 | ID | Milestone | Acceptance | Verification | Status |
 |---|---|---|---|---|
 | P8.1 | Issuer/project onboarding | Staged onboarding: identity → asset docs → eligibility → review; incomplete stays draft | E2E draft→submit→approve | Complete 2026-10-17: DRAFT→PENDING→APPROVED/REJECTED lifecycle with owned drafts (save/resume, read-only once submitted, drafts invisible to queue/directories); per-stage validation (asset docs up to 10 with http(s) URLs, eligibility declarations required); single-organization approval with full audit trail + idempotent replay; `host-onboarding:verify` matrix green (draft/edit/isolation/submit guards/spoofed flags/read-only/replay/slug-collision/legacy-compat/no-asset-registration) + orgs/missions/drops/abuse regressions green; host wizard mobile/desktop QA green; live on production. P8.2–P8.4 remain. |
-| P8.2 | Source-backed asset registration | Every registered asset requires sources (issuer docs, contracts, Horizon records); unsourced rejected | Registration-validation tests | Planned |
+| P8.2 | Source-backed asset registration | Every registered asset requires sources (issuer docs, contracts, Horizon records); unsourced rejected | Registration-validation tests | Complete 2026-10-18: canonical-identity validation (Stellar Classic/contract, EVM Base+Ethereum, Solana; malformed/mismatched/unsupported rejected), required issuer docs + chain records (valid shape only — every request carries UNVERIFIED finding), applicant-owned requests with cross-applicant isolation, admin-only approve/reject/needs-evidence, approval writes exactly one `Studio-registered (issuer unverified)` assets row (no circle, no capabilities, no routes), catalogue-collision + approved-duplicate fail closed, idempotent replay, hosting approval creates nothing; `registration:verify` matrix green + host-onboarding/orgs/asset-circles/drops/auth/role regressions green; 390–1440 zero overflow locally + production `/host` section live. P8.3–P8.4 remain. |
 | P8.3 | Project-funded campaign management | Create → treasury copy → fund → hash verify → activate → payouts with budget dashboard | `campaign-funding:verify` + manual E2E §G | Planned |
 | P8.4 | Analytics + distribution evidence | Views, completions, payouts, distribution proofs per campaign; no invented metrics | Metrics-audit (every number traceable) | Planned |
 
 **Dependencies:** P6 campaign controls (shared); P4 receipts for distribution proof.
 **Blockers/risks:** Issuer responsiveness; source quality; funding custody (dedicated treasury keys, never reused).
-**Status:** Planned.
+**Status:** Partial — P8.1 + P8.2 complete 2026-10-18; P8.3–P8.4 remain.
 
 ---
 
@@ -501,7 +501,7 @@ Exit signal: cross-chain routes tracked with recovery; basket execution with con
 
 | # | Blocker | Impact | Owner / next step |
 |---|---|---|---|
-| 1 | No financial-production (D) `DATABASE_URL`; migrations `0000→0027` (28 files) not run in (D); (C) QA historically migrated | Cannot deploy (D) honestly | Provision Neon (D) → migrate → `db:verify` |
+| 1 | No financial-production (D) `DATABASE_URL`; migrations `0000→0031` (32 files) not run in (D); (C) QA historically migrated | Cannot deploy (D) honestly | Provision Neon (D) → migrate → `db:verify` |
 | 2 | `VICUS_APP_URL` value/binding unverified from shell: key PRESENT in (A), contents NOT ACCESSIBLE in (B); `https://…` origin + `VICUS_HOME_DOMAIN` still required for (D) (prod build rejects non-https) | Auth/session scope + boot failure risk in (D) | Verify origin binding; set (D) origin + home domain |
 | 3 | Reward-distributor + Lab-issuer keys PRESENT in (A, funding unknown); campaign-secret keys NOT PRESENT in (A); no funded (D) treasury | No funded payouts | Issue dedicated funded (D) treasury keys; set `VICUS_CAMPAIGN_MAX_USDC`, `VICUS_REWARD_MAX_XLM`; never reuse test keys |
 | 4 | `VICUS_ENABLE_MAINNET_REWARDS` must remain unset | Mainnet rewards stay off (correct) | Confirm unset pre-deploy; separate payout ceremony before ever setting |
@@ -559,7 +559,7 @@ Every financial action records: state (`claimable → submitted → confirmed` o
 
 ### I.4 Verifier catalogue (existing, reuse — do not reinvent)
 
-`db · mission · auth · reward · watch · social · community · role · ecosystem · hub · admin · org · spaces · utility · activation · lab · access · classification · stellar-assets · send · asset-access · asset-actions · campaign-funding · external-utility · exit · generalized-access · external-assets · agent-api · crosschain-send · watch-center · positions · lending · return-stellar · broader-access · stellar-home · representations · asset-circles · conviction · personalized-activity · utility-discovery · wave3-ia · contacts · lifecycle` — each as `npm run <name>:verify`. See `package.json` scripts.
+`db · mission · auth · reward · watch · social · community · role · ecosystem · hub · admin · org · spaces · utility · activation · lab · access · classification · stellar-assets · send · asset-access · asset-actions · campaign-funding · external-utility · exit · generalized-access · external-assets · agent-api · crosschain-send · watch-center · positions · lending · return-stellar · broader-access · stellar-home · representations · asset-circles · conviction · personalized-activity · utility-discovery · wave3-ia · contacts · lifecycle · abuse · prices · loyalty · drop-providers · reputation · host-onboarding · registration` — each as `npm run <name>:verify`. See `package.json` scripts.
 
 ### I.5 Failure loop
 
@@ -567,7 +567,7 @@ Inspect exact failure → inspect only implicated code → smallest corrective e
 
 ---
 
-## J. Current active work (synced 2026-10-14)
+## J. Current active work (synced 2026-10-18)
 
 ### P0.1 — EXISTING FUNCTIONALITY & E2E GAP INVENTORY
 
@@ -595,7 +595,8 @@ Delivered (all checked against repository truth):
 
 ### Next active work
 
-- **Next buildable product milestone: P8.2 Source-backed asset registration** (P7.3 complete 2026-10-17, live; P7.2 blocked on the holder-gated channel lane; P7 stays open; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
+- **Next buildable product milestone: P8.3 Project-funded campaign management** (P8.2 complete 2026-10-18, live; P7.2 blocked on the holder-gated channel lane; P7 stays open; owner-witnessed financial E2E (P0.2–P0.4) remains pending alongside).
+- Campaign-funding hash verification + treasury copy already exist in `src/lib/campaigns/` — P8.3 needs Studio wiring + budget dashboard + manual E2E §G.
 - P1.1 logo/card system stays parallel-safe (needs artwork).
 - **P0.2–P0.4 owner-dependent E2E stays pending** alongside (human wallets, Testnet funding, witnessed receipts).
 - P2 Compass complete 2026-10-14 (P2.1 `7b8ebb3`, P2.2 `56130f6`, P2.3 `5684ae8`, all live — see log).
@@ -615,6 +616,7 @@ Delivered (all checked against repository truth):
 - P1 phase complete 2026-10-16 (P1.2 mobile pass: zero overflow 360–1440, pinned sheet hero, full interaction suite green on production).
 - Research workstream 2026-10-16: tokenized-stock coverage + Stellar trading feasibility (`docs/Tokenized_Stock_Coverage.md`) — no verified Stellar stock representation (clone soup rejected with live book/trade/TOML evidence); AAPLx/TSLAx quote-available + implemented-unwitnessed; AAPLc/NVDAc venue-gated; Stellar DEX mechanism ready but market absent; next build is P0.4 witnessed AAPLx settlement (owner-dependent), no new engineering. Trading NOT shipped; all 43 IDs intact.
 - First-visit interest onboarding 2026-10-16 (dialog + interest ordering + device-local prefs, UI Recovery, live).
+- P8.2 source-backed registration 2026-10-18 (canonical identity + required sources + admin-only registry write + collision/duplicate guards + `registration:verify`; host/admin UI live; 43 IDs intact).
 
 ---
 
@@ -685,7 +687,8 @@ After each completed milestone:
 | 2026-10-17 | P7.2 corrected to Blocked (holder-gated channel lane unbuilt; boundary + freshness + privacy remain live) | This sync |
 | 2026-10-17 | P7.3 complete (ranking matrix + directory UX; 43 IDs intact) | This sync |
 | 2026-10-17 | P8.1 complete (staged onboarding + draft lifecycle + audit trail; 43 IDs intact) | This sync |
-| 2026-10-17 | P7.2 complete (freshness gate + default-private display; channel lane deferred honestly; 43 IDs intact) | This sync |
+| 2026-10-17 | P7.2 Blocked reaffirmed (freshness gate + default-private display live; holder-gated discussion channel still unbuilt — prior log row claiming P7.2 complete is corrected here; 43 IDs intact) | Correction sync |
+| 2026-10-18 | P8.2 complete (canonical-identity validation + source requirements + admin-only registry writes + duplicate/collision guards; 43 IDs intact) | This sync |
 
 ---
 
@@ -710,7 +713,7 @@ After each completed milestone:
 | Agent API → Ecosystem APIs | `src/lib/agent-api/`, `src/app/api/v1/` |
 | Lifecycle / classification / subjects | `src/lib/lifecycle/`, `src/lib/activation/`, `src/app/subjects/`, `src/app/compare/` |
 | Verifiers | `scripts/verify-*.ts` (see §I.4) |
-| Migrations | `drizzle/0000–0027` |
+| Migrations | `drizzle/0000–0031` (32 files) |
 | E2E + readiness inputs | `docs/manual-e2e.md`, `docs/production-readiness.md`, `docs/demo-proof-manifest.md` |
 | Architecture baseline | `docs/ARCHITECTURE.md` |
 
@@ -740,7 +743,7 @@ Mainnet rewards remain behind `VICUS_ENABLE_MAINNET_REWARDS` (off by default, un
 Inputs merged into this canonical document (authority order: this doc → code/verifiers → E2E/readiness manifests → slice docs → PRD/brand):
 
 - `package.json` — scripts (verifier catalogue), dependencies
-- `drizzle/` — migrations 0000–0027, schema evolution
+- `drizzle/` — migrations 0000–0031, schema evolution
 - `src/lib/*`, `src/app/*`, `src/components/*` — implementation inventory (§C)
 - `scripts/verify-*.ts` — proof standards (§I)
 - `docs/manual-e2e.md` — pending human flows (P0 scope)
